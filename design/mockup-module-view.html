@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeView — Module Level View</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --surface-base: #0B0E14;
+    --surface-raised: #111620;
+    --surface-overlay: #161C2A;
+    --surface-elevated: #1C2333;
+    --surface-glass: rgba(22, 28, 42, 0.85);
+    --layer-ui: #5B8DEF;
+    --layer-ui-soft: rgba(91, 141, 239, 0.12);
+    --layer-ui-glow: rgba(91, 141, 239, 0.25);
+    --layer-api: #43D9A2;
+    --layer-api-soft: rgba(67, 217, 162, 0.12);
+    --layer-data: #F0A45D;
+    --layer-data-soft: rgba(240, 164, 93, 0.12);
+    --layer-utils: #8B8FA3;
+    --layer-utils-soft: rgba(139, 143, 163, 0.10);
+    --layer-external: #B07CE8;
+    --layer-external-soft: rgba(176, 124, 232, 0.12);
+    --text-primary: #E8ECF4;
+    --text-secondary: #8B8FA3;
+    --text-tertiary: #555B6E;
+    --accent: #5B8DEF;
+    --accent-soft: rgba(91, 141, 239, 0.15);
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-medium: rgba(255, 255, 255, 0.10);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --font-display: 'Instrument Sans', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: var(--font-body);
+    background: var(--surface-base);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .app {
+    display: grid;
+    grid-template-rows: 56px 1fr;
+    height: 100vh;
+  }
+
+  /* Top bar (simplified for this view) */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .topbar-left { display: flex; align-items: center; gap: 16px; }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: -0.02em;
+  }
+
+  .logo-icon {
+    width: 28px; height: 28px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--layer-ui), var(--layer-api));
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .logo-icon svg { width: 16px; height: 16px; fill: white; }
+
+  .topbar-center {
+    display: flex; align-items: center; gap: 2px;
+    background: var(--surface-overlay);
+    border-radius: var(--radius-md);
+    padding: 3px;
+    border: 1px solid var(--border-subtle);
+  }
+
+  .zoom-btn {
+    padding: 6px 14px;
+    font-size: 12px; font-family: var(--font-body); font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent; border: none;
+    border-radius: 7px; cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .zoom-btn.active {
+    color: var(--text-primary);
+    background: var(--surface-elevated);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  /* Canvas */
+  .canvas {
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 30% 40%, rgba(91, 141, 239, 0.04) 0%, transparent 50%),
+      var(--surface-base);
+  }
+
+  .canvas::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Breadcrumb */
+  .breadcrumb {
+    position: absolute;
+    top: 16px; left: 16px;
+    display: flex; align-items: center; gap: 4px;
+    z-index: 10; font-size: 12px;
+  }
+
+  .bc-item {
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--surface-glass);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-subtle);
+    transition: all 0.15s;
+  }
+
+  .bc-item:hover { color: var(--text-secondary); border-color: var(--border-medium); }
+  .bc-item.current { color: var(--text-primary); font-weight: 500; }
+  .bc-sep { color: var(--text-tertiary); opacity: 0.4; font-size: 10px; }
+
+  /* Module-level view: expanded directory cards */
+  .module-grid {
+    position: absolute;
+    inset: 60px 30px 30px 30px;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .module-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s var(--ease-out);
+    cursor: pointer;
+    animation: card-in 0.4s var(--ease-out) both;
+    overflow: hidden;
+  }
+
+  .module-card:nth-child(1) { animation-delay: 0.05s; }
+  .module-card:nth-child(2) { animation-delay: 0.10s; }
+  .module-card:nth-child(3) { animation-delay: 0.15s; }
+  .module-card:nth-child(4) { animation-delay: 0.20s; }
+  .module-card:nth-child(5) { animation-delay: 0.25s; }
+  .module-card:nth-child(6) { animation-delay: 0.30s; }
+
+  @keyframes card-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .module-card:hover {
+    border-color: var(--border-medium);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  }
+
+  .module-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .module-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .module-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  .module-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: -0.01em;
+  }
+
+  .module-count {
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--text-tertiary);
+    padding: 2px 8px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+  }
+
+  .module-path {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-bottom: 14px;
+  }
+
+  .module-files {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+  }
+
+  .file-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    transition: background 0.15s;
+  }
+
+  .file-row:hover {
+    background: rgba(255,255,255,0.03);
+  }
+
+  .file-icon {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+
+  .file-name { color: var(--text-primary); font-weight: 500; flex: 1; }
+  .file-type { color: var(--text-tertiary); font-family: var(--font-mono); font-size: 10px; }
+
+  /* Layer-specific coloring */
+  .module-card.auth { border-left: 3px solid var(--layer-ui); }
+  .module-card.auth .module-dot { background: var(--layer-ui); }
+  .module-card.auth .module-name { color: var(--layer-ui); }
+  .module-card.auth .file-icon { background: var(--layer-ui-soft); color: var(--layer-ui); }
+
+  .module-card.dashboard { border-left: 3px solid var(--layer-ui); }
+  .module-card.dashboard .module-dot { background: var(--layer-ui); }
+  .module-card.dashboard .module-name { color: var(--layer-ui); }
+  .module-card.dashboard .file-icon { background: var(--layer-ui-soft); color: var(--layer-ui); }
+
+  .module-card.api-routes { border-left: 3px solid var(--layer-api); }
+  .module-card.api-routes .module-dot { background: var(--layer-api); }
+  .module-card.api-routes .module-name { color: var(--layer-api); }
+  .module-card.api-routes .file-icon { background: var(--layer-api-soft); color: var(--layer-api); }
+
+  .module-card.models { border-left: 3px solid var(--layer-data); }
+  .module-card.models .module-dot { background: var(--layer-data); }
+  .module-card.models .module-name { color: var(--layer-data); }
+  .module-card.models .file-icon { background: var(--layer-data-soft); color: var(--layer-data); }
+
+  .module-card.utils-card { border-left: 3px solid var(--layer-utils); }
+  .module-card.utils-card .module-dot { background: var(--layer-utils); }
+  .module-card.utils-card .module-name { color: var(--layer-utils); }
+  .module-card.utils-card .file-icon { background: var(--layer-utils-soft); color: var(--layer-utils); }
+
+  .module-card.external-card { border-left: 3px solid var(--layer-external); }
+  .module-card.external-card .module-dot { background: var(--layer-external); }
+  .module-card.external-card .module-name { color: var(--layer-external); }
+  .module-card.external-card .file-icon { background: var(--layer-external-soft); color: var(--layer-external); }
+
+  /* Connection lines between module cards */
+  .module-connections {
+    position: absolute;
+    top: 60px; left: 30px; right: 30px; bottom: 30px;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* Activity indicator */
+  .file-activity {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .file-activity.recent { background: var(--layer-data); animation: pulse-sm 2s infinite; }
+  .file-activity.new { background: var(--layer-ui); }
+
+  @keyframes pulse-sm {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        CodeView
+      </div>
+    </div>
+    <div class="topbar-center">
+      <button class="zoom-btn">Architecture</button>
+      <button class="zoom-btn active">Modules</button>
+      <button class="zoom-btn">Components</button>
+    </div>
+    <div style="width: 100px"></div>
+  </header>
+
+  <main class="canvas">
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+      <span class="bc-item">All Layers</span>
+      <span class="bc-sep">&#9656;</span>
+      <span class="bc-item current">All Modules</span>
+    </div>
+
+    <!-- Module grid -->
+    <div class="module-grid">
+
+      <!-- Auth Module -->
+      <div class="module-card auth">
+        <div class="module-header">
+          <div class="module-title">
+            <span class="module-dot"></span>
+            <span class="module-name">Authentication</span>
+          </div>
+          <span class="module-count">4 files</span>
+        </div>
+        <div class="module-path">src/auth/</div>
+        <div class="module-files">
+          <div class="file-row">
+            <div class="file-icon">P</div>
+            <span class="file-name">Login Page</span>
+            <span class="file-type">page</span>
+            <span class="file-activity recent"></span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">P</div>
+            <span class="file-name">Register Page</span>
+            <span class="file-type">page</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">C</div>
+            <span class="file-name">Auth Provider</span>
+            <span class="file-type">context</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">H</div>
+            <span class="file-name">Use Auth</span>
+            <span class="file-type">hook</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Module -->
+      <div class="module-card dashboard">
+        <div class="module-header">
+          <div class="module-title">
+            <span class="module-dot"></span>
+            <span class="module-name">Dashboard</span>
+          </div>
+          <span class="module-count">6 files</span>
+        </div>
+        <div class="module-path">src/dashboard/</div>
+        <div class="module-files">
+          <div class="file-row">
+            <div class="file-icon">P</div>
+            <span class="file-name">Dashboard Page</span>
+            <span class="file-type">page</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">C</div>
+            <span class="file-name">Stats Card</span>
+            <span class="file-type">component</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">C</div>
+            <span class="file-name">Activity Feed</span>
+            <span class="file-type">component</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">C</div>
+            <span class="file-name">Chart Widget</span>
+            <span class="file-type">component</span>
+            <span class="file-activity new"></span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">C</div>
+            <span class="file-name">Quick Actions</span>
+            <span class="file-type">component</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">L</div>
+            <span class="file-name">Dashboard Layout</span>
+            <span class="file-type">layout</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Routes Module -->
+      <div class="module-card api-routes">
+        <div class="module-header">
+          <div class="module-title">
+            <span class="module-dot"></span>
+            <span class="module-name">API Routes</span>
+          </div>
+          <span class="module-count">8 files</span>
+        </div>
+        <div class="module-path">src/api/</div>
+        <div class="module-files">
+          <div class="file-row">
+            <div class="file-icon">R</div>
+            <span class="file-name">Auth API</span>
+            <span class="file-type">POST</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">R</div>
+            <span class="file-name">Users API</span>
+            <span class="file-type">GET</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">R</div>
+            <span class="file-name">Billing API</span>
+            <span class="file-type">POST</span>
+            <span class="file-activity new"></span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">R</div>
+            <span class="file-name">Settings API</span>
+            <span class="file-type">PUT</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">M</div>
+            <span class="file-name">Auth Middleware</span>
+            <span class="file-type">middleware</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Models Module -->
+      <div class="module-card models">
+        <div class="module-header">
+          <div class="module-title">
+            <span class="module-dot"></span>
+            <span class="module-name">Data Models</span>
+          </div>
+          <span class="module-count">6 files</span>
+        </div>
+        <div class="module-path">prisma/schema.prisma</div>
+        <div class="module-files">
+          <div class="file-row">
+            <div class="file-icon">M</div>
+            <span class="file-name">User</span>
+            <span class="file-type">model</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">M</div>
+            <span class="file-name">Session</span>
+            <span class="file-type">model</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">M</div>
+            <span class="file-name">Invoice</span>
+            <span class="file-type">model</span>
+            <span class="file-activity new"></span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">M</div>
+            <span class="file-name">Subscription</span>
+            <span class="file-type">model</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Utilities Module -->
+      <div class="module-card utils-card">
+        <div class="module-header">
+          <div class="module-title">
+            <span class="module-dot"></span>
+            <span class="module-name">Utilities</span>
+          </div>
+          <span class="module-count">9 files</span>
+        </div>
+        <div class="module-path">src/utils/</div>
+        <div class="module-files">
+          <div class="file-row">
+            <div class="file-icon">U</div>
+            <span class="file-name">Form Validation</span>
+            <span class="file-type">util</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">U</div>
+            <span class="file-name">JWT Utils</span>
+            <span class="file-type">util</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">U</div>
+            <span class="file-name">Date Formatter</span>
+            <span class="file-type">util</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">U</div>
+            <span class="file-name">Error Handler</span>
+            <span class="file-type">util</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- External Services Module -->
+      <div class="module-card external-card">
+        <div class="module-header">
+          <div class="module-title">
+            <span class="module-dot"></span>
+            <span class="module-name">External Services</span>
+          </div>
+          <span class="module-count">3 files</span>
+        </div>
+        <div class="module-path">src/services/</div>
+        <div class="module-files">
+          <div class="file-row">
+            <div class="file-icon">S</div>
+            <span class="file-name">Stripe Client</span>
+            <span class="file-type">service</span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">S</div>
+            <span class="file-name">SendGrid Mailer</span>
+            <span class="file-type">service</span>
+            <span class="file-activity recent"></span>
+          </div>
+          <div class="file-row">
+            <div class="file-icon">S</div>
+            <span class="file-name">S3 Storage</span>
+            <span class="file-type">service</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+</body>
+</html>
