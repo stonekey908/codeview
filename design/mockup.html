@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-mode="descriptive">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeView — Design Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ═══════════════════════════════════════════════════════════════
+     DARK THEME
+     ═══════════════════════════════════════════════════════════════ */
+  /* shadcn zinc palette — dark */
+  [data-theme="dark"] {
+    --bg: #09090B; --surface: #18181B; --surface2: #27272A;
+    --surface3: #3F3F46; --glass: rgba(24,24,27,0.92);
+    --text: #FAFAFA; --text2: #A1A1AA; --text3: #52525B;
+    --border: #27272A; --border2: #3F3F46;
+    --dot: rgba(255,255,255,0.04); --glow-bg: transparent;
+    --node-bg: #18181B; --node-hover: #27272A;
+    --code-bg: #09090B; --shadow: rgba(0,0,0,0.5);
+    --edge-color: #27272A;
+  }
+
+  /* shadcn zinc palette — light */
+  [data-theme="light"] {
+    --bg: #FAFAFA; --surface: #FFFFFF; --surface2: #F4F4F5;
+    --surface3: #E4E4E7; --glass: rgba(255,255,255,0.92);
+    --text: #09090B; --text2: #71717A; --text3: #A1A1AA;
+    --border: #E4E4E7; --border2: #D4D4D8;
+    --dot: rgba(0,0,0,0.04); --glow-bg: transparent;
+    --node-bg: #FFFFFF; --node-hover: #F4F4F5;
+    --code-bg: #FAFAFA; --shadow: rgba(0,0,0,0.06);
+    --edge-color: #E4E4E7;
+  }
+
+  :root {
+    /* Muted layer colors — shadcn/Apple inspired */
+    --ui: #3B82F6; --ui-s: rgba(59,130,246,0.08);
+    --api: #22C55E; --api-s: rgba(34,197,94,0.08);
+    --data: #F59E0B; --data-s: rgba(245,158,11,0.08);
+    --util: #71717A; --util-s: rgba(113,113,122,0.06);
+    --ext: #A855F7; --ext-s: rgba(168,85,247,0.08);
+    --accent: #3B82F6; --accent-s: rgba(59,130,246,0.10);
+    --green: #22C55E;
+    --ff: 'DM Sans', sans-serif;
+    --fd: 'Instrument Sans', sans-serif;
+    --fm: 'JetBrains Mono', monospace;
+    --r: 10px; --rs: 6px;
+    --ease: cubic-bezier(0.16,1,0.3,1);
+  }
+
+  [data-theme="light"] {
+    --ui-s: rgba(59,130,246,0.06); --api-s: rgba(34,197,94,0.06);
+    --data-s: rgba(245,158,11,0.06); --util-s: rgba(113,113,122,0.04);
+    --ext-s: rgba(168,85,247,0.06);
+  }
+
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: var(--ff); background: var(--bg); color: var(--text);
+    overflow: hidden; height: 100vh; -webkit-font-smoothing: antialiased;
+    transition: background .3s, color .3s;
+  }
+
+  .app { display: grid; grid-template-rows: 48px 1fr auto; height: 100vh; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     TOPBAR
+     ═══════════════════════════════════════════════════════════════ */
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px; background: var(--surface); border-bottom: 1px solid var(--border);
+    z-index: 100; transition: background .3s, border-color .3s;
+  }
+  .tb-l, .tb-r { display: flex; align-items: center; gap: 8px; }
+
+  .logo {
+    display: flex; align-items: center; gap: 8px;
+    font-family: var(--fd); font-weight: 700; font-size: 15px; letter-spacing: -.02em;
+  }
+  .logo-i {
+    width: 24px; height: 24px; border-radius: 5px;
+    background: linear-gradient(135deg, var(--ui), var(--api));
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-i svg { width: 13px; height: 13px; fill: white; }
+
+  .proj {
+    display: flex; align-items: center; gap: 6px;
+    padding: 3px 10px; background: var(--surface2); border-radius: 14px;
+    font-size: 11px; font-family: var(--fm); color: var(--text2);
+    border: 1px solid var(--border); transition: background .3s, border-color .3s;
+  }
+  .proj .d { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pd 2s ease-in-out infinite; }
+  @keyframes pd { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  .seg {
+    display: flex; gap: 1px; background: var(--surface2); border-radius: 8px;
+    padding: 2px; border: 1px solid var(--border); transition: background .3s, border-color .3s;
+  }
+  .seg button {
+    padding: 4px 12px; font-size: 11px; font-family: var(--ff); font-weight: 500;
+    color: var(--text2); background: 0; border: 0; border-radius: 6px; cursor: pointer;
+    transition: all .15s;
+  }
+  .seg button:hover { color: var(--text); }
+  .seg button.on { color: var(--text); background: var(--surface3); box-shadow: 0 1px 2px var(--shadow); }
+
+  /* Descriptive mode toggle */
+  .mode-tog {
+    display: flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 14px; font-size: 11px; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--border); background: 0;
+    color: var(--text2); transition: all .2s;
+  }
+  .mode-tog:hover { border-color: var(--border2); color: var(--text); }
+  .mode-tog.on { background: var(--accent-s); border-color: rgba(91,141,239,0.3); color: var(--accent); }
+  .mode-tog .eye { font-size: 13px; }
+
+  .ib {
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    border-radius: var(--rs); border: 1px solid var(--border); background: 0;
+    color: var(--text2); cursor: pointer; transition: all .15s; font-size: 13px;
+  }
+  .ib:hover { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+  .ib svg { width: 14px; height: 14px; }
+
+  .search {
+    display: flex; align-items: center; gap: 6px; padding: 4px 10px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: var(--rs);
+    color: var(--text3); font-size: 11px; min-width: 160px; cursor: text;
+    transition: background .3s, border-color .3s;
+  }
+  .search:hover { border-color: var(--border2); }
+  .search svg { width: 12px; height: 12px; opacity: .5; flex-shrink: 0; }
+  .search kbd {
+    font-family: var(--fm); font-size: 9px; padding: 1px 4px; background: var(--surface3);
+    border-radius: 3px; border: 1px solid var(--border); margin-left: auto; color: var(--text3);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     CANVAS
+     ═══════════════════════════════════════════════════════════════ */
+  .canvas {
+    position: relative; overflow: hidden;
+    background: radial-gradient(ellipse at 50% 40%, var(--glow-bg), transparent 60%), var(--bg);
+    transition: background .3s;
+  }
+  .canvas::before {
+    content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(circle, var(--dot) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* Edges SVG */
+  .edges { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+  .edge { fill: none; stroke: var(--edge-color); stroke-width: 1; stroke-linecap: round; }
+  .edge.hi { stroke: var(--accent); opacity: .3; stroke-width: 1.5; }
+  /* Arrow markers */
+  .edge-arrow { fill: var(--edge-color); }
+  .edge-arrow.hi { fill: var(--accent); opacity: .3; }
+
+  /* ─── LAYER GROUPS (draggable) ─── */
+  .grp {
+    position: absolute; border-radius: 12px; border: 1px solid var(--border);
+    padding: 12px 14px; backdrop-filter: blur(4px); z-index: 2;
+    transition: border-color .2s, box-shadow .2s; cursor: grab; user-select: none;
+    animation: gin .45s var(--ease) both;
+  }
+  .grp:active { cursor: grabbing; }
+  .grp:hover { border-color: var(--border2); }
+  .grp:nth-child(1){animation-delay:.05s}
+  .grp:nth-child(2){animation-delay:.1s}
+  .grp:nth-child(3){animation-delay:.15s}
+  .grp:nth-child(4){animation-delay:.2s}
+  .grp:nth-child(5){animation-delay:.25s}
+  @keyframes gin { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+
+  /* Neutral backgrounds with colored left border — shadcn style */
+  .grp.ui { background: var(--surface); border-left: 3px solid var(--ui); top: 60px; left: 60px; min-width: 264px; }
+  .grp.api { background: var(--surface); border-left: 3px solid var(--api); top: 60px; left: 420px; min-width: 264px; }
+  .grp.data { background: var(--surface); border-left: 3px solid var(--data); top: 400px; left: 240px; min-width: 240px; }
+  .grp.util { background: var(--surface); border-left: 3px solid var(--util); top: 60px; left: 780px; min-width: 216px; }
+  .grp.ext { background: var(--surface); border-left: 3px solid var(--ext); top: 360px; left: 620px; min-width: 240px; }
+
+  [data-theme="dark"] .grp { box-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+  [data-theme="light"] .grp { box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 0 0 1px var(--border); }
+  .grp.laying-out { transition: left 0.35s var(--ease), top 0.35s var(--ease); }
+
+  /* Connection handles — small dots on group edges */
+  .grp::after {
+    content: ''; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%);
+    width: 6px; height: 6px; border-radius: 50%; background: var(--border2);
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .grp::before {
+    content: ''; position: absolute; top: -4px; left: 50%; transform: translateX(-50%);
+    width: 6px; height: 6px; border-radius: 50%; background: var(--border2);
+    opacity: 0; transition: opacity 0.2s; z-index: 3;
+  }
+  .grp:hover::after, .grp:hover::before { opacity: 1; }
+
+  .gh { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .gt { display: flex; align-items: center; gap: 6px; font-family: var(--fd); font-weight: 600; font-size: 12px; letter-spacing: -.01em; }
+  .gd { width: 6px; height: 6px; border-radius: 50%; }
+  .gc { font-size: 10px; font-family: var(--fm); color: var(--text3); padding: 1px 6px; background: rgba(128,128,128,.06); border-radius: 6px; }
+
+  .grp.ui .gd{background:var(--ui)} .grp.ui .gt{color:var(--ui)}
+  .grp.api .gd{background:var(--api)} .grp.api .gt{color:var(--api)}
+  .grp.data .gd{background:var(--data)} .grp.data .gt{color:var(--data)}
+  .grp.util .gd{background:var(--util)} .grp.util .gt{color:var(--util)}
+  .grp.ext .gd{background:var(--ext)} .grp.ext .gt{color:var(--ext)}
+
+  /* Descriptive mode: group descriptions */
+  .grp-desc {
+    font-size: 11px; color: var(--text2); line-height: 1.4;
+    margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    display: none;
+  }
+  [data-mode="descriptive"] .grp-desc { display: block; }
+
+  /* ─── COMPONENT NODES ─── */
+  .nd {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 10px; background: var(--node-bg); border: 1px solid var(--border);
+    border-radius: 8px; margin-bottom: 4px; cursor: pointer;
+    transition: all .15s var(--ease); position: relative;
+  }
+  .nd:last-of-type { margin-bottom: 0; }
+  .nd:hover { border-color: var(--border2); background: var(--node-hover); }
+  .nd.sel { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(59,130,246,.12); background: rgba(59,130,246,.05); }
+  .nd.pulse { animation: npulse 1.5s ease-out; }
+  @keyframes npulse { 0%{box-shadow:0 0 0 0 rgba(232,148,61,.4)} 70%{box-shadow:0 0 0 6px rgba(232,148,61,0)} 100%{box-shadow:none} }
+
+  .ni {
+    width: 24px; height: 24px; border-radius: 5px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .ni svg { width: 12px; height: 12px; }
+  .ni.ui{background:var(--ui-s);color:var(--ui)} .ni.api{background:var(--api-s);color:var(--api)}
+  .ni.data{background:var(--data-s);color:var(--data)} .ni.util{background:var(--util-s);color:var(--util)}
+  .ni.ext{background:var(--ext-s);color:var(--ext)}
+
+  .nf { flex: 1; min-width: 0; }
+  .nl { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .nt { font-size: 10px; color: var(--text3); font-family: var(--fm); }
+
+  /* Descriptive mode: node descriptions */
+  .nd-desc {
+    font-size: 10px; color: var(--text2); line-height: 1.35;
+    margin-top: 2px; display: none;
+  }
+  [data-mode="descriptive"] .nd-desc { display: block; }
+  [data-mode="descriptive"] .nt { display: none; }
+
+  .badge {
+    font-size: 8px; font-weight: 600; padding: 2px 5px; border-radius: 3px;
+    text-transform: uppercase; letter-spacing: .04em; flex-shrink: 0;
+  }
+  .badge.new{background:var(--ui-s);color:var(--ui)} .badge.chg{background:var(--data-s);color:var(--data)}
+
+  /* Group stats */
+  .gs {
+    display: flex; gap: 12px; margin-top: 8px; padding-top: 6px;
+    border-top: 1px solid var(--border);
+  }
+  .gs-v { font-family: var(--fd); font-weight: 700; font-size: 15px; letter-spacing: -.02em; }
+  .gs-l { font-size: 8px; color: var(--text3); text-transform: uppercase; letter-spacing: .04em; }
+
+  /* ─── FLOATING UI ─── */
+  .pill {
+    position: absolute; display: flex; align-items: center; gap: 6px;
+    padding: 4px 11px; background: var(--glass); backdrop-filter: blur(10px);
+    border: 1px solid var(--border); border-radius: 16px; font-size: 11px;
+    color: var(--text2); z-index: 10; transition: background .3s, border-color .3s;
+  }
+  .pill b { color: var(--text); font-weight: 500; }
+
+  .lpill { top: 12px; left: 12px; }
+  .lpill .ld { width: 5px; height: 5px; border-radius: 50%; background: var(--green); box-shadow: 0 0 5px var(--green); animation: pd 2s ease-in-out infinite; }
+
+  .cpill {
+    top: 12px; right: 12px; color: var(--ext);
+    border-color: rgba(160,108,213,.15);
+  }
+  [data-theme="dark"] .cpill { background: rgba(160,108,213,.08); }
+  [data-theme="light"] .cpill { background: rgba(160,108,213,.05); }
+  .spin { width: 10px; height: 10px; border: 1.5px solid rgba(160,108,213,.3); border-top-color: var(--ext); border-radius: 50%; animation: sp .7s linear infinite; }
+  @keyframes sp { to{transform:rotate(360deg)} }
+
+  .sbadge {
+    top: 12px; left: 50%; transform: translateX(-50%);
+    background: var(--accent); color: #fff; font-weight: 600; border: 0;
+    box-shadow: 0 3px 12px rgba(91,141,239,.25);
+    animation: bin .3s cubic-bezier(.34,1.56,.64,1);
+    display: none;
+  }
+  .sbadge.vis { display: flex; }
+  @keyframes bin { from{transform:translateX(-50%) translateY(-4px) scale(.9);opacity:0} to{transform:translateX(-50%);opacity:1} }
+
+  /* Minimap */
+  .mmap {
+    position: absolute; bottom: 12px; left: 12px; width: 140px; height: 90px;
+    background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--border);
+    border-radius: 8px; z-index: 10; padding: 6px; overflow: hidden;
+    transition: background .3s, border-color .3s;
+  }
+  .mmap-vp { width: 40%; height: 40%; border: 1.5px solid var(--accent); border-radius: 2px; background: var(--accent-s); position: absolute; top: 10px; left: 8px; }
+  .mmap-d { position: absolute; border-radius: 50%; }
+
+  .cctrl { position: absolute; bottom: 12px; left: 164px; display: flex; gap: 3px; z-index: 10; }
+  .cc {
+    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+    background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--border);
+    border-radius: var(--rs); color: var(--text2); cursor: pointer; font-size: 14px;
+    transition: all .15s;
+  }
+  .cc:hover { background: var(--surface3); color: var(--text); border-color: var(--border2); }
+  .cc svg { width: 12px; height: 12px; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SIDEBAR — overlay
+     ═══════════════════════════════════════════════════════════════ */
+  .sb {
+    position: fixed; top: 48px; right: 0; bottom: 0; width: 360px;
+    background: var(--surface); border-left: 1px solid var(--border);
+    z-index: 200; overflow-y: auto; overflow-x: hidden;
+    transform: translateX(100%); transition: transform .3s var(--ease), background .3s, border-color .3s;
+    box-shadow: -4px 0 24px var(--shadow);
+  }
+  .sb.open { transform: translateX(0); }
+
+  .sb-h {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; background: var(--surface); z-index: 1;
+    transition: background .3s, border-color .3s;
+  }
+  .sb-t { font-family: var(--fd); font-weight: 600; font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; }
+  .sb-x {
+    width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+    border: 0; background: 0; color: var(--text3); cursor: pointer; border-radius: 4px;
+    font-size: 15px; transition: all .15s;
+  }
+  .sb-x:hover { background: var(--surface2); color: var(--text); }
+
+  .dt-hero { padding: 16px; border-bottom: 1px solid var(--border); transition: border-color .3s; }
+  .dt-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+  .dt-i { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+  .dt-i.ui { background: var(--ui-s); color: var(--ui); }
+  .dt-n { font-family: var(--fd); font-size: 16px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; }
+  .dt-p { font-family: var(--fm); font-size: 10.5px; color: var(--text3); margin-top: 2px; }
+  .dt-tags { display: flex; gap: 4px; flex-wrap: wrap; }
+  .dt-tag { padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: 500; }
+  .dt-tag.layer { background: var(--ui-s); color: var(--ui); }
+  .dt-tag.type { background: rgba(128,128,128,.06); color: var(--text2); }
+
+  /* Descriptive mode hero addition */
+  .dt-explain {
+    margin-top: 10px; padding: 10px 12px; background: var(--surface2);
+    border-radius: 8px; font-size: 12px; color: var(--text2); line-height: 1.5;
+    border-left: 3px solid var(--ui); display: none;
+  }
+  [data-mode="descriptive"] .dt-explain { display: block; }
+
+  .dt-sec { padding: 12px 16px; border-bottom: 1px solid var(--border); transition: border-color .3s; }
+  .dt-st { font-size: 9.5px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+
+  .cn { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: var(--rs); margin-bottom: 1px; cursor: pointer; transition: background .12s; }
+  .cn:hover { background: rgba(128,128,128,.05); }
+  .cn-d { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .cn-n { font-size: 12px; font-weight: 500; flex: 1; }
+  .cn-r { font-size: 10px; font-family: var(--fm); color: var(--text3); }
+
+  /* Descriptive mode: connection descriptions */
+  .cn-explain { font-size: 10px; color: var(--text3); margin-left: 11px; display: none; }
+  [data-mode="descriptive"] .cn-explain { display: block; }
+
+  /* Code section — word wrap + IDE link */
+  .code-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
+  }
+  .code-tog {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 10px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; cursor: pointer; transition: all .15s;
+    font-size: 11.5px; font-weight: 500; color: var(--text2); flex: 1;
+  }
+  .code-tog:hover { border-color: var(--border2); background: var(--surface3); }
+  .code-tog svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .code-tog .arr { color: var(--text3); font-size: 10px; margin-left: auto; transition: transform .2s; }
+  .code-tog.open .arr { transform: rotate(180deg); }
+
+  .ide-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 7px 10px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; font-size: 11px; font-weight: 500; color: var(--text2);
+    cursor: pointer; transition: all .15s; white-space: nowrap; text-decoration: none;
+  }
+  .ide-btn:hover { border-color: var(--border2); color: var(--text); background: var(--surface3); }
+  .ide-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+  .codeblk {
+    margin-top: 6px; background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; font-family: var(--fm); font-size: 11px;
+    line-height: 1.6; color: var(--text2); display: none;
+    white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;
+    max-height: 260px; overflow-y: auto;
+    transition: background .3s, border-color .3s;
+  }
+  .codeblk.open { display: block; animation: fi .2s var(--ease); }
+  @keyframes fi { from{opacity:0;transform:translateY(-3px)} to{opacity:1;transform:none} }
+  .kw{color:var(--ext)} .str{color:var(--api)} .fn{color:var(--ui)} .cmt{color:var(--text3)}
+
+  /* Git */
+  .gi { display: flex; align-items: flex-start; gap: 8px; padding: 6px 0; }
+  .gi + .gi { border-top: 1px solid var(--border); }
+  .gi-h { font-family: var(--fm); font-size: 9.5px; color: var(--accent); padding: 1px 5px; background: var(--accent-s); border-radius: 3px; flex-shrink: 0; margin-top: 1px; }
+  .gi-m { font-size: 11px; color: var(--text2); line-height: 1.3; }
+  .gi-t { font-size: 9.5px; color: var(--text3); margin-top: 1px; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     PROMPT PANEL
+     ═══════════════════════════════════════════════════════════════ */
+  .pp {
+    background: var(--surface); border-top: 1px solid var(--border);
+    z-index: 50; display: none; transition: background .3s, border-color .3s;
+    animation: pu .25s var(--ease);
+  }
+  .pp.vis { display: block; }
+  @keyframes pu { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+
+  .pp-chips {
+    display: flex; align-items: center; gap: 5px;
+    padding: 7px 12px; border-bottom: 1px solid var(--border); overflow-x: auto;
+  }
+  .pp-lbl { font-size: 9px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; flex-shrink: 0; }
+  .chip {
+    display: flex; align-items: center; gap: 4px;
+    padding: 2px 8px; background: var(--accent-s); border: 1px solid rgba(91,141,239,.25);
+    border-radius: 12px; font-size: 11px; font-weight: 500; color: var(--accent);
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .chip-d { width: 4px; height: 4px; border-radius: 50%; }
+  .chip-x { width: 12px; height: 12px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 9px; cursor: pointer; opacity: .5; }
+  .chip-x:hover { opacity: 1; }
+
+  .pp-row { display: flex; align-items: center; gap: 6px; padding: 7px 12px; }
+  .pp-in {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-family: var(--ff); font-size: 12.5px; color: var(--text);
+    outline: 0; transition: border-color .2s, background .3s;
+  }
+  .pp-in::placeholder { color: var(--text3); }
+  .pp-in:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(91,141,239,.12); }
+  .sendb {
+    display: flex; align-items: center; gap: 6px; padding: 8px 14px;
+    background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+    font-family: var(--ff); font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all .2s; white-space: nowrap;
+  }
+  .sendb:hover { background: #2563EB; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(59,130,246,.2); }
+  .sendb svg { width: 12px; height: 12px; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: 0; }
+  ::-webkit-scrollbar-thumb { background: rgba(128,128,128,.12); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="tb-l">
+      <div class="logo"><div class="logo-i"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>CodeView</div>
+      <div class="proj"><span class="d"></span>~/projects/my-saas-app</div>
+    </div>
+    <div class="seg">
+      <button class="on" onclick="setZ(this)">Architecture</button>
+      <button onclick="setZ(this)">Modules</button>
+      <button onclick="setZ(this)">Components</button>
+    </div>
+    <div class="tb-r">
+      <button class="mode-tog on" id="modeTog" onclick="toggleMode()" title="Toggle technical mode">
+        <span class="eye">&#128065;</span> Technical
+      </button>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <span>Search...</span><kbd>/</kbd>
+      </div>
+      <button class="ib" onclick="toggleTheme()" id="themeBtn" title="Toggle theme">&#9789;</button>
+    </div>
+  </header>
+
+  <!-- CANVAS -->
+  <main class="canvas" id="canvas">
+    <div class="pill lpill"><span class="ld"></span><b>47</b>&nbsp;components &middot; <b>83</b>&nbsp;connections</div>
+    <div class="pill cpill"><span class="spin"></span>Claude editing&nbsp;<b>auth/login.tsx</b></div>
+    <div class="pill sbadge" id="selBadge">3 selected</div>
+
+    <svg class="edges" id="edgesSvg" width="100%" height="100%"></svg>
+
+    <div class="graph" id="graph">
+      <!-- UI -->
+      <div class="grp ui" data-id="ui">
+        <div class="gh"><span class="gt"><span class="gd"></span>UI Components</span><span class="gc">12 files</span></div>
+        <div class="grp-desc">What users see and interact with — the screens, buttons, and forms that make up the app's interface.</div>
+        <div class="nd sel" onclick="toggleSel(this)" data-name="Login Page" data-layer="ui" data-desc="The screen where users enter their email and password to sign in">
+          <div class="ni ui"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg></div>
+          <div class="nf"><div class="nl">Login Page</div><div class="nt">React Component</div><div class="nd-desc">The screen where users sign in with email and password</div></div>
+          <span class="badge chg">Changed</span>
+        </div>
+        <div class="nd sel" onclick="toggleSel(this)" data-name="Dashboard" data-layer="ui" data-desc="The main home screen users see after logging in, showing key stats and activity">
+          <div class="ni ui"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg></div>
+          <div class="nf"><div class="nl">Dashboard</div><div class="nt">Next.js Page</div><div class="nd-desc">Main home screen with stats, charts, and recent activity</div></div>
+        </div>
+        <div class="nd" onclick="toggleSel(this)" data-name="Settings Panel" data-layer="ui" data-desc="Where users change their account preferences and app settings">
+          <div class="ni ui"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg></div>
+          <div class="nf"><div class="nl">Settings Panel</div><div class="nt">React Component</div><div class="nd-desc">Where users change their account preferences and settings</div></div>
+        </div>
+        <div class="gs">
+          <div><div class="gs-v" style="color:var(--ui)">12</div><div class="gs-l">Components</div></div>
+          <div><div class="gs-v" style="color:var(--ui)">28</div><div class="gs-l">Connections</div></div>
+        </div>
+      </div>
+
+      <!-- API -->
+      <div class="grp api" data-id="api">
+        <div class="gh"><span class="gt"><span class="gd"></span>API Routes</span><span class="gc">8 files</span></div>
+        <div class="grp-desc">The behind-the-scenes handlers that process requests — login attempts, data lookups, payments.</div>
+        <div class="nd sel" onclick="toggleSel(this)" data-name="Auth API" data-layer="api" data-desc="Handles login and registration requests from the Login Page">
+          <div class="ni api"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+          <div class="nf"><div class="nl">Auth API</div><div class="nt">POST /api/auth</div><div class="nd-desc">Handles login and registration requests</div></div>
+        </div>
+        <div class="nd" onclick="toggleSel(this)" data-name="Users API" data-layer="api" data-desc="Fetches user profile data for the dashboard and settings">
+          <div class="ni api"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+          <div class="nf"><div class="nl">Users API</div><div class="nt">GET /api/users</div><div class="nd-desc">Fetches user profiles for dashboard and settings</div></div>
+        </div>
+        <div class="nd" onclick="toggleSel(this)" data-name="Billing API" data-layer="api" data-desc="Processes subscription payments and manages billing through Stripe">
+          <div class="ni api"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+          <div class="nf"><div class="nl">Billing API</div><div class="nt">POST /api/billing</div><div class="nd-desc">Processes payments and manages subscriptions via Stripe</div></div>
+          <span class="badge new">New</span>
+        </div>
+      </div>
+
+      <!-- DATA -->
+      <div class="grp data" data-id="data">
+        <div class="gh"><span class="gt"><span class="gd"></span>Data Layer</span><span class="gc">6 files</span></div>
+        <div class="grp-desc">The database structure — defines what information is stored (users, sessions, invoices) and how it's organised.</div>
+        <div class="nd" onclick="toggleSel(this)" data-name="User Model" data-layer="data" data-desc="Stores user accounts — email, password hash, name, and preferences">
+          <div class="ni data"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
+          <div class="nf"><div class="nl">User Model</div><div class="nt">Prisma Schema</div><div class="nd-desc">Stores user accounts — emails, passwords, names</div></div>
+        </div>
+        <div class="nd" onclick="toggleSel(this)" data-name="Session Store" data-layer="data" data-desc="Keeps track of who is currently logged in and their active sessions">
+          <div class="ni data"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
+          <div class="nf"><div class="nl">Session Store</div><div class="nt">Prisma Schema</div><div class="nd-desc">Tracks who is logged in and their active sessions</div></div>
+        </div>
+        <div class="nd" onclick="toggleSel(this)" data-name="Invoice Model" data-layer="data" data-desc="Records of all payments, billing amounts, and subscription history">
+          <div class="ni data"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
+          <div class="nf"><div class="nl">Invoice Model</div><div class="nt">Prisma Schema</div><div class="nd-desc">Records of payments, billing, and subscription history</div></div>
+          <span class="badge new">New</span>
+        </div>
+      </div>
+
+      <!-- UTILS -->
+      <div class="grp util" data-id="util">
+        <div class="gh"><span class="gt"><span class="gd"></span>Utilities</span><span class="gc">9 files</span></div>
+        <div class="grp-desc">Shared helper tools used across the app — form checking, security tokens, date formatting.</div>
+        <div class="nd" onclick="toggleSel(this)" data-name="Form Validation" data-layer="util" data-desc="Checks that form fields are filled in correctly before submitting">
+          <div class="ni util"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+          <div class="nf"><div class="nl">Form Validation</div><div class="nt">Utility</div><div class="nd-desc">Checks that forms are filled in correctly before submitting</div></div>
+        </div>
+        <div class="nd" onclick="toggleSel(this)" data-name="JWT Utils" data-layer="util" data-desc="Manages security tokens that keep users logged in safely">
+          <div class="ni util"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <div class="nf"><div class="nl">JWT Utils</div><div class="nt">Utility</div><div class="nd-desc">Manages security tokens that keep users logged in safely</div></div>
+        </div>
+      </div>
+
+      <!-- EXTERNAL -->
+      <div class="grp ext" data-id="ext">
+        <div class="gh"><span class="gt"><span class="gd"></span>External Services</span><span class="gc">3 files</span></div>
+        <div class="grp-desc">Third-party services the app connects to — Stripe for payments, SendGrid for emails, S3 for file storage.</div>
+        <div class="nd" onclick="toggleSel(this)" data-name="Stripe Client" data-layer="ext" data-desc="Connects to Stripe to process credit card payments and subscriptions">
+          <div class="ni ext"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
+          <div class="nf"><div class="nl">Stripe Client</div><div class="nt">External API</div><div class="nd-desc">Processes credit card payments and manages subscriptions</div></div>
+        </div>
+        <div class="nd pulse" onclick="toggleSel(this)" data-name="SendGrid Mailer" data-layer="ext" data-desc="Sends emails to users — password resets, welcome emails, notifications">
+          <div class="ni ext"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
+          <div class="nf"><div class="nl">SendGrid Mailer</div><div class="nt">External API</div><div class="nd-desc">Sends emails — password resets, welcome emails, notifications</div></div>
+          <span class="badge chg">Changed</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Minimap -->
+    <div class="mmap">
+      <div class="mmap-vp"></div>
+      <div class="mmap-d" style="top:15px;left:20px;width:5px;height:5px;background:var(--ui)"></div>
+      <div class="mmap-d" style="top:15px;left:55px;width:5px;height:5px;background:var(--api)"></div>
+      <div class="mmap-d" style="top:55px;left:38px;width:4px;height:4px;background:var(--data)"></div>
+      <div class="mmap-d" style="top:15px;left:90px;width:4px;height:4px;background:var(--util)"></div>
+      <div class="mmap-d" style="top:50px;left:80px;width:4px;height:4px;background:var(--ext)"></div>
+    </div>
+    <div class="cctrl">
+      <button class="cc">+</button><button class="cc">&minus;</button>
+      <button class="cc" title="Fit to view"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
+      <button class="cc" onclick="tidyUp()" title="Auto-layout" style="font-size:12px;width:auto;padding:0 10px;gap:4px;display:flex;align-items:center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Tidy up
+      </button>
+    </div>
+  </main>
+
+  <!-- PROMPT PANEL -->
+  <div class="pp vis" id="pp">
+    <div class="pp-chips" id="ppChips">
+      <span class="pp-lbl">Selected</span>
+    </div>
+    <div class="pp-row">
+      <input class="pp-in" type="text" placeholder="Ask Claude about these components...">
+      <button class="sendb">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy to Clipboard
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sb" id="sb">
+  <div class="sb-h">
+    <span class="sb-t">Component Detail</span>
+    <button class="sb-x" onclick="closeSb()">&times;</button>
+  </div>
+  <div class="dt-hero">
+    <div class="dt-top">
+      <div class="dt-i ui"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg></div>
+      <div><div class="dt-n">Login Page</div><div class="dt-p">src/auth/login.tsx</div></div>
+    </div>
+    <div class="dt-tags">
+      <span class="dt-tag layer">UI Layer</span>
+      <span class="dt-tag type">React Component</span>
+    </div>
+    <div class="dt-explain">
+      <strong>In plain English:</strong> This is the first screen users see when they need to sign in. It has email and password fields, validates what the user types, then sends the login request to the Auth API. If successful, users are redirected to the Dashboard.
+    </div>
+  </div>
+  <div class="dt-sec">
+    <div class="dt-st">Depends On (3)</div>
+    <div class="cn"><span class="cn-d" style="background:var(--api)"></span><span class="cn-n">Auth API</span><span class="cn-r">API Route</span></div>
+    <div class="cn-explain">Sends login credentials here to verify the user</div>
+    <div class="cn"><span class="cn-d" style="background:var(--util)"></span><span class="cn-n">Form Validation</span><span class="cn-r">Utility</span></div>
+    <div class="cn-explain">Checks email format and password length before submitting</div>
+    <div class="cn"><span class="cn-d" style="background:var(--util)"></span><span class="cn-n">JWT Utils</span><span class="cn-r">Utility</span></div>
+    <div class="cn-explain">Stores the login token so the user stays signed in</div>
+  </div>
+  <div class="dt-sec">
+    <div class="dt-st">Depended On By (1)</div>
+    <div class="cn"><span class="cn-d" style="background:var(--ui)"></span><span class="cn-n">App Layout</span><span class="cn-r">Layout</span></div>
+    <div class="cn-explain">The main app shell routes users here when not signed in</div>
+  </div>
+  <div class="dt-sec">
+    <div class="dt-st">Source Code</div>
+    <div class="code-bar">
+      <div class="code-tog" onclick="toggleCode()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Preview
+        <span class="arr">&#9662;</span>
+      </div>
+      <a class="ide-btn" href="vscode://file/Users/you/projects/my-saas-app/src/auth/login.tsx" title="Open in VS Code">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Open in IDE
+      </a>
+    </div>
+    <div class="codeblk" id="codeBlk"><span class="kw">import</span> { <span class="fn">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>
+<span class="kw">import</span> { <span class="fn">validateForm</span> } <span class="kw">from</span> <span class="str">'@/utils/validation'</span>
+<span class="kw">import</span> { <span class="fn">authApi</span> } <span class="kw">from</span> <span class="str">'@/api/auth'</span>
+
+<span class="kw">export default function</span> <span class="fn">LoginPage</span>() {
+  <span class="kw">const</span> [email, setEmail] = <span class="fn">useState</span>(<span class="str">''</span>)
+  <span class="kw">const</span> [password, setPassword] = <span class="fn">useState</span>(<span class="str">''</span>)
+
+  <span class="kw">const</span> <span class="fn">handleSubmit</span> = <span class="kw">async</span> () =&gt; {
+    <span class="kw">if</span> (!<span class="fn">validateForm</span>({ email, password })) <span class="kw">return</span>
+    <span class="kw">await</span> <span class="fn">authApi</span>.<span class="fn">login</span>({ email, password })
+  }
+
+  <span class="kw">return</span> (
+    &lt;<span class="fn">div</span> className=<span class="str">"flex min-h-screen items-center justify-center"</span>&gt;
+      &lt;<span class="fn">form</span> onSubmit={<span class="fn">handleSubmit</span>}&gt;
+        &lt;<span class="fn">Input</span> value={email} onChange={setEmail} placeholder=<span class="str">"Email"</span> /&gt;
+        &lt;<span class="fn">Input</span> type=<span class="str">"password"</span> value={password} onChange={setPassword} /&gt;
+        &lt;<span class="fn">Button</span> type=<span class="str">"submit"</span>&gt;Sign In&lt;/<span class="fn">Button</span>&gt;
+      &lt;/<span class="fn">form</span>&gt;
+    &lt;/<span class="fn">div</span>&gt;
+  )
+}</div>
+  </div>
+  <div class="dt-sec">
+    <div class="dt-st">Recent Changes</div>
+    <div class="gi"><span class="gi-h">a3f2c1d</span><div><div class="gi-m">Add password visibility toggle</div><div class="gi-t">2 hours ago</div></div></div>
+    <div class="gi"><span class="gi-h">8b1e4f7</span><div><div class="gi-m">Fix form validation on empty submit</div><div class="gi-t">Yesterday</div></div></div>
+    <div class="gi"><span class="gi-h">c5d9a2b</span><div><div class="gi-m">Initial login page implementation</div><div class="gi-t">3 days ago</div></div></div>
+  </div>
+</div>
+
+<script>
+const GRID = 20;
+const GAP = 40;
+let dragEl = null, dragOff = {x:0,y:0};
+
+function snap(v) { return Math.round(v / GRID) * GRID; }
+
+// ─── DRAG WITH n8n-STYLE SNAP ───
+document.querySelectorAll('.grp').forEach(g => {
+  g.addEventListener('mousedown', e => {
+    if (e.target.closest('.nd')) return;
+    dragEl = g;
+    const r = g.getBoundingClientRect();
+    dragOff.x = e.clientX - r.left;
+    dragOff.y = e.clientY - r.top;
+    g.style.zIndex = 10;
+    g.classList.remove('laying-out');
+    e.preventDefault();
+  });
+});
+
+document.addEventListener('mousemove', e => {
+  if (!dragEl) return;
+  const cr = document.getElementById('canvas').getBoundingClientRect();
+  // Snap to grid while dragging — n8n style
+  dragEl.style.left = snap(e.clientX - cr.left - dragOff.x) + 'px';
+  dragEl.style.top  = snap(e.clientY - cr.top  - dragOff.y) + 'px';
+  drawEdges();
+});
+
+document.addEventListener('mouseup', () => {
+  if (dragEl) { dragEl.style.zIndex = 2; dragEl = null; }
+});
+
+// ─── AUTO-LAYOUT — measures actual heights, prevents overlap ───
+// Layout: Row 1 (top): UI, API, Utils — Row 2 (bottom): Data, External
+function tidyUp() {
+  const grps = {};
+  document.querySelectorAll('.grp').forEach(g => {
+    grps[g.dataset.id] = g;
+  });
+
+  const topRow = ['ui','api','util'];
+  const botRow = ['data','ext'];
+  const startX = 60;
+  const topY = 60;
+  let maxTopH = 0;
+
+  // Position top row
+  let x = startX;
+  topRow.forEach(id => {
+    const g = grps[id];
+    if (!g) return;
+    g.classList.add('laying-out');
+    g.style.left = snap(x) + 'px';
+    g.style.top = snap(topY) + 'px';
+    const h = g.getBoundingClientRect().height;
+    if (h > maxTopH) maxTopH = h;
+    x += g.getBoundingClientRect().width + GAP;
+  });
+
+  // Position bottom row — below the tallest top-row group
+  const botY = snap(topY + maxTopH + GAP + 20);
+  x = startX + 120; // slight indent
+  botRow.forEach(id => {
+    const g = grps[id];
+    if (!g) return;
+    g.classList.add('laying-out');
+    g.style.left = snap(x) + 'px';
+    g.style.top = snap(botY) + 'px';
+    x += g.getBoundingClientRect().width + GAP;
+  });
+
+  // Animate edges
+  const redraw = () => drawEdges();
+  requestAnimationFrame(redraw);
+  setTimeout(redraw, 100);
+  setTimeout(redraw, 200);
+  setTimeout(redraw, 360);
+}
+
+// ─── EDGES — n8n-style bezier from bottom handle to top handle ───
+const CONNS = [
+  ['ui','api', true],
+  ['ui','util', false],
+  ['api','data', false],
+  ['api','ext', false],
+  ['util','api', false],
+  ['ext','data', false]
+];
+
+function getRect(id) {
+  const el = document.querySelector(`.grp[data-id="${id}"]`);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  const c = document.getElementById('canvas').getBoundingClientRect();
+  return {
+    x: r.left - c.left, y: r.top - c.top,
+    w: r.width, h: r.height,
+    cx: r.left - c.left + r.width/2,
+    cy: r.top - c.top + r.height/2
+  };
+}
+
+function drawEdges() {
+  const svg = document.getElementById('edgesSvg');
+  svg.innerHTML = '';
+
+  // Arrowhead marker
+  const ns = 'http://www.w3.org/2000/svg';
+  const defs = document.createElementNS(ns,'defs');
+
+  function mkMarker(id, cls) {
+    const m = document.createElementNS(ns,'marker');
+    m.setAttribute('id', id);
+    m.setAttribute('markerWidth','8'); m.setAttribute('markerHeight','6');
+    m.setAttribute('refX','7'); m.setAttribute('refY','3');
+    m.setAttribute('orient','auto');
+    const p = document.createElementNS(ns,'polygon');
+    p.setAttribute('points','0 0, 8 3, 0 6');
+    p.setAttribute('class', cls);
+    m.appendChild(p);
+    return m;
+  }
+  defs.appendChild(mkMarker('arr','edge-arrow'));
+  defs.appendChild(mkMarker('arr-hi','edge-arrow hi'));
+  svg.appendChild(defs);
+
+  CONNS.forEach(([srcId, tgtId, hi]) => {
+    const s = getRect(srcId);
+    const t = getRect(tgtId);
+    if (!s || !t) return;
+
+    // Pick best anchor pair based on relative position
+    let sx, sy, tx, ty;
+    const below = t.cy > s.cy + 40;
+    const above = t.cy < s.cy - 40;
+    const right = t.cx > s.cx;
+
+    if (below) {
+      // Source bottom → Target top
+      sx = s.x + s.w/2; sy = s.y + s.h;
+      tx = t.x + t.w/2; ty = t.y;
+    } else if (above) {
+      sx = s.x + s.w/2; sy = s.y;
+      tx = t.x + t.w/2; ty = t.y + t.h;
+    } else if (right) {
+      sx = s.x + s.w; sy = s.y + s.h/2;
+      tx = t.x;        ty = t.y + t.h/2;
+    } else {
+      sx = s.x;        sy = s.y + s.h/2;
+      tx = t.x + t.w;  ty = t.y + t.h/2;
+    }
+
+    // n8n-style bezier: control points pull straight out from anchor
+    const dx = tx - sx;
+    const dy = ty - sy;
+    const vert = below || above;
+    const pull = vert ? Math.max(Math.abs(dy) * 0.5, 40) : Math.max(Math.abs(dx) * 0.5, 40);
+
+    let c1x, c1y, c2x, c2y;
+    if (vert) {
+      c1x = sx; c1y = below ? sy + pull : sy - pull;
+      c2x = tx; c2y = below ? ty - pull : ty + pull;
+    } else {
+      c1x = right ? sx + pull : sx - pull; c1y = sy;
+      c2x = right ? tx - pull : tx + pull; c2y = ty;
+    }
+
+    const path = document.createElementNS(ns,'path');
+    path.setAttribute('class', 'edge' + (hi ? ' hi' : ''));
+    path.setAttribute('d', `M ${sx} ${sy} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${tx} ${ty}`);
+    path.setAttribute('marker-end', hi ? 'url(#arr-hi)' : 'url(#arr)');
+    svg.appendChild(path);
+  });
+}
+
+setTimeout(drawEdges, 500);
+window.addEventListener('resize', drawEdges);
+
+// ─── SELECTION ───
+function toggleSel(nd) {
+  nd.classList.toggle('sel');
+  updateSel();
+  document.getElementById('sb').classList.add('open');
+}
+
+function updateSel() {
+  const sels = document.querySelectorAll('.nd.sel');
+  const badge = document.getElementById('selBadge');
+  const pp = document.getElementById('pp');
+  const chips = document.getElementById('ppChips');
+
+  if (sels.length > 0) {
+    badge.textContent = sels.length + ' selected';
+    badge.classList.add('vis');
+    pp.classList.add('vis');
+  } else {
+    badge.classList.remove('vis');
+    pp.classList.remove('vis');
+  }
+
+  const colors = {ui:'var(--ui)',api:'var(--api)',data:'var(--data)',util:'var(--util)',ext:'var(--ext)'};
+  let html = '<span class="pp-lbl">Selected</span>';
+  sels.forEach(n => {
+    const name = n.dataset.name;
+    const c = colors[n.dataset.layer] || 'var(--util)';
+    html += `<div class="chip"><span class="chip-d" style="background:${c}"></span>${name}<span class="chip-x" onclick="desel('${name}')">&times;</span></div>`;
+  });
+  chips.innerHTML = html;
+}
+
+function desel(name) {
+  document.querySelectorAll('.nd.sel').forEach(n => {
+    if (n.dataset.name === name) n.classList.remove('sel');
+  });
+  updateSel();
+}
+
+// ─── THEME ───
+function toggleTheme() {
+  const h = document.documentElement;
+  const next = h.dataset.theme === 'dark' ? 'light' : 'dark';
+  h.dataset.theme = next;
+  document.getElementById('themeBtn').textContent = next === 'dark' ? '\u263D' : '\u2600';
+  setTimeout(drawEdges, 50);
+}
+
+// ─── MODE TOGGLE — auto-relayout on switch to prevent overlap ───
+function toggleMode() {
+  const h = document.documentElement;
+  const btn = document.getElementById('modeTog');
+  if (h.dataset.mode === 'descriptive') {
+    h.dataset.mode = 'technical';
+    btn.classList.add('on');
+  } else {
+    h.dataset.mode = 'descriptive';
+    btn.classList.remove('on');
+  }
+  // Re-layout after mode switch since box heights change
+  setTimeout(tidyUp, 50);
+}
+
+// ─── ZOOM ───
+function setZ(b) {
+  document.querySelectorAll('.seg button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+}
+
+// ─── SIDEBAR ───
+function closeSb() { document.getElementById('sb').classList.remove('open'); }
+
+// ─── CODE ───
+function toggleCode() {
+  document.querySelector('.code-tog').classList.toggle('open');
+  document.getElementById('codeBlk').classList.toggle('open');
+}
+
+// ─── HOVER-TO-HIGHLIGHT ───
+const LAYER_CONNS = {
+  ui: ['api','util'], api: ['data','ext','util'], data: [],
+  util: ['api'], ext: ['data']
+};
+
+document.querySelectorAll('.nd').forEach(nd => {
+  nd.addEventListener('mouseenter', () => {
+    if (dragEl) return;
+    const layer = nd.dataset.layer;
+    const connected = new Set([layer, ...(LAYER_CONNS[layer]||[])]);
+    document.querySelectorAll('.grp').forEach(g => {
+      g.style.opacity = connected.has(g.dataset.id) ? '1' : '0.2';
+      g.style.transition = 'opacity 0.2s';
+    });
+  });
+  nd.addEventListener('mouseleave', () => {
+    document.querySelectorAll('.grp').forEach(g => { g.style.opacity = '1'; });
+  });
+});
+
+// Init — run auto-layout on first load
+updateSel();
+setTimeout(tidyUp, 600);
+</script>
+
+</body>
+</html>
