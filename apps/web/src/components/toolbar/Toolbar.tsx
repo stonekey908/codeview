@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { useGraphStore } from '@/store/graph-store';
-import { Search, Moon, Sun, Eye, Expand, Shrink } from 'lucide-react';
+import { Search, Moon, Sun, Eye, Expand, Shrink, Sparkles, Loader2 } from 'lucide-react';
 
 export function Toolbar() {
   const {
@@ -10,9 +11,55 @@ export function Toolbar() {
     focusedNodeId, setFocusedNode,
   } = useGraphStore();
 
+  const [generating, setGenerating] = useState(false);
+  const [genProgress, setGenProgress] = useState('');
+
   const totalComponents = graphData?.nodes.length ?? 0;
   const totalConnections = graphData?.edges.length ?? 0;
   const allExpanded = expandedClusterIds.size === (graphData?.clusters.length ?? 0);
+
+  const generateDescriptions = async () => {
+    setGenerating(true);
+    setGenProgress('Starting Claude...');
+    try {
+      const res = await fetch('/api/trigger-claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate-all' }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        setGenProgress(`Error: ${data.error}`);
+        setTimeout(() => { setGenerating(false); setGenProgress(''); }, 3000);
+        return;
+      }
+      setGenProgress('Claude is reading your code and writing descriptions...');
+
+      // Poll for completion
+      const poll = setInterval(async () => {
+        try {
+          const r = await fetch('/api/generate-descriptions');
+          const d = await r.json();
+          setGenProgress(`${d.described}/${d.total} components described`);
+          if (d.described >= d.total * 0.8) { // 80% done
+            clearInterval(poll);
+            setGenProgress('Done! Refresh to see descriptions.');
+            setTimeout(() => { setGenerating(false); setGenProgress(''); }, 3000);
+          }
+        } catch { /* keep polling */ }
+      }, 3000);
+
+      // Stop after 2 minutes
+      setTimeout(() => {
+        clearInterval(poll);
+        setGenerating(false);
+        setGenProgress('');
+      }, 120000);
+    } catch (err) {
+      setGenProgress('Failed to start Claude');
+      setTimeout(() => { setGenerating(false); setGenProgress(''); }, 3000);
+    }
+  };
 
   return (
     <header className="flex items-center justify-between px-3.5 h-12 bg-zinc-900 border-b border-zinc-800">
@@ -37,20 +84,35 @@ export function Toolbar() {
         </div>
       </div>
 
-      {/* Center: Expand/Collapse all + Focus indicator */}
+      {/* Center: Actions */}
       <div className="flex items-center gap-2">
         <button
           onClick={() => allExpanded ? collapseAllClusters() : expandAllClusters()}
           className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-lg border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-all"
         >
           {allExpanded ? <Shrink size={13} /> : <Expand size={13} />}
-          {allExpanded ? 'Collapse All' : 'Expand All'}
+          {allExpanded ? 'Collapse' : 'Expand'}
         </button>
-        {focusedNodeId && (
+
+        {/* Generate Descriptions */}
+        {viewMode === 'descriptive' && (
           <button
-            onClick={() => setFocusedNode(null)}
-            className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 transition-all"
+            onClick={generateDescriptions}
+            disabled={generating}
+            className={`flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-lg border transition-all ${
+              generating
+                ? 'border-purple-500/30 text-purple-400 bg-purple-500/10'
+                : 'border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/30'
+            }`}
           >
+            {generating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+            {generating ? genProgress : 'Generate Descriptions'}
+          </button>
+        )}
+
+        {focusedNodeId && (
+          <button onClick={() => setFocusedNode(null)}
+            className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 transition-all">
             Exit Focus
           </button>
         )}
@@ -58,7 +120,6 @@ export function Toolbar() {
 
       {/* Right: Controls */}
       <div className="flex items-center gap-1.5">
-        {/* Descriptive/Technical toggle */}
         <button
           onClick={() => setViewMode(viewMode === 'descriptive' ? 'technical' : 'descriptive')}
           className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
@@ -71,20 +132,14 @@ export function Toolbar() {
           Technical
         </button>
 
-        {/* Search */}
         <div className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800 border border-zinc-700 rounded-md text-zinc-500 text-[11px] min-w-[140px] cursor-text hover:border-zinc-600">
           <Search size={12} className="opacity-50" />
           <span>Search...</span>
-          <kbd className="ml-auto text-[9px] px-1 py-px bg-zinc-700 border border-zinc-600 rounded text-zinc-400 font-mono">
-            /
-          </kbd>
+          <kbd className="ml-auto text-[9px] px-1 py-px bg-zinc-700 border border-zinc-600 rounded text-zinc-400 font-mono">/</kbd>
         </div>
 
-        {/* Theme toggle */}
-        <button
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="w-7 h-7 flex items-center justify-center rounded-md border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
-        >
+        <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="w-7 h-7 flex items-center justify-center rounded-md border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors">
           {theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}
         </button>
       </div>
