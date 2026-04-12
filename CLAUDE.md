@@ -2,40 +2,12 @@
 
 Visual architecture companion for Claude Code — interactive code graph for non-technical product owners.
 
-## Automate State
-**Status:** In Progress
-**Phase:** 2 of 7 (Implementation)
-**Tickets:** STO-1639 (parent) + STO-1645 through STO-1656 (12 sub-tickets)
-**Branch:** feat/automate-STO-1639-slice-1
-**Completed:**
-  - Phase 1: Pre-flight ✓
-  - Phase 2: Implementation — 8/12 tickets done
-    - STO-1645 scaffolding ✓
-    - STO-1646 parser ✓ (TS compiler API, 25 tests)
-    - STO-1647 framework detectors ✓ (React, Next.js, DB, Utility)
-    - STO-1648 graph engine ✓ (builder + clustering + labeler, 17 tests)
-    - STO-1649 ELK.js layout ✓ (6 tests, snap-to-grid)
-    - STO-1650 React Flow canvas ✓ (full UI, custom nodes, hover-to-dim)
-    - STO-1652 component sidebar ✓ (slide-in, descriptive mode, IDE link)
-    - STO-1653 CLI ✓ (npx codeview works, 0.5s analysis)
-**Next action:** STO-1651 (semantic zoom), STO-1654 (onboarding), STO-1655 (descriptive mode polish), STO-1656 (keyboard nav)
-**Total tests:** 48 passing
-**Pending decisions:** 0
-**Hard stops:** 0
-
-## Implementation Order
-1. ~~STO-1645 — Scaffolding~~ ✓
-2. STO-1646 — Tree-sitter parser (next)
-3. STO-1647 — Framework detectors
-4. STO-1648 — Graph engine (builder + clustering)
-5. STO-1649 — ELK.js layout
-6. STO-1650 — React Flow canvas
-7. STO-1651 — Semantic zoom
-8. STO-1652 — Component detail sidebar
-9. STO-1653 — CLI entry point
-10. STO-1654 — First-run onboarding
-11. STO-1655 — Descriptive mode
-12. STO-1656 — Keyboard navigation
+## Last Session
+**Date:** 2026-04-12
+**What was done:** Slice 1 (STO-1639) complete — all 12 sub-tickets implemented. Full pipeline working: CLI → analyzer → graph → layout → React Flow UI with onboarding, search, keyboard shortcuts, descriptive mode.
+**Branch:** feat/automate-STO-1639-slice-1 (ready for merge to main)
+**Tests:** 48 passing (25 analyzer, 23 graph-engine)
+**Next steps:** Merge to main, then start Slice 2 (STO-1640 — component selection + prompt builder)
 
 ## Design
 - Mockup: `design/mockup.html` (source of truth for all visual decisions)
