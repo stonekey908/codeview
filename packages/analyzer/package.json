@@ -10,9 +10,12 @@
     "lint": "echo 'no linter configured yet'"
   },
   "dependencies": {
-    "@codeview/shared": "workspace:*"
+    "@codeview/shared": "workspace:*",
+    "glob": "^13.0.6",
+    "ignore": "^7.0.5"
   },
   "devDependencies": {
-    "typescript": "^5.7.3"
+    "@types/glob": "^9.0.0",
+    "typescript": "^5.9.3"
   }
 }
