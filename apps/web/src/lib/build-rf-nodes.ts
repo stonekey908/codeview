@@ -12,36 +12,25 @@ export function buildRfNodes(
   const nodes: Node[] = [];
   const edgeColor = theme === 'dark' ? '#3f3f46' : '#d4d4d8';
 
-  if (zoomLevel === 'architecture') {
-    // Show only cluster groups — no individual component nodes
-    for (const cluster of graph.clusters) {
-      const pos = layout.groups.get(cluster.id);
-      if (!pos) continue;
-      nodes.push({
-        id: cluster.id,
-        type: 'cluster',
-        position: { x: pos.x, y: pos.y },
-        data: {
-          label: cluster.label,
-          description: cluster.description,
-          layer: cluster.layer,
-          componentCount: cluster.metadata.componentCount,
-          connectionCount: cluster.metadata.connectionCount,
-        },
-        style: { width: pos.width, height: pos.height },
-        draggable: true,
-      });
-    }
-
-    // Edges between clusters (aggregate)
-    const clusterEdges = buildClusterEdges(graph, edgeColor);
-    return { nodes, edges: clusterEdges };
-  }
-
-  // "modules" and "components" — show groups + individual component nodes
+  // All views use cluster nodes — components are embedded inside the cluster card
   for (const cluster of graph.clusters) {
     const pos = layout.groups.get(cluster.id);
     if (!pos) continue;
+
+    // Gather the component data for this cluster
+    const components = cluster.nodeIds.map((nodeId) => {
+      const node = graph.nodes.find((n) => n.id === nodeId);
+      if (!node) return null;
+      return {
+        id: node.id,
+        label: node.label,
+        description: node.description,
+        role: node.role,
+        connectionCount: node.metadata.connectionCount,
+        relativePath: node.relativePath,
+      };
+    }).filter(Boolean);
+
     nodes.push({
       id: cluster.id,
       type: 'cluster',
@@ -52,59 +41,18 @@ export function buildRfNodes(
         layer: cluster.layer,
         componentCount: cluster.metadata.componentCount,
         connectionCount: cluster.metadata.connectionCount,
+        components,
       },
-      style: { width: pos.width, height: pos.height },
       draggable: true,
     });
   }
 
-  for (const node of graph.nodes) {
-    const pos = layout.nodes.get(node.id);
-    if (!pos) continue;
-    const cluster = graph.clusters.find((c) => c.nodeIds.includes(node.id));
-
-    let x = pos.x;
-    let y = pos.y;
-    if (cluster) {
-      const parentPos = layout.groups.get(cluster.id);
-      if (parentPos) {
-        x = pos.x - parentPos.x;
-        y = pos.y - parentPos.y;
-      }
-    }
-
-    nodes.push({
-      id: node.id,
-      type: 'component',
-      position: { x, y },
-      parentId: cluster?.id,
-      data: {
-        label: node.label,
-        description: node.description,
-        layer: node.layer,
-        role: node.role,
-        connectionCount: node.metadata.connectionCount,
-        framework: node.metadata.framework,
-        relativePath: node.relativePath,
-      },
-    });
-  }
-
-  const edges: Edge[] = graph.edges.map((edge) => ({
-    id: edge.id,
-    source: edge.source,
-    target: edge.target,
-    type: 'smoothstep',
-    animated: false,
-    style: { stroke: edgeColor, strokeWidth: 1 },
-    markerEnd: { type: 'arrowclosed' as any, width: 10, height: 10, color: edgeColor },
-  }));
-
-  return { nodes, edges };
+  // Edges between clusters (aggregated)
+  const clusterEdges = buildClusterEdges(graph, edgeColor);
+  return { nodes, edges: clusterEdges };
 }
 
 function buildClusterEdges(graph: GraphData, color: string): Edge[] {
-  // Build edges between clusters based on which clusters have nodes that connect
   const edgeSet = new Set<string>();
   const edges: Edge[] = [];
 

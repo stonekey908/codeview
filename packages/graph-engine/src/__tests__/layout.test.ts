@@ -80,16 +80,11 @@ function makeGraph(): GraphData {
 }
 
 describe('computeLayout', () => {
-  it('produces positions for all nodes', async () => {
+  it('produces group positions (nodes are embedded in clusters)', async () => {
     const graph = makeGraph();
     const layout = await computeLayout(graph);
-    expect(layout.nodes.size).toBe(4);
-    for (const [, pos] of layout.nodes) {
-      expect(pos.x).toBeGreaterThanOrEqual(0);
-      expect(pos.y).toBeGreaterThanOrEqual(0);
-      expect(pos.width).toBeGreaterThan(0);
-      expect(pos.height).toBeGreaterThan(0);
-    }
+    // Individual node positions are no longer computed — nodes are rendered inside cluster cards
+    expect(layout.groups.size).toBe(3);
   });
 
   it('produces positions for all groups', async () => {
