@@ -13,7 +13,6 @@ import {
   type NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ComponentNode } from './ComponentNode';
 import { ClusterNode } from './ClusterNode';
 import { Breadcrumb } from './Breadcrumb';
 import { useGraphStore } from '@/store/graph-store';
@@ -21,7 +20,6 @@ import { LAYER_COLORS } from './layer-colors';
 import type { ArchitecturalLayer } from '@codeview/shared';
 
 const nodeTypes = {
-  component: ComponentNode,
   cluster: ClusterNode,
 };
 

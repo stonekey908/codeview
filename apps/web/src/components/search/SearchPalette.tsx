@@ -10,7 +10,7 @@ export function SearchPalette() {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { graphData, toggleNodeSelection, setSidebarNode } = useGraphStore();
+  const { graphData, selectNode, openDetail } = useGraphStore();
 
   // Cmd+K or / to open
   useEffect(() => {
@@ -42,11 +42,11 @@ export function SearchPalette() {
     : [];
 
   const handleSelect = useCallback((nodeId: string) => {
-    toggleNodeSelection(nodeId);
-    setSidebarNode(nodeId);
+    selectNode(nodeId);
+    openDetail(nodeId);
     setOpen(false);
     setQuery('');
-  }, [toggleNodeSelection, setSidebarNode]);
+  }, [selectNode, openDetail]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
