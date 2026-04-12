@@ -1,10 +1,32 @@
+# Dependencies
 node_modules/
+
+# Build outputs
 .next/
 dist/
 .turbo/
 *.tsbuildinfo
+
+# Environment
 .env
 .env.local
-.DS_Store
-__screenshots__/
+
+# CodeView data (project-specific, not committed)
 .codeview/
+
+# OS
+.DS_Store
+
+# Testing
+__screenshots__/
+coverage/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# UAT
+uat.mjs
+quick-uat.mjs
