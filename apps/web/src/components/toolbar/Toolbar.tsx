@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useGraphStore } from '@/store/graph-store';
-import { Search, Moon, Sun, Eye, Expand, Shrink, Sparkles, Loader2 } from 'lucide-react';
+import { Search, Moon, Sun, Eye, Expand, Shrink, Sparkles } from 'lucide-react';
+import { GeneratePanel } from '@/components/generate/GeneratePanel';
 
 export function Toolbar() {
   const {
@@ -11,57 +12,14 @@ export function Toolbar() {
     focusedNodeId, setFocusedNode,
   } = useGraphStore();
 
-  const [generating, setGenerating] = useState(false);
-  const [genProgress, setGenProgress] = useState('');
+  const [showGenerate, setShowGenerate] = useState(false);
 
   const totalComponents = graphData?.nodes.length ?? 0;
   const totalConnections = graphData?.edges.length ?? 0;
   const allExpanded = expandedClusterIds.size === (graphData?.clusters.length ?? 0);
 
-  const generateDescriptions = async () => {
-    setGenerating(true);
-    setGenProgress('Starting Claude...');
-    try {
-      const res = await fetch('/api/trigger-claude', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'generate-all' }),
-      });
-      const data = await res.json();
-      if (data.error) {
-        setGenProgress(`Error: ${data.error}`);
-        setTimeout(() => { setGenerating(false); setGenProgress(''); }, 3000);
-        return;
-      }
-      setGenProgress('Claude is reading your code and writing descriptions...');
-
-      // Poll for completion
-      const poll = setInterval(async () => {
-        try {
-          const r = await fetch('/api/generate-descriptions');
-          const d = await r.json();
-          setGenProgress(`${d.described}/${d.total} components described`);
-          if (d.described >= d.total * 0.8) { // 80% done
-            clearInterval(poll);
-            setGenProgress('Done! Refresh to see descriptions.');
-            setTimeout(() => { setGenerating(false); setGenProgress(''); }, 3000);
-          }
-        } catch { /* keep polling */ }
-      }, 3000);
-
-      // Stop after 2 minutes
-      setTimeout(() => {
-        clearInterval(poll);
-        setGenerating(false);
-        setGenProgress('');
-      }, 120000);
-    } catch (err) {
-      setGenProgress('Failed to start Claude');
-      setTimeout(() => { setGenerating(false); setGenProgress(''); }, 3000);
-    }
-  };
-
   return (
+    <>
     <header className="flex items-center justify-between px-3.5 h-12 bg-zinc-900 border-b border-zinc-800">
       {/* Left: Logo + project */}
       <div className="flex items-center gap-3">
@@ -97,16 +55,11 @@ export function Toolbar() {
         {/* Generate Descriptions */}
         {viewMode === 'descriptive' && (
           <button
-            onClick={generateDescriptions}
-            disabled={generating}
-            className={`flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-lg border transition-all ${
-              generating
-                ? 'border-purple-500/30 text-purple-400 bg-purple-500/10'
-                : 'border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/30'
-            }`}
+            onClick={() => setShowGenerate(true)}
+            className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-lg border border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/30 transition-all"
           >
-            {generating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-            {generating ? genProgress : 'Generate Descriptions'}
+            <Sparkles size={13} />
+            Generate Descriptions
           </button>
         )}
 
@@ -144,5 +97,7 @@ export function Toolbar() {
         </button>
       </div>
     </header>
+    {showGenerate && <GeneratePanel onClose={() => setShowGenerate(false)} />}
+    </>
   );
 }
