@@ -27,6 +27,7 @@ interface GraphState {
   setGraphData: (data: GraphData) => void;
   setRfNodes: (nodes: Node[]) => void;
   setRfEdges: (edges: Edge[]) => void;
+  selectNode: (nodeId: string) => void;
   toggleNodeSelection: (nodeId: string) => void;
   selectAllInCluster: (clusterId: string) => void;
   clearSelection: () => void;
@@ -60,8 +61,18 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setRfNodes: (nodes) => set({ rfNodes: nodes }),
   setRfEdges: (edges) => set({ rfEdges: edges }),
 
+  selectNode: (nodeId) =>
+    set((state) => {
+      // Single click: select only this node (replaces selection)
+      if (state.selectedNodeIds.has(nodeId) && state.selectedNodeIds.size === 1) {
+        return { selectedNodeIds: new Set(), sidebarNodeId: null };
+      }
+      return { selectedNodeIds: new Set([nodeId]), sidebarNodeId: nodeId };
+    }),
+
   toggleNodeSelection: (nodeId) =>
     set((state) => {
+      // Shift+click: add/remove from multi-selection
       const next = new Set(state.selectedNodeIds);
       if (next.has(nodeId)) {
         next.delete(nodeId);
