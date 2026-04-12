@@ -59,26 +59,30 @@ export function DetailSidebar() {
   const askClaude = async () => {
     setClaudeLoading(true);
     try {
-      await fetch('/api/ask-claude', {
+      const res = await fetch('/api/trigger-claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          componentPath: node.relativePath,
-          question: `Read the file ${node.relativePath} and explain in plain English: what does this component do, how does it work, what data does it process, and what other parts of the app does it interact with? Write for a non-technical product owner.`,
-        }),
+        body: JSON.stringify({ action: 'explain', componentPath: node.relativePath }),
       });
-      // Poll for response
+      const data = await res.json();
+      if (data.error) {
+        setClaudeLoading(false);
+        return;
+      }
+      // Poll for Claude's response in descriptions cache
       const poll = setInterval(async () => {
-        const r = await fetch('/api/ask-claude');
-        const d = await r.json();
-        if (d.descriptions?.[node.relativePath]) {
-          setClaudeExplanation(d.descriptions[node.relativePath]);
-          setClaudeLoading(false);
-          clearInterval(poll);
-        }
+        try {
+          const r = await fetch('/api/generate-descriptions');
+          const d = await r.json();
+          const comp = d.components?.find((c: any) => c.path === node.relativePath);
+          if (comp?.hasDescription) {
+            setClaudeExplanation(comp.description);
+            setClaudeLoading(false);
+            clearInterval(poll);
+          }
+        } catch { /* keep polling */ }
       }, 2000);
-      // Stop polling after 30s
-      setTimeout(() => { clearInterval(poll); setClaudeLoading(false); }, 30000);
+      setTimeout(() => { clearInterval(poll); setClaudeLoading(false); }, 60000);
     } catch {
       setClaudeLoading(false);
     }
