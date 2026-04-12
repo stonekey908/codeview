@@ -1,2 +1,1 @@
-// TODO: Implement file watcher in Slice 3 (STO-1641)
-export {};
+export { createWatcher, type WatcherOptions, type FileChangeEvent } from './watcher';
