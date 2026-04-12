@@ -17,6 +17,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { ComponentNode } from './ComponentNode';
 import { ClusterNode } from './ClusterNode';
+import { Breadcrumb } from './Breadcrumb';
 import { useGraphStore } from '@/store/graph-store';
 import { LAYER_COLORS } from './layer-colors';
 import type { ArchitecturalLayer } from '@codeview/shared';
@@ -72,7 +73,8 @@ export function ArchitectureCanvas() {
   }, []);
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full relative">
+      <Breadcrumb />
       <ReactFlow
         nodes={nodes}
         edges={edges}
