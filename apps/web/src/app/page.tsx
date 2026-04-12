@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { Toolbar } from '@/components/toolbar/Toolbar';
 import { ArchitectureCanvas } from '@/components/canvas/ArchitectureCanvas';
 import { PromptPanel } from '@/components/prompt/PromptPanel';
+import { DetailSidebar } from '@/components/sidebar/DetailSidebar';
 import { useGraphStore } from '@/store/graph-store';
 import { buildGraph } from '@codeview/graph-engine';
 import { computeLayout, NODE_WIDTH, NODE_HEIGHT } from '@codeview/graph-engine';
@@ -121,6 +122,7 @@ export default function Home() {
         <ArchitectureCanvas />
       </main>
       <PromptPanel />
+      <DetailSidebar />
     </div>
   );
 }
