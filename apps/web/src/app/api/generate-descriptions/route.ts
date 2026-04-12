@@ -18,14 +18,24 @@ export async function GET() {
     ? JSON.parse(fs.readFileSync(descPath, 'utf-8'))
     : {};
 
-  const components = analysis.graph.nodes.map((n: any) => ({
-    path: n.relativePath,
-    label: n.label,
-    role: n.role,
-    layer: n.layer,
-    hasDescription: !!existing[n.relativePath],
-    description: existing[n.relativePath] || n.description,
-  }));
+  const components = analysis.graph.nodes.map((n: any) => {
+    const filePath = path.join(projectDir, n.relativePath);
+    let lastModified: string | null = null;
+    try {
+      const stat = fs.statSync(filePath);
+      lastModified = stat.mtime.toISOString();
+    } catch {}
+
+    return {
+      path: n.relativePath,
+      label: n.label,
+      role: n.role,
+      layer: n.layer,
+      hasDescription: !!existing[n.relativePath],
+      description: existing[n.relativePath] || n.description,
+      lastModified,
+    };
+  });
 
   return NextResponse.json({
     total: components.length,

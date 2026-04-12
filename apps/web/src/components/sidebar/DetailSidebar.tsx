@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useGraphStore } from '@/store/graph-store';
 import { LAYER_COLORS, LAYER_LABELS } from '@/components/canvas/layer-colors';
-import { X, ArrowLeft, ExternalLink, Code, Eye, Link2, Sparkles, Loader2, Copy, Check } from 'lucide-react';
+import { X, ArrowLeft, ExternalLink, Code, Eye, Link2, Sparkles, Loader2, Copy, Check, RefreshCw } from 'lucide-react';
 import type { ArchitecturalLayer } from '@codeview/shared';
+import ReactMarkdown from 'react-markdown';
 
 export function DetailSidebar() {
   const {
@@ -174,36 +175,54 @@ export function DetailSidebar() {
         {/* ─── OVERVIEW TAB ─── */}
         {detailTab === 'overview' && (
           <div className="space-y-4">
-            <Section title="Description" isDark={isDark}>
-              <p className="text-sm leading-relaxed" style={{ color: isDark ? '#d4d4d8' : '#3f3f46' }}>
-                {node.description}
-              </p>
-            </Section>
-
-            {/* Claude explanation */}
-            <Section title="AI Explanation" isDark={isDark} icon={<Sparkles size={10} className="text-purple-400" />}>
+            {/* Claude explanation — primary content */}
+            <Section title={claudeExplanation ? "AI Explanation" : "About This Component"} isDark={isDark}
+              icon={claudeExplanation ? <Sparkles size={10} className="text-purple-400" /> : undefined}
+              action={claudeExplanation ? (
+                <button onClick={askClaude} className="text-[10px] font-medium flex items-center gap-1" style={{ color: '#a855f7' }}>
+                  <RefreshCw size={10} /> Regenerate
+                </button>
+              ) : undefined}>
               {claudeExplanation ? (
-                <div className="p-3 rounded-lg border-l-2 border-purple-500 text-sm leading-relaxed"
+                <div className="prose prose-sm max-w-none rounded-lg p-3 border-l-2 border-purple-500"
                   style={{ background: isDark ? '#27272a' : '#f4f4f5', color: isDark ? '#d4d4d8' : '#3f3f46' }}>
-                  {claudeExplanation}
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => <p className="text-sm leading-relaxed mb-2 last:mb-0">{children}</p>,
+                      strong: ({ children }) => <strong className="font-semibold" style={{ color: isDark ? '#fafafa' : '#09090b' }}>{children}</strong>,
+                      ul: ({ children }) => <ul className="text-sm list-disc list-inside space-y-1 mb-2">{children}</ul>,
+                      ol: ({ children }) => <ol className="text-sm list-decimal list-inside space-y-1 mb-2">{children}</ol>,
+                      li: ({ children }) => <li className="text-sm">{children}</li>,
+                      code: ({ children }) => (
+                        <code className="text-[11px] font-mono px-1 py-0.5 rounded" style={{ background: isDark ? '#18181b' : '#e4e4e7' }}>
+                          {children}
+                        </code>
+                      ),
+                      h1: ({ children }) => <h3 className="text-sm font-bold mb-1" style={{ color: isDark ? '#fafafa' : '#09090b' }}>{children}</h3>,
+                      h2: ({ children }) => <h3 className="text-sm font-bold mb-1" style={{ color: isDark ? '#fafafa' : '#09090b' }}>{children}</h3>,
+                      h3: ({ children }) => <h4 className="text-xs font-bold mb-1" style={{ color: isDark ? '#fafafa' : '#09090b' }}>{children}</h4>,
+                    }}>
+                    {claudeExplanation}
+                  </ReactMarkdown>
                 </div>
               ) : claudeLoading ? (
                 <div className="flex items-center gap-2 p-3 rounded-lg text-sm"
                   style={{ background: 'rgba(168,85,247,0.05)', border: '1px solid rgba(168,85,247,0.2)', color: '#a855f7' }}>
                   <Loader2 size={14} className="animate-spin" />
-                  Waiting for Claude to read the source code...
+                  Claude is reading the source code...
                 </div>
               ) : (
-                <button onClick={askClaude}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
-                  style={{
-                    background: isDark ? '#27272a' : '#f4f4f5',
-                    color: '#a855f7',
-                    border: '1px solid rgba(168,85,247,0.2)',
-                  }}>
-                  <Sparkles size={13} />
-                  Ask Claude to explain this component
-                </button>
+                <div className="space-y-2">
+                  <p className="text-sm leading-relaxed" style={{ color: isDark ? '#71717a' : '#a1a1aa' }}>
+                    {node.description}
+                  </p>
+                  <button onClick={askClaude}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors w-full justify-center"
+                    style={{ background: isDark ? '#27272a' : '#f4f4f5', color: '#a855f7', border: '1px solid rgba(168,85,247,0.2)' }}>
+                    <Sparkles size={13} />
+                    Ask Claude to explain this component
+                  </button>
+                </div>
               )}
             </Section>
 
@@ -306,15 +325,18 @@ export function DetailSidebar() {
   );
 }
 
-function Section({ title, isDark, icon, children }: {
-  title: string; isDark: boolean; icon?: React.ReactNode; children: React.ReactNode;
+function Section({ title, isDark, icon, action, children }: {
+  title: string; isDark: boolean; icon?: React.ReactNode; action?: React.ReactNode; children: React.ReactNode;
 }) {
   return (
     <div>
-      <h3 className="text-[10px] font-semibold uppercase tracking-widest mb-2 flex items-center gap-1"
-        style={{ color: isDark ? '#52525b' : '#a1a1aa' }}>
-        {icon}{title}
-      </h3>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-[10px] font-semibold uppercase tracking-widest flex items-center gap-1"
+          style={{ color: isDark ? '#52525b' : '#a1a1aa' }}>
+          {icon}{title}
+        </h3>
+        {action}
+      </div>
       {children}
     </div>
   );

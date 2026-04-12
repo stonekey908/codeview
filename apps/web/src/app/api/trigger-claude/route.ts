@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export async function POST(request: NextRequest) {
-  const { action, componentPath } = await request.json();
+  const { action, componentPath, componentPaths } = await request.json();
   const projectDir = process.env.CODEVIEW_PROJECT_DIR || process.cwd();
 
   // Find claude CLI
@@ -37,7 +37,13 @@ export async function POST(request: NextRequest) {
     }
 
     const analysis = JSON.parse(fs.readFileSync(analysisPath, 'utf-8'));
-    const components = analysis.graph.nodes.slice(0, 30);
+    // If specific paths provided, use those. Otherwise take first 30.
+    let components = analysis.graph.nodes;
+    if (componentPaths && componentPaths.length > 0) {
+      components = components.filter((n: any) => componentPaths.includes(n.relativePath));
+    } else {
+      components = components.slice(0, 30);
+    }
 
     let prompt = 'Generate plain-English descriptions for these code components. ';
     prompt += 'For each one, write 1-2 sentences explaining what it does for a non-technical product owner. ';
