@@ -1,7 +1,7 @@
 'use client';
 
-import { memo, useState } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { memo, useState, useEffect } from 'react';
+import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import type { ArchitecturalLayer, ComponentRole } from '@codeview/shared';
 import { LAYER_COLORS } from './layer-colors';
 import { useGraphStore } from '@/store/graph-store';
@@ -40,13 +40,19 @@ export const ClusterNode = memo(function ClusterNode({
 }: NodeProps & { data: ClusterNodeData }) {
   const {
     viewMode, theme, zoomLevel,
-    selectAllInCluster, selectedNodeIds, toggleNodeSelection, setSidebarNode,
+    selectAllInCluster, selectedNodeIds, selectNode, toggleNodeSelection, setSidebarNode,
     hoveredNodeId, getConnectedNodeIds,
   } = useGraphStore();
   const colors = LAYER_COLORS[data.layer];
   const isDark = theme === 'dark';
   const showComponents = zoomLevel !== 'architecture';
   const [expanded, setExpanded] = useState(true);
+  const updateNodeInternals = useUpdateNodeInternals();
+
+  // Tell React Flow to re-measure this node when expanded/collapsed or zoom changes
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [expanded, zoomLevel, viewMode, id, updateNodeInternals]);
 
   // Dim if another node is hovered and this cluster isn't connected
   let opacity = 1;
@@ -117,8 +123,11 @@ export const ClusterNode = memo(function ClusterNode({
                 key={comp.id}
                 onClick={(e) => {
                   e.stopPropagation();
-                  toggleNodeSelection(comp.id);
-                  setSidebarNode(comp.id);
+                  if (e.shiftKey) {
+                    toggleNodeSelection(comp.id);
+                  } else {
+                    selectNode(comp.id);
+                  }
                 }}
                 onMouseEnter={() => useGraphStore.getState().setHoveredNode(comp.id)}
                 onMouseLeave={() => useGraphStore.getState().setHoveredNode(null)}
