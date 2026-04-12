@@ -5,6 +5,9 @@ import { Toolbar } from '@/components/toolbar/Toolbar';
 import { ArchitectureCanvas } from '@/components/canvas/ArchitectureCanvas';
 import { PromptPanel } from '@/components/prompt/PromptPanel';
 import { DetailSidebar } from '@/components/sidebar/DetailSidebar';
+import { SearchPalette } from '@/components/search/SearchPalette';
+import { Onboarding } from '@/components/onboarding/Onboarding';
+import { KeyboardShortcuts } from '@/components/keyboard/KeyboardShortcuts';
 import { useGraphStore } from '@/store/graph-store';
 import { buildGraph } from '@codeview/graph-engine';
 import { computeLayout, NODE_WIDTH, NODE_HEIGHT } from '@codeview/graph-engine';
@@ -123,6 +126,9 @@ export default function Home() {
       </main>
       <PromptPanel />
       <DetailSidebar />
+      <SearchPalette />
+      <Onboarding />
+      <KeyboardShortcuts />
     </div>
   );
 }
