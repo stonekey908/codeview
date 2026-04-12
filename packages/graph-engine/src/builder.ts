@@ -36,7 +36,13 @@ function buildNodes(analysis: AnalysisResult): GraphNode[] {
     return {
       id: file.relativePath,
       label: humanLabel(file.relativePath),
-      description: humanDescription(file.relativePath, role, layer),
+      description: humanDescription(
+        file.relativePath,
+        role,
+        layer,
+        file.imports.map(i => i.source),
+        file.exports.map(e => e.name)
+      ),
       filePath: file.filePath,
       relativePath: file.relativePath,
       layer,

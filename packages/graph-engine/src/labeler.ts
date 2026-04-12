@@ -9,55 +9,80 @@ const LAYER_DESCRIPTIONS: Record<ArchitecturalLayer, string> = {
   external: 'Third-party services the app connects to',
 };
 
-const ROLE_TEMPLATES: Record<ComponentRole, string> = {
-  page: 'A screen in the app',
-  component: 'A reusable piece of the interface',
-  layout: 'The shared frame around pages',
-  'api-route': 'Handles requests from the app',
-  middleware: 'Checks requests before they reach handlers',
-  model: 'Defines how data is stored',
-  schema: 'Defines the database table structure',
-  utility: 'A helper function used by other parts',
-  hook: 'Shared logic for components',
-  context: 'Shares data across the component tree',
-  service: 'Connects to an external service',
-  config: 'App configuration and settings',
-  unknown: 'Part of the codebase',
-};
-
 export function humanLabel(relativePath: string): string {
   const baseName = path.basename(relativePath, path.extname(relativePath));
-
-  // Remove common suffixes
   const cleaned = baseName
     .replace(/\.(test|spec|stories|styles|module)$/i, '')
     .replace(/\.d$/, '');
-
   return toTitleCase(cleaned);
 }
 
 export function humanDescription(
   relativePath: string,
   role: ComponentRole,
-  _layer: ArchitecturalLayer
+  layer: ArchitecturalLayer,
+  importSources: string[] = [],
+  exportNames: string[] = []
 ): string {
   const label = humanLabel(relativePath);
-  const template = ROLE_TEMPLATES[role] || ROLE_TEMPLATES.unknown;
-  return `${template}: ${label}`;
+  const dirContext = extractDirContext(relativePath);
+
+  // Build a contextual description based on what we actually know
+  switch (role) {
+    case 'page':
+      return `The ${label} screen${dirContext ? ` in the ${dirContext} section` : ''} — this is what users see when they navigate here`;
+    case 'layout':
+      return `Wraps ${dirContext ? `the ${dirContext} pages` : 'pages'} with shared navigation, headers, and structure`;
+    case 'component':
+      return `A reusable UI element: ${label}${dirContext ? ` (used in ${dirContext})` : ''}`;
+    case 'api-route': {
+      const methods = exportNames.filter(n => ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].includes(n));
+      const methodStr = methods.length > 0 ? methods.join('/') : 'API';
+      return `${methodStr} endpoint${dirContext ? ` for ${dirContext}` : ''} — handles requests from the frontend`;
+    }
+    case 'middleware':
+      return `Runs before requests reach the API — checks authentication, permissions, or transforms data`;
+    case 'model':
+      return `Stores ${label.toLowerCase()} records in the database — defines what fields each ${label.toLowerCase()} has`;
+    case 'schema':
+      return `Database table definition for ${label.toLowerCase()} — columns, types, and relationships`;
+    case 'utility': {
+      const fns = exportNames.filter(n => n !== 'default').slice(0, 3);
+      return fns.length > 0
+        ? `Helper functions: ${fns.join(', ')}${exportNames.length > 3 ? ` and ${exportNames.length - 3} more` : ''}`
+        : `Shared utility functions${dirContext ? ` for ${dirContext}` : ''}`;
+    }
+    case 'hook':
+      return `Reusable logic that components can plug into — ${label.startsWith('Use') ? label.replace(/^Use\s?/, '').toLowerCase() + ' functionality' : label}`;
+    case 'context':
+      return `Shares ${label.replace(/Context|Provider/gi, '').trim().toLowerCase() || 'data'} across the entire app without passing it through every component`;
+    case 'service': {
+      const serviceName = label.replace(/Client|Service|Api/gi, '').trim();
+      return `Connects to ${serviceName || 'an external service'}${importSources.some(s => s.includes('stripe')) ? ' for payment processing' : importSources.some(s => s.includes('sendgrid') || s.includes('mail')) ? ' for sending emails' : ''}`;
+    }
+    case 'config':
+      return `Configuration and settings${dirContext ? ` for ${dirContext}` : ' for the app'} — environment variables, feature flags, constants`;
+    default:
+      return `Part of the ${dirContext || layer} layer`;
+  }
 }
 
 export function layerDescription(layer: ArchitecturalLayer): string {
   return LAYER_DESCRIPTIONS[layer];
 }
 
+function extractDirContext(relativePath: string): string {
+  const parts = relativePath.replace(/\\/g, '/').split('/');
+  // Find the most meaningful directory name (skip src, app, pages, api, etc.)
+  const skip = new Set(['src', 'app', 'pages', 'api', 'lib', 'utils', 'components', 'services', 'db', 'models']);
+  const meaningful = parts.slice(0, -1).filter(p => !skip.has(p) && p.length > 1);
+  return meaningful.length > 0 ? toTitleCase(meaningful[meaningful.length - 1]) : '';
+}
+
 function toTitleCase(str: string): string {
-  // Handle PascalCase: "LoginPage" → "Login Page"
   let result = str.replace(/([a-z])([A-Z])/g, '$1 $2');
-  // Handle kebab-case: "login-page" → "Login Page"
   result = result.replace(/[-_]/g, ' ');
-  // Handle camelCase first word
   result = result.replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2');
-  // Capitalize first letter of each word
   return result
     .split(' ')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))

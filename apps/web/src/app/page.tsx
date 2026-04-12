@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Toolbar } from '@/components/toolbar/Toolbar';
 import { ArchitectureCanvas } from '@/components/canvas/ArchitectureCanvas';
 import { PromptPanel } from '@/components/prompt/PromptPanel';
@@ -9,14 +9,13 @@ import { SearchPalette } from '@/components/search/SearchPalette';
 import { Onboarding } from '@/components/onboarding/Onboarding';
 import { KeyboardShortcuts } from '@/components/keyboard/KeyboardShortcuts';
 import { useGraphStore } from '@/store/graph-store';
-import { buildGraph } from '@codeview/graph-engine';
-import { computeLayout, NODE_WIDTH, NODE_HEIGHT } from '@codeview/graph-engine';
-import type { AnalysisResult, ArchitecturalLayer } from '@codeview/shared';
-import type { Node, Edge } from '@xyflow/react';
-import { LAYER_COLORS } from '@/components/canvas/layer-colors';
+import { buildGraph, computeLayout } from '@codeview/graph-engine';
+import type { LayoutResult } from '@codeview/graph-engine';
+import type { AnalysisResult, GraphData } from '@codeview/shared';
+import { buildRfNodes } from '@/lib/build-rf-nodes';
 
-// Demo data — will be replaced with real analysis from CLI
-const DEMO_ANALYSIS: AnalysisResult = {
+// Demo data
+const DEMO: AnalysisResult = {
   rootDir: '/demo',
   files: [
     { filePath: '/demo/src/app/page.tsx', relativePath: 'src/app/page.tsx', imports: [{ source: '@/api/auth', specifiers: ['authApi'], isTypeOnly: false, isDynamic: false }], exports: [{ name: 'default', isDefault: true, isTypeOnly: false }], framework: { role: 'page', confidence: 0.95, framework: 'nextjs' } },
@@ -37,98 +36,34 @@ const DEMO_ANALYSIS: AnalysisResult = {
 };
 
 export default function Home() {
-  const { setGraphData, setRfNodes, setRfEdges, setLoading } = useGraphStore();
+  const { setGraphData, setRfNodes, setRfEdges, setLoading, zoomLevel, theme, graphData } = useGraphStore();
+  const layoutRef = useRef<LayoutResult | null>(null);
 
+  // Initial load — build graph + layout
   useEffect(() => {
     async function init() {
       setLoading(true, 'Building architecture graph...');
-
-      // Build graph from analysis
-      const graph = buildGraph(DEMO_ANALYSIS);
+      const graph = buildGraph(DEMO);
       setGraphData(graph);
-
-      // Compute layout
       const layout = await computeLayout(graph);
+      layoutRef.current = layout;
 
-      // Convert to React Flow nodes
-      const rfNodes: Node[] = [];
-
-      // Add cluster (group) nodes
-      for (const cluster of graph.clusters) {
-        const pos = layout.groups.get(cluster.id);
-        if (!pos) continue;
-        rfNodes.push({
-          id: cluster.id,
-          type: 'cluster',
-          position: { x: pos.x, y: pos.y },
-          data: {
-            label: cluster.label,
-            description: cluster.description,
-            layer: cluster.layer,
-            componentCount: cluster.metadata.componentCount,
-            connectionCount: cluster.metadata.connectionCount,
-          },
-          style: { width: pos.width, height: pos.height },
-          draggable: true,
-        });
-      }
-
-      // Add component nodes — positions relative to parent cluster
-      for (const node of graph.nodes) {
-        const pos = layout.nodes.get(node.id);
-        if (!pos) continue;
-        const cluster = graph.clusters.find((c) => c.nodeIds.includes(node.id));
-
-        // If node has a parent cluster, make position relative to it
-        let x = pos.x;
-        let y = pos.y;
-        if (cluster) {
-          const parentPos = layout.groups.get(cluster.id);
-          if (parentPos) {
-            x = pos.x - parentPos.x;
-            y = pos.y - parentPos.y;
-          }
-        }
-
-        rfNodes.push({
-          id: node.id,
-          type: 'component',
-          position: { x, y },
-          parentId: cluster?.id,
-          extent: cluster ? 'parent' as const : undefined,
-          data: {
-            label: node.label,
-            description: node.description,
-            layer: node.layer,
-            role: node.role,
-            connectionCount: node.metadata.connectionCount,
-            framework: node.metadata.framework,
-            relativePath: node.relativePath,
-          },
-        });
-      }
-
-      // Convert to React Flow edges
-      const rfEdges: Edge[] = graph.edges.map((edge) => ({
-        id: edge.id,
-        source: edge.source,
-        target: edge.target,
-        type: 'smoothstep',
-        animated: false,
-        style: {
-          stroke: '#27272a',
-          strokeWidth: 1,
-        },
-        markerEnd: { type: 'arrowclosed' as any, width: 10, height: 10, color: '#3f3f46' },
-      }));
-
-      setRfNodes(rfNodes);
-      setRfEdges(rfEdges);
+      const { nodes, edges } = buildRfNodes(graph, layout, zoomLevel, theme);
+      setRfNodes(nodes);
+      setRfEdges(edges);
       setLoading(false);
     }
-
     init();
-  }, [setGraphData, setRfNodes, setRfEdges, setLoading]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Rebuild nodes when zoom level or theme changes
+  useEffect(() => {
+    if (!graphData || !layoutRef.current) return;
+    const { nodes, edges } = buildRfNodes(graphData, layoutRef.current, zoomLevel, theme);
+    setRfNodes(nodes);
+    setRfEdges(edges);
+  }, [zoomLevel, theme, graphData, setRfNodes, setRfEdges]);
 
   return (
     <div className="flex flex-col h-screen">

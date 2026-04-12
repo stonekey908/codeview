@@ -39,8 +39,8 @@ describe('humanDescription', () => {
   });
 
   it('creates utility descriptions', () => {
-    const desc = humanDescription('src/utils/format.ts', 'utility', 'utils');
-    expect(desc).toContain('helper');
+    const desc = humanDescription('src/utils/format.ts', 'utility', 'utils', [], ['formatDate', 'formatCurrency']);
+    expect(desc).toContain('formatDate');
   });
 });
 
