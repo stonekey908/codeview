@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useGraphStore } from '@/store/graph-store';
-import { Search, Moon, Sun, Eye, Expand, Shrink, Sparkles } from 'lucide-react';
+import { Search, Moon, Sun, Eye, Expand, Shrink, Sparkles, Zap, Loader2 } from 'lucide-react';
 import { GeneratePanel } from '@/components/generate/GeneratePanel';
 
 export function Toolbar() {
@@ -13,6 +13,31 @@ export function Toolbar() {
   } = useGraphStore();
 
   const [showGenerate, setShowGenerate] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
+
+  const runEnhance = async () => {
+    setEnhancing(true);
+    try {
+      await fetch('/api/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      // Poll for completion
+      const poll = setInterval(async () => {
+        const r = await fetch('/api/enhance');
+        const d = await r.json();
+        if (d.status === 'done') {
+          clearInterval(poll);
+          setEnhancing(false);
+          window.location.reload(); // Reload to pick up new categorizations
+        }
+      }, 3000);
+      setTimeout(() => { clearInterval(poll); setEnhancing(false); }, 120000);
+    } catch {
+      setEnhancing(false);
+    }
+  };
 
   const totalComponents = graphData?.nodes.length ?? 0;
   const totalConnections = graphData?.edges.length ?? 0;
@@ -52,14 +77,23 @@ export function Toolbar() {
           {allExpanded ? 'Collapse' : 'Expand'}
         </button>
 
-        {/* Generate Descriptions */}
+        {/* Enhance — quick AI skim for better titles/categories */}
+        <button onClick={runEnhance} disabled={enhancing}
+          className={`flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-lg border transition-all ${
+            enhancing
+              ? 'border-amber-500/30 text-amber-400 bg-amber-500/10'
+              : 'border-amber-500/20 text-amber-400 hover:bg-amber-500/10 hover:border-amber-500/30'
+          }`}>
+          {enhancing ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
+          {enhancing ? 'Enhancing...' : 'Enhance'}
+        </button>
+
+        {/* Generate Descriptions — deep AI analysis */}
         {viewMode === 'descriptive' && (
-          <button
-            onClick={() => setShowGenerate(true)}
-            className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-lg border border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/30 transition-all"
-          >
+          <button onClick={() => setShowGenerate(true)}
+            className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-lg border border-purple-500/20 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/30 transition-all">
             <Sparkles size={13} />
-            Generate Descriptions
+            Describe
           </button>
         )}
 
