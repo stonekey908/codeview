@@ -11,6 +11,23 @@ const LAYER_DESCRIPTIONS: Record<ArchitecturalLayer, string> = {
 
 export function humanLabel(relativePath: string): string {
   const baseName = path.basename(relativePath, path.extname(relativePath));
+
+  // For route files (route.ts, page.tsx, layout.tsx), use the parent directory name
+  if (['route', 'page', 'layout', 'index'].includes(baseName.toLowerCase())) {
+    const parts = relativePath.replace(/\\/g, '/').split('/');
+    const skip = new Set(['src', 'app', 'pages', 'api']);
+    // Walk backwards to find a meaningful parent dir
+    for (let i = parts.length - 2; i >= 0; i--) {
+      if (!skip.has(parts[i]) && parts[i].length > 1 && !parts[i].startsWith('[')) {
+        const dirLabel = toTitleCase(parts[i]);
+        if (baseName === 'route') return `${dirLabel} API`;
+        if (baseName === 'page') return `${dirLabel} Page`;
+        if (baseName === 'layout') return `${dirLabel} Layout`;
+        return dirLabel;
+      }
+    }
+  }
+
   const cleaned = baseName
     .replace(/\.(test|spec|stories|styles|module)$/i, '')
     .replace(/\.d$/, '');

@@ -63,7 +63,7 @@ export const ComponentNode = memo(function ComponentNode({
         borderColor: isSelected ? '#3b82f6' : isDark ? '#27272a' : '#e4e4e7',
         boxShadow: isSelected ? '0 0 0 2px rgba(59,130,246,0.12)' : 'none',
       }}
-      className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg border cursor-pointer transition-all duration-150 min-w-[240px]"
+      className="flex items-center gap-2.5 px-3 py-2 rounded-lg border cursor-pointer transition-all duration-150 min-w-[260px] max-w-[300px]"
     >
       <Handle type="target" position={Position.Top} className="!w-1.5 !h-1.5 !bg-zinc-600 !border-0 !opacity-0" />
       <Handle type="source" position={Position.Bottom} className="!w-1.5 !h-1.5 !bg-zinc-600 !border-0 !opacity-0" />
@@ -78,7 +78,7 @@ export const ComponentNode = memo(function ComponentNode({
           style={{ color: isDark ? '#fafafa' : '#18181b' }}>
           {data.label}
         </div>
-        <div className="text-[10px] font-mono truncate"
+        <div className={`text-[10px] ${viewMode === 'descriptive' ? 'leading-snug' : 'font-mono truncate'}`}
           style={{ color: isDark ? '#71717a' : '#a1a1aa' }}>
           {viewMode === 'descriptive' ? data.description : data.relativePath}
         </div>
