@@ -61,11 +61,31 @@ export async function POST(request: NextRequest) {
 
 function runClaude(projectDir: string, prompt: string): NextResponse {
   try {
-    // Spawn claude CLI in non-interactive mode
-    const child = spawn('claude', ['-p', prompt, '--output-format', 'text'], {
+    // Find claude CLI — check common locations
+    const { execSync } = require('child_process');
+    let claudePath = 'claude';
+    try {
+      claudePath = execSync('which claude', { encoding: 'utf-8' }).trim();
+    } catch {
+      // Try common locations
+      const candidates = [
+        '/usr/local/bin/claude',
+        `${process.env.HOME}/.nvm/versions/node/v20.15.0/bin/claude`,
+        `${process.env.HOME}/.npm/bin/claude`,
+      ];
+      for (const c of candidates) {
+        try { require('fs').accessSync(c); claudePath = c; break; } catch {}
+      }
+    }
+
+    console.log(`[trigger-claude] Using: ${claudePath}`);
+    console.log(`[trigger-claude] CWD: ${projectDir}`);
+    console.log(`[trigger-claude] Prompt length: ${prompt.length} chars`);
+
+    const child = spawn(claudePath, ['-p', prompt, '--output-format', 'text'], {
       cwd: projectDir,
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env },
+      env: { ...process.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
       detached: true,
     });
 
@@ -77,10 +97,18 @@ function runClaude(projectDir: string, prompt: string): NextResponse {
       console.log(`[claude] ${data.toString().slice(0, 200)}`);
     });
     child.stderr?.on('data', (data) => {
-      console.error(`[claude-err] ${data.toString().slice(0, 200)}`);
+      console.error(`[claude-err] ${data.toString().slice(0, 500)}`);
     });
 
-    return NextResponse.json({ status: 'started', message: 'Claude is processing...' }) as any;
+    child.on('error', (err) => {
+      console.error(`[trigger-claude] Spawn error: ${err.message}`);
+    });
+
+    child.on('exit', (code) => {
+      console.log(`[trigger-claude] Claude exited with code ${code}`);
+    });
+
+    return NextResponse.json({ status: 'started', message: 'Claude is processing...', claudePath }) as any;
   } catch (err) {
     return NextResponse.json({
       error: 'Could not start Claude. Make sure claude CLI is installed and you are logged in.',
