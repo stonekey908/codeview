@@ -88,7 +88,12 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setSidebarNode: (nodeId) => set({ sidebarNodeId: nodeId }),
   setViewMode: (mode) => set({ viewMode: mode }),
   setZoomLevel: (level) => set({ zoomLevel: level }),
-  setTheme: (theme) => set({ theme }),
+  setTheme: (theme) => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+    set({ theme });
+  },
   setLoading: (loading, message) =>
     set({ isLoading: loading, loadingMessage: message || '' }),
 

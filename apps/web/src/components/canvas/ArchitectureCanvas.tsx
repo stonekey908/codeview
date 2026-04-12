@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ReactFlow,
   Background,
@@ -10,8 +10,6 @@ import {
   useNodesState,
   useEdgesState,
   type Node,
-  type Edge,
-  type OnConnect,
   type NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -29,25 +27,23 @@ const nodeTypes = {
 
 export function ArchitectureCanvas() {
   const {
-    rfNodes,
-    rfEdges,
-    setRfNodes,
-    setRfEdges,
+    rfNodes: storeNodes,
+    rfEdges: storeEdges,
     setHoveredNode,
-    clearSelection,
+    theme,
   } = useGraphStore();
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(rfNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(rfEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([] as Node[]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([] as any[]);
 
-  // Sync store nodes to local state when they change
-  useMemo(() => {
-    if (rfNodes.length > 0) setNodes(rfNodes);
-  }, [rfNodes, setNodes]);
+  // Sync store → local state when store updates
+  useEffect(() => {
+    if (storeNodes.length > 0) setNodes(storeNodes);
+  }, [storeNodes, setNodes]);
 
-  useMemo(() => {
-    if (rfEdges.length > 0) setEdges(rfEdges);
-  }, [rfEdges, setEdges]);
+  useEffect(() => {
+    if (storeEdges.length > 0) setEdges(storeEdges);
+  }, [storeEdges, setEdges]);
 
   const onNodeMouseEnter: NodeMouseHandler = useCallback(
     (_event, node) => {
@@ -62,10 +58,6 @@ export function ArchitectureCanvas() {
     () => setHoveredNode(null),
     [setHoveredNode]
   );
-
-  const onPaneClick = useCallback(() => {
-    // Don't clear selection on pane click — user might be panning
-  }, []);
 
   const minimapNodeColor = useCallback((node: Node) => {
     const layer = (node.data as { layer?: ArchitecturalLayer })?.layer;
@@ -82,19 +74,18 @@ export function ArchitectureCanvas() {
         onEdgesChange={onEdgesChange}
         onNodeMouseEnter={onNodeMouseEnter}
         onNodeMouseLeave={onNodeMouseLeave}
-        onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
+        colorMode={theme}
         fitView
-        fitViewOptions={{ padding: 0.2 }}
+        fitViewOptions={{ padding: 0.3 }}
         snapToGrid
         snapGrid={[20, 20]}
-        minZoom={0.3}
+        minZoom={0.2}
         maxZoom={2}
         defaultEdgeOptions={{
           type: 'smoothstep',
           animated: false,
-          style: { stroke: '#27272a', strokeWidth: 1 },
-          markerEnd: { type: 'arrowclosed' as any, width: 12, height: 12, color: '#3f3f46' },
+          style: { stroke: theme === 'dark' ? '#3f3f46' : '#d4d4d8', strokeWidth: 1 },
         }}
         proOptions={{ hideAttribution: true }}
       >
@@ -102,7 +93,7 @@ export function ArchitectureCanvas() {
           variant={BackgroundVariant.Dots}
           gap={20}
           size={1}
-          color="rgba(255,255,255,0.04)"
+          color={theme === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)'}
         />
         <Controls
           position="bottom-left"
@@ -111,10 +102,10 @@ export function ArchitectureCanvas() {
         />
         <MiniMap
           nodeColor={minimapNodeColor}
-          maskColor="rgba(9,9,11,0.85)"
+          maskColor={theme === 'dark' ? 'rgba(9,9,11,0.85)' : 'rgba(250,250,250,0.85)'}
           style={{
-            backgroundColor: 'rgba(24,24,27,0.92)',
-            border: '1px solid #27272a',
+            backgroundColor: theme === 'dark' ? 'rgba(24,24,27,0.92)' : 'rgba(255,255,255,0.92)',
+            border: `1px solid ${theme === 'dark' ? '#27272a' : '#e4e4e7'}`,
             borderRadius: 8,
           }}
           pannable

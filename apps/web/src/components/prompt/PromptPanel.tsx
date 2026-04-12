@@ -12,17 +12,23 @@ export function PromptPanel() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  if (selectedNodeIds.size === 0 || !graphData) return null;
-
-  const selectedNodes = graphData.nodes.filter((n) => selectedNodeIds.has(n.id));
+  // All hooks must be called before any conditional returns
+  const selectedNodes = useMemo(
+    () => graphData?.nodes.filter((n) => selectedNodeIds.has(n.id)) ?? [],
+    [graphData, selectedNodeIds]
+  );
 
   const contextText = useMemo(() => {
+    if (!graphData || selectedNodeIds.size === 0) return '';
     return assembleContext({
       selectedNodeIds: Array.from(selectedNodeIds),
       question: question.trim() || undefined,
       graphData,
     });
   }, [selectedNodeIds, question, graphData]);
+
+  // Now we can conditionally return
+  if (selectedNodeIds.size === 0 || !graphData) return null;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(contextText);

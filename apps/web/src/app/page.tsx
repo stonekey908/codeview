@@ -73,15 +73,27 @@ export default function Home() {
         });
       }
 
-      // Add component nodes
+      // Add component nodes — positions relative to parent cluster
       for (const node of graph.nodes) {
         const pos = layout.nodes.get(node.id);
         if (!pos) continue;
         const cluster = graph.clusters.find((c) => c.nodeIds.includes(node.id));
+
+        // If node has a parent cluster, make position relative to it
+        let x = pos.x;
+        let y = pos.y;
+        if (cluster) {
+          const parentPos = layout.groups.get(cluster.id);
+          if (parentPos) {
+            x = pos.x - parentPos.x;
+            y = pos.y - parentPos.y;
+          }
+        }
+
         rfNodes.push({
           id: node.id,
           type: 'component',
-          position: { x: pos.x, y: pos.y },
+          position: { x, y },
           parentId: cluster?.id,
           extent: cluster ? 'parent' as const : undefined,
           data: {

@@ -32,7 +32,10 @@ export async function computeLayout(graph: GraphData): Promise<LayoutResult> {
   const children: ElkNode[] = sortedClusters.map((cluster) => ({
     id: cluster.id,
     layoutOptions: {
+      'elk.algorithm': 'layered',
+      'elk.direction': 'DOWN',
       'elk.padding': `[top=${GROUP_HEADER + GROUP_PADDING},left=${GROUP_PADDING},bottom=${GROUP_PADDING},right=${GROUP_PADDING}]`,
+      'elk.spacing.nodeNode': '6',
     },
     children: cluster.nodeIds.map((nodeId) => ({
       id: nodeId,
