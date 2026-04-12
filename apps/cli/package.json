@@ -1,0 +1,19 @@
+{
+  "name": "codeview",
+  "version": "0.0.1",
+  "description": "Visual architecture companion for Claude Code",
+  "bin": {
+    "codeview": "./bin/codeview.mjs"
+  },
+  "scripts": {
+    "build": "echo 'cli uses raw mjs — no build step'",
+    "type-check": "echo 'cli is plain JS — no type-check'"
+  },
+  "dependencies": {
+    "@codeview/analyzer": "workspace:*",
+    "@codeview/graph-engine": "workspace:*",
+    "@codeview/shared": "workspace:*",
+    "open": "^10.1.0",
+    "tsx": "^4.19.0"
+  }
+}
