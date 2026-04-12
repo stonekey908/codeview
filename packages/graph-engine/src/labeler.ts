@@ -64,13 +64,18 @@ export function humanDescription(
     case 'schema':
       return `Database table definition for ${label.toLowerCase()} — columns, types, and relationships`;
     case 'utility': {
-      const fns = exportNames.filter(n => n !== 'default').slice(0, 3);
-      return fns.length > 0
-        ? `Helper functions: ${fns.join(', ')}${exportNames.length > 3 ? ` and ${exportNames.length - 3} more` : ''}`
-        : `Shared utility functions${dirContext ? ` for ${dirContext}` : ''}`;
+      const fns = exportNames.filter(n => n !== 'default' && n.length > 2).slice(0, 3);
+      if (fns.length > 0) {
+        return `Provides ${fns.map(f => camelToPhrase(f)).join(', ')}${exportNames.length > 3 ? ' and more' : ''}`;
+      }
+      return `Shared helper used${dirContext ? ` by ${dirContext}` : ' across the app'}`;
     }
-    case 'hook':
-      return `Reusable logic that components can plug into — ${label.startsWith('Use') ? label.replace(/^Use\s?/, '').toLowerCase() + ' functionality' : label}`;
+    case 'hook': {
+      const hookName = label.replace(/^Use\s?/i, '').toLowerCase();
+      return hookName
+        ? `Detects or manages ${hookName} state for components that need it`
+        : `Reusable logic that components can plug into`;
+    }
     case 'context':
       return `Shares ${label.replace(/Context|Provider/gi, '').trim().toLowerCase() || 'data'} across the entire app without passing it through every component`;
     case 'service': {
@@ -94,6 +99,13 @@ function extractDirContext(relativePath: string): string {
   const skip = new Set(['src', 'app', 'pages', 'api', 'lib', 'utils', 'components', 'services', 'db', 'models']);
   const meaningful = parts.slice(0, -1).filter(p => !skip.has(p) && p.length > 1);
   return meaningful.length > 0 ? toTitleCase(meaningful[meaningful.length - 1]) : '';
+}
+
+function camelToPhrase(str: string): string {
+  return str
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/[-_]/g, ' ')
+    .toLowerCase();
 }
 
 function toTitleCase(str: string): string {

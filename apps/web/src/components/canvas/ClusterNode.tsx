@@ -158,7 +158,13 @@ export const ClusterNode = memo(function ClusterNode({
                     {comp.label}
                   </div>
                   <div className="text-[10px] leading-snug mt-0.5"
-                    style={{ color: isDark ? '#71717a' : '#a1a1aa' }}>
+                    style={{
+                      color: isDark ? '#71717a' : '#a1a1aa',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical' as any,
+                      overflow: 'hidden',
+                    }}>
                     {viewMode === 'descriptive' ? comp.description : comp.relativePath}
                   </div>
                 </div>
