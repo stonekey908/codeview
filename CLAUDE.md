@@ -18,7 +18,7 @@ Visual architecture companion for Claude Code — interactive code graph for non
     - STO-1650 React Flow canvas ✓ (full UI, custom nodes, hover-to-dim)
     - STO-1652 component sidebar ✓ (slide-in, descriptive mode, IDE link)
     - STO-1653 CLI ✓ (npx codeview works, 0.5s analysis)
-**Next action:** Implement STO-1651 (semantic zoom), then UX polish tickets
+**Next action:** STO-1651 (semantic zoom), STO-1654 (onboarding), STO-1655 (descriptive mode polish), STO-1656 (keyboard nav)
 **Total tests:** 48 passing
 **Pending decisions:** 0
 **Hard stops:** 0
