@@ -1,19 +1,18 @@
 'use client';
 
-import { useGraphStore, type ZoomLevel } from '@/store/graph-store';
-import { Search, Moon, Sun, Eye } from 'lucide-react';
-
-const ZOOM_LEVELS: { key: ZoomLevel; label: string }[] = [
-  { key: 'architecture', label: 'Architecture' },
-  { key: 'modules', label: 'Modules' },
-  { key: 'components', label: 'Components' },
-];
+import { useGraphStore } from '@/store/graph-store';
+import { Search, Moon, Sun, Eye, Expand, Shrink } from 'lucide-react';
 
 export function Toolbar() {
-  const { viewMode, setViewMode, zoomLevel, setZoomLevel, theme, setTheme, graphData } = useGraphStore();
+  const {
+    viewMode, setViewMode, theme, setTheme, graphData,
+    expandedClusterIds, expandAllClusters, collapseAllClusters,
+    focusedNodeId, setFocusedNode,
+  } = useGraphStore();
 
   const totalComponents = graphData?.nodes.length ?? 0;
   const totalConnections = graphData?.edges.length ?? 0;
+  const allExpanded = expandedClusterIds.size === (graphData?.clusters.length ?? 0);
 
   return (
     <header className="flex items-center justify-between px-3.5 h-12 bg-zinc-900 border-b border-zinc-800">
@@ -38,21 +37,23 @@ export function Toolbar() {
         </div>
       </div>
 
-      {/* Center: Zoom level switcher */}
-      <div className="flex gap-px p-0.5 bg-zinc-800 border border-zinc-700 rounded-lg">
-        {ZOOM_LEVELS.map(({ key, label }) => (
+      {/* Center: Expand/Collapse all + Focus indicator */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => allExpanded ? collapseAllClusters() : expandAllClusters()}
+          className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-lg border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-all"
+        >
+          {allExpanded ? <Shrink size={13} /> : <Expand size={13} />}
+          {allExpanded ? 'Collapse All' : 'Expand All'}
+        </button>
+        {focusedNodeId && (
           <button
-            key={key}
-            onClick={() => setZoomLevel(key)}
-            className={`px-3 py-1 text-[11px] font-medium rounded-md transition-all ${
-              zoomLevel === key
-                ? 'bg-zinc-700 text-zinc-100 shadow-sm'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
+            onClick={() => setFocusedNode(null)}
+            className="flex items-center gap-1.5 px-3 py-1 text-[11px] font-medium rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 hover:bg-blue-500/20 transition-all"
           >
-            {label}
+            Exit Focus
           </button>
-        ))}
+        )}
       </div>
 
       {/* Right: Controls */}
