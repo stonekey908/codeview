@@ -7,112 +7,140 @@ export async function POST(request: NextRequest) {
   const { action, componentPath } = await request.json();
   const projectDir = process.env.CODEVIEW_PROJECT_DIR || process.cwd();
 
+  // Find claude CLI
+  let claudePath = '';
+  try {
+    const { execSync } = require('child_process');
+    claudePath = execSync('which claude', { encoding: 'utf-8' }).trim();
+  } catch {
+    const candidates = [
+      '/usr/local/bin/claude',
+      `${process.env.HOME}/.nvm/versions/node/v20.15.0/bin/claude`,
+    ];
+    for (const c of candidates) {
+      try { fs.accessSync(c); claudePath = c; break; } catch {}
+    }
+  }
+
+  if (!claudePath) {
+    return NextResponse.json({ error: 'Claude CLI not found. Make sure claude is installed.' }, { status: 500 });
+  }
+
+  const descDir = path.join(projectDir, '.codeview');
+  fs.mkdirSync(descDir, { recursive: true });
+  const descPath = path.join(descDir, 'descriptions.json');
+
   if (action === 'generate-all') {
-    // Read all component files and ask Claude to describe them
-    const analysisPath = path.join(projectDir, '.codeview', 'analysis.json');
+    const analysisPath = path.join(descDir, 'analysis.json');
     if (!fs.existsSync(analysisPath)) {
-      return NextResponse.json({ error: 'No analysis found' }, { status: 404 });
+      return NextResponse.json({ error: 'No analysis found. Run the CLI first.' }, { status: 404 });
     }
 
     const analysis = JSON.parse(fs.readFileSync(analysisPath, 'utf-8'));
-    const components = analysis.graph.nodes.slice(0, 30); // Limit to 30 at a time
+    const components = analysis.graph.nodes.slice(0, 30);
 
-    // Build a prompt with file contents
-    let prompt = 'I need you to generate plain-English descriptions for these components in my project. ';
-    prompt += 'For each one, explain what it does, how it works, and what it connects to. ';
-    prompt += 'Write for a non-technical product owner.\n\n';
+    let prompt = 'Generate plain-English descriptions for these code components. ';
+    prompt += 'For each one, write 1-2 sentences explaining what it does for a non-technical product owner. ';
+    prompt += 'Return ONLY a JSON object mapping file paths to descriptions, no other text. ';
+    prompt += 'Example format: {"src/app/page.tsx": "The main dashboard screen showing key metrics and recent activity"}\n\n';
 
     for (const node of components) {
       const filePath = path.join(projectDir, node.relativePath);
       let content = '';
       try {
         if (fs.existsSync(filePath)) {
-          content = fs.readFileSync(filePath, 'utf-8').slice(0, 2000); // First 2000 chars
+          content = fs.readFileSync(filePath, 'utf-8').slice(0, 1500);
         }
-      } catch { /* skip */ }
-
-      prompt += `---\nFile: ${node.relativePath} (${node.label}, ${node.role})\n`;
-      if (content) prompt += `\`\`\`\n${content}\n\`\`\`\n`;
-      prompt += '\n';
+      } catch {}
+      prompt += `File: ${node.relativePath} (${node.label}, ${node.role})\n`;
+      if (content) prompt += '```\n' + content + '\n```\n\n';
     }
 
-    prompt += '\nAfter analyzing, call the save_descriptions MCP tool with a JSON object mapping each relative file path to its description.';
-
-    return runClaude(projectDir, prompt);
+    runClaudeAndSave(claudePath, projectDir, prompt, descPath, 'all');
+    return NextResponse.json({ status: 'started', total: components.length });
   }
 
   if (action === 'explain' && componentPath) {
-    // Read single file and ask Claude to explain it
     const filePath = path.join(projectDir, componentPath);
     let content = '';
     try {
-      if (fs.existsSync(filePath)) {
-        content = fs.readFileSync(filePath, 'utf-8');
-      }
-    } catch { /* skip */ }
+      if (fs.existsSync(filePath)) content = fs.readFileSync(filePath, 'utf-8');
+    } catch {}
 
-    const prompt = `Read this component and explain in plain English what it does, how it works, what data it processes, and what other parts of the app it interacts with. Write for a non-technical product owner.\n\nFile: ${componentPath}\n\`\`\`\n${content}\n\`\`\`\n\nAfter your analysis, call the save_explanation MCP tool with componentPath="${componentPath}" and your explanation.`;
+    const prompt = `Explain this code component in plain English for a non-technical product owner. Cover: what it does, how it works, what data it uses, and what other parts of the app it connects to. Return ONLY the explanation text, no markdown formatting.\n\nFile: ${componentPath}\n\`\`\`\n${content}\n\`\`\``;
 
-    return runClaude(projectDir, prompt);
+    runClaudeAndSave(claudePath, projectDir, prompt, descPath, 'single', componentPath);
+    return NextResponse.json({ status: 'started', componentPath });
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
 }
 
-function runClaude(projectDir: string, prompt: string): NextResponse {
-  try {
-    // Find claude CLI — check common locations
-    const { execSync } = require('child_process');
-    let claudePath = 'claude';
-    try {
-      claudePath = execSync('which claude', { encoding: 'utf-8' }).trim();
-    } catch {
-      // Try common locations
-      const candidates = [
-        '/usr/local/bin/claude',
-        `${process.env.HOME}/.nvm/versions/node/v20.15.0/bin/claude`,
-        `${process.env.HOME}/.npm/bin/claude`,
-      ];
-      for (const c of candidates) {
-        try { require('fs').accessSync(c); claudePath = c; break; } catch {}
-      }
+function runClaudeAndSave(
+  claudePath: string,
+  cwd: string,
+  prompt: string,
+  descPath: string,
+  mode: 'all' | 'single',
+  componentPath?: string
+) {
+  let output = '';
+
+  const child = spawn(claudePath, ['-p', prompt, '--output-format', 'text'], {
+    cwd,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env: { ...process.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
+  });
+
+  child.stdout?.on('data', (data) => {
+    output += data.toString();
+  });
+
+  child.stderr?.on('data', (data) => {
+    console.error(`[claude-err] ${data.toString().slice(0, 300)}`);
+  });
+
+  child.on('close', (code) => {
+    console.log(`[trigger-claude] Exited with code ${code}, output length: ${output.length}`);
+
+    if (code !== 0 || !output.trim()) {
+      console.error('[trigger-claude] Claude returned no output or failed');
+      return;
     }
 
-    console.log(`[trigger-claude] Using: ${claudePath}`);
-    console.log(`[trigger-claude] CWD: ${projectDir}`);
-    console.log(`[trigger-claude] Prompt length: ${prompt.length} chars`);
+    try {
+      // Load existing descriptions
+      let existing: Record<string, string> = {};
+      try {
+        if (fs.existsSync(descPath)) {
+          existing = JSON.parse(fs.readFileSync(descPath, 'utf-8'));
+        }
+      } catch {}
 
-    const child = spawn(claudePath, ['-p', prompt, '--output-format', 'text'], {
-      cwd: projectDir,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
-      detached: true,
-    });
+      if (mode === 'all') {
+        // Parse JSON from Claude's response
+        const jsonMatch = output.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const descriptions = JSON.parse(jsonMatch[0]);
+          Object.assign(existing, descriptions);
+          console.log(`[trigger-claude] Parsed ${Object.keys(descriptions).length} descriptions`);
+        } else {
+          console.error('[trigger-claude] Could not find JSON in Claude response');
+          console.error('[trigger-claude] Response:', output.slice(0, 500));
+        }
+      } else if (mode === 'single' && componentPath) {
+        existing[componentPath] = output.trim();
+        console.log(`[trigger-claude] Saved explanation for ${componentPath}`);
+      }
 
-    // Don't wait for it — let it run in background
-    child.unref();
+      fs.writeFileSync(descPath, JSON.stringify(existing, null, 2));
+      console.log(`[trigger-claude] Wrote ${Object.keys(existing).length} descriptions to ${descPath}`);
+    } catch (err) {
+      console.error(`[trigger-claude] Error saving: ${err}`);
+    }
+  });
 
-    // Log output for debugging
-    child.stdout?.on('data', (data) => {
-      console.log(`[claude] ${data.toString().slice(0, 200)}`);
-    });
-    child.stderr?.on('data', (data) => {
-      console.error(`[claude-err] ${data.toString().slice(0, 500)}`);
-    });
-
-    child.on('error', (err) => {
-      console.error(`[trigger-claude] Spawn error: ${err.message}`);
-    });
-
-    child.on('exit', (code) => {
-      console.log(`[trigger-claude] Claude exited with code ${code}`);
-    });
-
-    return NextResponse.json({ status: 'started', message: 'Claude is processing...', claudePath }) as any;
-  } catch (err) {
-    return NextResponse.json({
-      error: 'Could not start Claude. Make sure claude CLI is installed and you are logged in.',
-      detail: err instanceof Error ? err.message : String(err),
-    }, { status: 500 }) as any;
-  }
+  child.on('error', (err) => {
+    console.error(`[trigger-claude] Spawn error: ${err.message}`);
+  });
 }
