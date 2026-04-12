@@ -78,7 +78,6 @@ export function buildRfNodes(
       type: 'component',
       position: { x, y },
       parentId: cluster?.id,
-      extent: cluster ? 'parent' as const : undefined,
       data: {
         label: node.label,
         description: node.description,
