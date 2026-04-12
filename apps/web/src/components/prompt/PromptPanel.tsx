@@ -1,40 +1,33 @@
 'use client';
 
-import { useState } from 'react';
-import { Copy, X } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Copy, X, ChevronDown, Check } from 'lucide-react';
 import { useGraphStore } from '@/store/graph-store';
 import { LAYER_COLORS } from '@/components/canvas/layer-colors';
+import { assembleContext } from '@codeview/prompt-builder';
 
 export function PromptPanel() {
   const { selectedNodeIds, graphData, toggleNodeSelection, clearSelection } = useGraphStore();
   const [question, setQuestion] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  if (selectedNodeIds.size === 0) return null;
+  if (selectedNodeIds.size === 0 || !graphData) return null;
 
-  const selectedNodes = graphData?.nodes.filter((n) => selectedNodeIds.has(n.id)) ?? [];
+  const selectedNodes = graphData.nodes.filter((n) => selectedNodeIds.has(n.id));
 
-  const assembleContext = () => {
-    const lines = ['I\'m asking about these components in the architecture:\n'];
-    selectedNodes.forEach((node, i) => {
-      const deps = graphData?.edges.filter((e) => e.source === node.id) ?? [];
-      const depNames = deps
-        .map((d) => graphData?.nodes.find((n) => n.id === d.target)?.label)
-        .filter(Boolean);
-      lines.push(`${i + 1}. ${node.label} (${node.relativePath})`);
-      lines.push(`   - ${node.description}`);
-      lines.push(`   - Layer: ${node.layer}`);
-      if (depNames.length > 0) lines.push(`   - Depends on: ${depNames.join(', ')}`);
-      lines.push('');
+  const contextText = useMemo(() => {
+    return assembleContext({
+      selectedNodeIds: Array.from(selectedNodeIds),
+      question: question.trim() || undefined,
+      graphData,
     });
-    if (question.trim()) {
-      lines.push(`Question: ${question.trim()}`);
-    }
-    return lines.join('\n');
-  };
+  }, [selectedNodeIds, question, graphData]);
 
   const handleCopy = async () => {
-    const text = assembleContext();
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(contextText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -42,9 +35,9 @@ export function PromptPanel() {
       {/* Selection chips */}
       <div className="flex items-center gap-1.5 px-3 py-2 border-b border-zinc-800 overflow-x-auto">
         <span className="text-[9px] font-semibold text-zinc-500 uppercase tracking-wide shrink-0">
-          Selected
+          Selected ({selectedNodes.length})
         </span>
-        {selectedNodes.map((node) => {
+        {selectedNodes.slice(0, 10).map((node) => {
           const colors = LAYER_COLORS[node.layer];
           return (
             <div
@@ -62,6 +55,11 @@ export function PromptPanel() {
             </div>
           );
         })}
+        {selectedNodes.length > 10 && (
+          <span className="text-[10px] text-zinc-500 shrink-0">
+            +{selectedNodes.length - 10} more
+          </span>
+        )}
         <button
           onClick={clearSelection}
           className="text-[10px] text-zinc-500 hover:text-zinc-300 ml-auto shrink-0"
@@ -70,21 +68,44 @@ export function PromptPanel() {
         </button>
       </div>
 
+      {/* Preview Context — collapsible */}
+      <div className="border-b border-zinc-800">
+        <button
+          onClick={() => setPreviewOpen(!previewOpen)}
+          className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-medium text-zinc-500 hover:text-zinc-300 transition-colors"
+        >
+          <ChevronDown size={10} className={`transition-transform ${previewOpen ? 'rotate-180' : ''}`} />
+          Preview what Claude will see
+        </button>
+        {previewOpen && (
+          <div className="px-3 pb-2 animate-in fade-in slide-in-from-top-1 duration-150">
+            <pre className="p-2.5 bg-zinc-950 border border-zinc-800 rounded-lg text-[10.5px] font-mono text-zinc-400 leading-relaxed whitespace-pre-wrap break-words max-h-40 overflow-y-auto">
+              {contextText}
+            </pre>
+          </div>
+        )}
+      </div>
+
       {/* Input row */}
       <div className="flex items-center gap-2 px-3 py-2">
         <input
           type="text"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask Claude about these components..."
+          onKeyDown={(e) => { if (e.key === 'Enter') handleCopy(); }}
+          placeholder="Ask Claude about these components... (Enter to copy)"
           className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 transition-colors"
         />
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 text-white rounded-lg text-xs font-semibold hover:bg-blue-600 transition-colors shrink-0"
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+            copied
+              ? 'bg-green-500 text-white'
+              : 'bg-blue-500 text-white hover:bg-blue-600'
+          }`}
         >
-          <Copy size={13} />
-          Copy to Clipboard
+          {copied ? <Check size={13} /> : <Copy size={13} />}
+          {copied ? 'Copied!' : 'Copy to Clipboard'}
         </button>
       </div>
     </div>
