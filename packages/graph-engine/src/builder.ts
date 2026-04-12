@@ -103,26 +103,28 @@ function resolveImportPath(
     return null;
   }
 
-  // Handle alias paths
-  let resolved = importSource;
-  if (importSource.startsWith('@/')) {
-    resolved = 'src/' + importSource.slice(2);
-  } else if (importSource.startsWith('~/')) {
-    resolved = importSource.slice(2);
-  } else {
-    // Relative path resolution
+  // Handle alias paths — try multiple possible resolutions
+  const candidates: string[] = [];
+
+  if (importSource.startsWith('@/') || importSource.startsWith('~/')) {
+    const stripped = importSource.slice(2);
+    // Try both with and without src/ prefix
+    candidates.push(stripped);
+    candidates.push('src/' + stripped);
+  } else if (importSource.startsWith('.')) {
     const fromDir = path.dirname(fromPath);
-    resolved = path.join(fromDir, importSource);
+    candidates.push(path.join(fromDir, importSource));
+  } else {
+    return null; // External package
   }
 
-  // Normalize separators
-  resolved = resolved.replace(/\\/g, '/');
-
-  // Try exact match then with extensions
   const extensions = ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx', '/index.js'];
-  for (const ext of extensions) {
-    const candidate = resolved + ext;
-    if (nodeMap.has(candidate)) return candidate;
+  for (const base of candidates) {
+    const normalized = base.replace(/\\/g, '/');
+    for (const ext of extensions) {
+      const candidate = normalized + ext;
+      if (nodeMap.has(candidate)) return candidate;
+    }
   }
 
   return null;
