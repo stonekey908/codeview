@@ -39,11 +39,31 @@ export default function Home() {
   const { setGraphData, setRfNodes, setRfEdges, setLoading, zoomLevel, theme, graphData } = useGraphStore();
   const layoutRef = useRef<LayoutResult | null>(null);
 
-  // Initial load — build graph + layout
+  // Initial load — try real analysis from CLI, fall back to demo
   useEffect(() => {
     async function init() {
-      setLoading(true, 'Building architecture graph...');
-      const graph = buildGraph(DEMO);
+      setLoading(true, 'Loading architecture...');
+
+      let graph: GraphData;
+
+      // Try loading real analysis from API (written by CLI)
+      try {
+        const res = await fetch('/api/analysis');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.graph) {
+            graph = data.graph;
+            setLoading(true, `Loaded ${graph.nodes.length} components`);
+          } else {
+            graph = buildGraph(DEMO);
+          }
+        } else {
+          graph = buildGraph(DEMO);
+        }
+      } catch {
+        graph = buildGraph(DEMO);
+      }
+
       setGraphData(graph);
       const layout = await computeLayout(graph);
       layoutRef.current = layout;
