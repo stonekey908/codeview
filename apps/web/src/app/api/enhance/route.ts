@@ -39,21 +39,23 @@ export async function POST(request: NextRequest) {
   }
 
   // Build a quick skim prompt — only first 300 chars of each file
-  let prompt = 'I need you to quickly categorize these code files. For each one I will show the file path and the first few lines of code. ';
-  prompt += 'Return ONLY a JSON object with this structure: { "filepath": { "title": "Better Human Title", "layer": "ui|api|data|utils|external", "summary": "One sentence what it does" } }\n\n';
-  prompt += 'Layer rules:\n';
-  prompt += '- "ui" = React components, pages, layouts that users see\n';
-  prompt += '- "api" = API route handlers (route.ts, endpoints)\n';
-  prompt += '- "data" = Database models, schemas, static data files, type definitions\n';
-  prompt += '- "utils" = Helper functions, formatting, validation\n';
-  prompt += '- "external" = Connections to third-party services (Stripe, Gemini, SendGrid, AWS, etc.)\n\n';
+  let prompt = 'Categorize these code files for a non-technical product owner. For each file I show the path and first few lines.\n\n';
+  prompt += 'Return ONLY a JSON object: { "filepath": { "title": "Short Human Name", "layer": "ui|api|data|utils|external", "summary": "What this does in plain English (1-2 sentences max)" } }\n\n';
+  prompt += 'RULES:\n';
+  prompt += '- title: Short, clear name. "Mobile Detection Hook" not "Use Mobile". "API Response Cache" not "Cache". Never just repeat the filename.\n';
+  prompt += '- summary: Explain what it DOES for the app, not what it IS. "Detects if the user is on a phone or tablet to adjust the layout" not "Helper functions: useIsMobile". Write for someone who cannot read code.\n';
+  prompt += '- layer "ui" = screens, pages, buttons, components users see and interact with\n';
+  prompt += '- layer "api" = backend endpoints that handle requests (route.ts files)\n';
+  prompt += '- layer "data" = database models, static datasets, type definitions, data files\n';
+  prompt += '- layer "utils" = helper functions, formatting, validation, caching\n';
+  prompt += '- layer "external" = connections to third-party services (Google Gemini, Stripe, SendGrid, AWS, etc.)\n\n';
 
   for (const node of components.slice(0, 40)) {
     const filePath = path.join(projectDir, node.relativePath);
     let preview = '';
     try {
       if (fs.existsSync(filePath)) {
-        preview = fs.readFileSync(filePath, 'utf-8').slice(0, 300);
+        preview = fs.readFileSync(filePath, 'utf-8').slice(0, 500);
       }
     } catch {}
     prompt += `File: ${node.relativePath}\n\`\`\`\n${preview}\n\`\`\`\n\n`;
