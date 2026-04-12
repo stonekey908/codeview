@@ -2,6 +2,7 @@ import * as path from 'path';
 import type { AnalysisResult, FileEntry } from '@codeview/shared';
 import { scanFiles } from './scanner';
 import { parseFile } from './parser';
+import { detectFramework } from './detectors';
 
 export async function analyzeProject(rootDir: string): Promise<AnalysisResult> {
   const absoluteRoot = path.resolve(rootDir);
@@ -12,13 +13,18 @@ export async function analyzeProject(rootDir: string): Promise<AnalysisResult> {
 
   for (const filePath of filePaths) {
     try {
-      const { imports, exports } = parseFile(filePath);
+      const parseResult = parseFile(filePath);
+      const relativePath = path.relative(absoluteRoot, filePath);
+      const framework = detectFramework(filePath, relativePath, parseResult);
+
       files.push({
         filePath,
-        relativePath: path.relative(absoluteRoot, filePath),
-        imports,
-        exports,
-        framework: null, // Populated by framework detectors (STO-1647)
+        relativePath,
+        imports: parseResult.imports,
+        exports: parseResult.exports,
+        framework: framework
+          ? { role: framework.role, confidence: framework.confidence, framework: framework.framework }
+          : null,
       });
     } catch (err) {
       errors.push({
