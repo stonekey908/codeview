@@ -1,0 +1,21 @@
+{
+  "name": "@codeview/graph-engine",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "lint": "echo 'no linter configured yet'",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@codeview/shared": "workspace:*",
+    "elkjs": "^0.11.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "2.1.8"
+  }
+}
