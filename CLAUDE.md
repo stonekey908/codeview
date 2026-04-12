@@ -9,8 +9,13 @@ Visual architecture companion for Claude Code — interactive code graph for non
 **Branch:** feat/automate-STO-1639-slice-1
 **Completed:**
   - Phase 1: Pre-flight ✓
-  - Phase 2: Implementation — 1/12 tickets done (STO-1645 scaffolding ✓)
-**Next action:** Implement STO-1646 (Tree-sitter TypeScript/JavaScript parser)
+  - Phase 2: Implementation — 4/12 tickets done
+    - STO-1645 scaffolding ✓
+    - STO-1646 parser ✓ (TS compiler API, 25 tests)
+    - STO-1647 framework detectors ✓ (React, Next.js, DB, Utility)
+    - STO-1648 graph engine ✓ (builder + clustering + labeler, 17 tests)
+**Next action:** Implement STO-1649 (ELK.js layout engine)
+**Total tests:** 42 passing
 **Pending decisions:** 0
 **Hard stops:** 0
 
