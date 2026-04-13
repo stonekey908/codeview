@@ -108,7 +108,7 @@ export function OverviewPanel() {
       <div className="h-full flex items-center justify-center bg-background">
         <div className="text-center">
           <span className="inline-block w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-sm text-muted-foreground">Claude is reading your codebase and writing the overview...</p>
+          <p className="text-sm text-muted-foreground">Analysing your codebase and writing the overview...</p>
           <p className="text-xs text-muted-foreground mt-1">This takes 30-60 seconds</p>
         </div>
       </div>

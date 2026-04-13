@@ -55,7 +55,7 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
     if (selected.size === 0) return;
     setGenerating(true);
     generatingRef.current = true;
-    setProgress(`Starting Claude for ${selected.size} components...`);
+    setProgress(`Analysing ${selected.size} components...`);
 
     const controller = new AbortController();
     setAbortController(controller);
@@ -71,7 +71,7 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
         signal: controller.signal,
       });
 
-      setProgress('Claude is reading your code...');
+      setProgress('Reading source code...');
 
       // Poll for completion
       const startCount = components.filter(c => c.hasDescription).length;
@@ -108,7 +108,7 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
       if (err.name === 'AbortError') {
         setProgress('Stopped');
       } else {
-        setProgress('Failed to start Claude');
+        setProgress('Failed to start analysis');
       }
       setGenerating(false);
       generatingRef.current = false;

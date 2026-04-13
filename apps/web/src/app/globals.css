@@ -155,6 +155,7 @@
   background: var(--muted-foreground);
   opacity: 0;
   transition: opacity 0.15s;
+  pointer-events: none;
 }
 .resize-handle:hover::after,
 .resize-handle:active::after {
