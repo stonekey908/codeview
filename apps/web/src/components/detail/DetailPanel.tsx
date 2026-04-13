@@ -15,8 +15,8 @@ function classifyRelation(layer: ArchitecturalLayer): string {
 }
 
 const RELATION_COLORS: Record<string, string> = {
-  renders: '#5b8af5', 'fetches from': '#3dd9a0', uses: '#7a7a90',
-  'stores in': '#f7b955', 'connects to': '#b088f0',
+  renders: '#4a90a4', 'fetches from': '#5a8a6e', uses: '#7c8594',
+  'stores in': '#b08d57', 'connects to': '#8b7a9e',
 };
 
 export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
@@ -171,13 +171,13 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
           {tab === 'overview' && (
             <div className="space-y-5">
               <Section title="Description" isDark={isDark}>
-                <p className="text-[13px] leading-relaxed" style={{ color: isDark ? '#9090a8' : '#6b7280' }}>{node.description}</p>
+                <p className="text-[13px] leading-relaxed text-muted-foreground">{node.description}</p>
               </Section>
 
-              <Section title="AI Explanation" isDark={isDark} icon="✨" iconColor="#b088f0"
-                action={claudeExpl ? <button onClick={askClaude} className="text-[10px] font-medium" style={{ color: '#b088f0' }}>↻ Regenerate</button> : null}>
+              <Section title="AI Explanation" isDark={isDark} icon="✨" iconColor="#8b7a9e"
+                action={claudeExpl ? <button onClick={askClaude} className="text-[10px] font-medium" style={{ color: '#8b7a9e' }}>↻ Regenerate</button> : null}>
                 {claudeExpl ? (
-                  <div className="p-3.5 rounded-lg border-l-3 text-[13px] leading-relaxed" style={{ background: isDark ? '#1a1a1f' : '#f3f4f6', borderLeft: '3px solid #b088f0', color: isDark ? '#9090a8' : '#6b7280' }}>
+                  <div className="p-3.5 rounded-lg text-[13px] leading-relaxed bg-muted text-muted-foreground" style={{ borderLeft: '3px solid #8b7a9e' }}>
                     <ReactMarkdown components={{
                       p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                       strong: ({ children }) => <strong style={{ color: isDark ? '#f4f4f8' : '#111827', fontWeight: 600 }}>{children}</strong>,
@@ -186,12 +186,11 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
                     }}>{claudeExpl}</ReactMarkdown>
                   </div>
                 ) : claudeLoading ? (
-                  <div className="p-3 rounded-lg text-[13px] flex items-center gap-2" style={{ background: 'rgba(176,136,240,.05)', border: '1px solid rgba(176,136,240,.15)', color: '#b088f0' }}>
+                  <div className="p-3 rounded-lg text-[13px] flex items-center gap-2 bg-[#8b7a9e]/5 border border-[#8b7a9e]/15 text-[#8b7a9e]">
                     <span className="animate-spin">⏳</span> Claude is reading the source code...
                   </div>
                 ) : (
-                  <button onClick={askClaude} className="w-full p-3 rounded-lg text-[13px] font-medium text-center transition-colors"
-                    style={{ background: isDark ? '#1a1a1f' : '#f3f4f6', color: '#b088f0', border: '1px solid rgba(176,136,240,.15)' }}>
+                  <button onClick={askClaude} className="w-full p-3 rounded-lg text-[13px] font-medium text-center transition-colors bg-muted text-[#8b7a9e] border border-[#8b7a9e]/15 hover:bg-[#8b7a9e]/10">
                     ✨ Ask Claude to explain this component
                   </button>
                 )}
@@ -239,7 +238,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
                   <button onClick={() => {
                     // Use window.location for VS Code URL scheme — avoids Safari blocking <a> links
                     window.location.href = `vscode://file/${node.filePath}`;
-                  }} className="text-[10px] font-medium flex items-center gap-1" style={{ color: '#5b8af5', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  }} className="text-[10px] font-medium flex items-center gap-1" style={{ color: '#4a90a4', background: 'none', border: 'none', cursor: 'pointer' }}>
                     ↗ Open in VS Code
                   </button>
                 </div>

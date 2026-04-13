@@ -46,11 +46,11 @@ export function Toolbar() {
           {allExpanded ? '↕ Collapse' : '↕ Expand'}
         </button>
         <button onClick={runEnhance} disabled={enhancing}
-          className={`px-3 py-1 text-[11px] font-medium rounded-lg border transition-all ${enhancing ? 'border-amber-500/30 text-amber-400 bg-amber-500/10' : 'border-amber-500/20 text-amber-400 hover:bg-amber-500/10'}`}>
+          className={`px-3 py-1 text-[11px] font-medium rounded-lg border transition-all ${enhancing ? 'border-[#b08d57]/30 text-[#b08d57] bg-[#b08d57]/10' : 'border-[#b08d57]/20 text-[#b08d57] hover:bg-[#b08d57]/10'}`}>
           {enhancing ? '⚡ Enhancing...' : '⚡ Enhance'}
         </button>
         <button onClick={() => setShowGenerate(true)}
-          className="px-3 py-1 text-[11px] font-medium rounded-lg border border-purple-500/20 text-purple-400 hover:bg-purple-500/10 transition-all">
+          className="px-3 py-1 text-[11px] font-medium rounded-lg border border-[#8b7a9e]/20 text-[#8b7a9e] hover:bg-[#8b7a9e]/10 transition-all">
           ✨ Describe
         </button>
         {focusedNodeId && (
