@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useGraphStore } from '@/store/graph-store';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { LAYER_COLORS, LAYER_LABELS } from '@/components/canvas/layer-colors';
 import { FeaturesView } from './FeaturesView';
 import type { ArchitecturalLayer } from '@codeview/shared';
@@ -55,10 +56,10 @@ export function LeftPanel() {
     <nav className="flex flex-col overflow-hidden bg-card border-r border-border relative">
       {/* Resize handle */}
       <div onMouseDown={handleResize}
-        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors z-20" />
-      <div className="flex border-b border-border">
+        className="resize-handle absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors z-20" />
+      <div className="flex border-b border-border" role="tablist" aria-label="Navigation views">
         {(['overview', 'features', 'categories', 'architecture'] as const).map(tab => (
-          <button key={tab} onClick={() => setLeftTab(tab)}
+          <button key={tab} onClick={() => setLeftTab(tab)} role="tab" aria-selected={leftTab === tab}
             className={`flex-1 py-2.5 text-[9px] font-semibold text-center capitalize border-b-2 transition-all ${
               leftTab === tab ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}>{tab}</button>
@@ -68,7 +69,8 @@ export function LeftPanel() {
       <div className="mx-2.5 my-2.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-muted border border-border text-xs">
         <span className="text-muted-foreground">🔍</span>
         <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Filter components..." className="flex-1 bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground" />
+          placeholder="Filter components..." aria-label="Filter components"
+          className="flex-1 bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground" />
         {searchQuery && <button onClick={() => setSearchQuery('')} className="text-muted-foreground hover:text-foreground text-[10px]">✕</button>}
       </div>
 
@@ -112,7 +114,7 @@ export function LeftPanel() {
             <div key={cluster.id}>
               <button onClick={() => toggleCluster(cluster.id)}
                 className="w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground hover:bg-accent transition-colors">
-                <span className="text-[8px] text-muted-foreground">{isExpanded ? '▼' : '▶'}</span>
+                {isExpanded ? <ChevronDown size={12} className="text-muted-foreground shrink-0" /> : <ChevronRight size={12} className="text-muted-foreground shrink-0" />}
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: colors.color }} />
                 {cluster.label}
                 <span className="ml-auto text-[9px] font-mono px-1.5 py-px rounded bg-muted text-muted-foreground">{cluster.nodeIds.length}</span>

@@ -132,6 +132,38 @@
   }
 }
 
+/* ═══ Focus visible ═══ */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Resize handles — show grip dots on hover */
+.resize-handle {
+  position: relative;
+}
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 32px;
+  border-radius: 2px;
+  background: var(--muted-foreground);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.resize-handle:hover::after,
+.resize-handle:active::after {
+  opacity: 0.3;
+}
+.resize-handle:active::after {
+  opacity: 0.5;
+}
+
 /* ═══ React Flow ═══ */
 .react-flow.dark {
   --xy-background-color: transparent;

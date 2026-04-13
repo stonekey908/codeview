@@ -82,6 +82,7 @@ export function Toolbar() {
 
       <div className="flex items-center gap-2">
         <button onClick={() => allExpanded ? collapseAllClusters() : expandAllClusters()}
+          aria-label={allExpanded ? 'Collapse all groups' : 'Expand all groups'}
           className="px-3 py-1 text-[11px] font-medium rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-all">
           {allExpanded ? '↕ Collapse' : '↕ Expand'}
         </button>
@@ -107,6 +108,7 @@ export function Toolbar() {
           // Persist theme
           try { localStorage.setItem('codeview-theme', next); } catch {}
         }}
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           className="w-7 h-7 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
           ◐
         </button>

@@ -192,7 +192,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
       {/* Resize handle */}
       {!isExpanded && (
         <div onMouseDown={handleResizeStart}
-          className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors z-20" />
+          className="resize-handle absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors z-20" />
       )}
       <div className={isExpanded ? 'max-w-[860px] mx-auto' : ''}>
         {/* Header */}
@@ -232,9 +232,9 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-border px-5">
+        <div className="flex border-b border-border px-5" role="tablist" aria-label="Component detail views">
           {(['overview', 'connections', 'code'] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
+            <button key={t} onClick={() => setTab(t)} role="tab" aria-selected={tab === t}
               className={`px-3 py-2 text-[11px] font-medium capitalize border-b-2 transition-colors ${
                 tab === t ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}>
@@ -247,19 +247,19 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
         <div className="p-5">
           {tab === 'overview' && (
             <div className="space-y-5">
-              <Section title="Description" isDark={isDark}>
+              <Section title="Description">
                 <p className="text-[13px] leading-relaxed text-muted-foreground">{node.description}</p>
               </Section>
 
-              <Section title="Explanation" isDark={isDark} icon="✨" iconColor="#8b7a9e"
+              <Section title="Explanation" icon="✨" iconColor="#8b7a9e"
                 action={claudeExpl ? <button onClick={askClaude} className="text-[10px] font-medium" style={{ color: '#8b7a9e' }}>↻ Regenerate</button> : null}>
                 {claudeExpl ? (
                   <div className="p-3.5 rounded-lg text-[13px] leading-relaxed bg-muted text-muted-foreground" style={{ borderLeft: '3px solid #8b7a9e' }}>
                     <ReactMarkdown components={{
                       p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                      strong: ({ children }) => <strong style={{ color: isDark ? '#f4f4f8' : '#111827', fontWeight: 600 }}>{children}</strong>,
+                      strong: ({ children }) => <strong className="text-foreground font-semibold">{children}</strong>,
                       ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
-                      code: ({ children }) => <code className="text-[11px] font-mono px-1 py-0.5 rounded" style={{ background: isDark ? '#111114' : '#e5e7eb' }}>{children}</code>,
+                      code: ({ children }) => <code className="text-[11px] font-mono px-1 py-0.5 rounded bg-accent">{children}</code>,
                     }}>{claudeExpl}</ReactMarkdown>
                   </div>
                 ) : claudeLoading ? (
@@ -268,7 +268,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
                   </div>
                 ) : (
                   <button onClick={askClaude} className="w-full p-3 rounded-lg text-[13px] font-medium text-center transition-colors bg-muted text-[#8b7a9e] border border-[#8b7a9e]/15 hover:bg-[#8b7a9e]/10">
-                    ✨ Explain to explain this component
+                    ✨ Click to explain this component
                   </button>
                 )}
               </Section>
@@ -278,27 +278,27 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
           {tab === 'connections' && (
             <div className="space-y-5">
               {deps.length > 0 && (
-                <Section title={`Uses (${deps.length})`} isDark={isDark}>
+                <Section title={`Uses (${deps.length})`}>
                   <div className="grid grid-cols-2 gap-2">
                     {deps.map(({ node: dep, type }) => (
                       <ConnCard key={dep.id} name={dep.label} type={classifyRelation(dep.layer)} layer={dep.layer}
-                        desc={dep.description} isDark={isDark} onClick={() => navigateDetail(dep.id)} />
+                        desc={dep.description} onClick={() => navigateDetail(dep.id)} />
                     ))}
                   </div>
                 </Section>
               )}
               {dependents.length > 0 && (
-                <Section title={`Used By (${dependents.length})`} isDark={isDark}>
+                <Section title={`Used By (${dependents.length})`}>
                   <div className="grid grid-cols-2 gap-2">
                     {dependents.map(({ node: dep }) => (
                       <ConnCard key={dep.id} name={dep.label} type={classifyRelation(node.layer)} layer={dep.layer}
-                        desc={dep.description} isDark={isDark} onClick={() => navigateDetail(dep.id)} />
+                        desc={dep.description} onClick={() => navigateDetail(dep.id)} />
                     ))}
                   </div>
                 </Section>
               )}
               {deps.length === 0 && dependents.length === 0 && (
-                <p className="text-[13px] text-center py-10" style={{ color: isDark ? '#505068' : '#9ca3af' }}>No connections found</p>
+                <p className="text-[13px] text-center py-10 text-muted-foreground">No connections found</p>
               )}
             </div>
           )}
@@ -306,7 +306,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
           {tab === 'code' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: isDark ? '#505068' : '#9ca3af' }}>Source Code</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Source Code</span>
                 <div className="flex items-center gap-3">
                   <button onClick={async () => {
                     if (fileContent) {
@@ -315,7 +315,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
                       if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000); }
                     }
                   }} id="copy-code-btn"
-                    className="text-[10px] font-medium flex items-center gap-1" style={{ color: isDark ? '#505068' : '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    className="text-[10px] font-medium flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                     📋 Copy
                   </button>
                 </div>
@@ -323,16 +323,16 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
               {fileLoading ? (
                 <div className="flex items-center justify-center py-12"><span className="inline-block w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></span></div>
               ) : highlightedHtml ? (
-                <div className="rounded-lg overflow-hidden overflow-y-auto"
-                  style={{ maxHeight: '60vh', border: `1px solid ${isDark ? '#1e1e28' : '#e5e7eb'}` }}
+                <div className="rounded-lg overflow-hidden overflow-y-auto border border-border"
+                  style={{ maxHeight: '60vh' }}
                   dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
               ) : fileContent ? (
-                <pre className="p-4 rounded-lg font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words overflow-y-auto"
-                  style={{ background: isDark ? '#0a0a0c' : '#fafbfc', color: isDark ? '#9090a8' : '#6b7280', border: `1px solid ${isDark ? '#1e1e28' : '#e5e7eb'}`, maxHeight: '60vh' }}>
+                <pre className="p-4 rounded-lg font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words overflow-y-auto bg-muted text-muted-foreground border border-border"
+                  style={{ maxHeight: '60vh' }}>
                   {fileContent}
                 </pre>
               ) : (
-                <p className="text-[13px] text-center py-10" style={{ color: isDark ? '#505068' : '#9ca3af' }}>Start CodeView with the CLI to see source code</p>
+                <p className="text-[13px] text-center py-10 text-muted-foreground">Start CodeView with the CLI to see source code</p>
               )}
             </div>
           )}
@@ -342,14 +342,13 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
   );
 }
 
-function Section({ title, isDark, icon, iconColor, action, children }: {
-  title: string; isDark: boolean; icon?: string; iconColor?: string; action?: React.ReactNode; children: React.ReactNode;
+function Section({ title, icon, iconColor, action, children }: {
+  title: string; isDark?: boolean; icon?: string; iconColor?: string; action?: React.ReactNode; children: React.ReactNode;
 }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1"
-          style={{ color: isDark ? '#505068' : '#9ca3af' }}>
+        <h3 className="text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1 text-muted-foreground">
           {icon && <span style={{ color: iconColor }}>{icon}</span>}{title}
         </h3>
         {action}
@@ -359,21 +358,18 @@ function Section({ title, isDark, icon, iconColor, action, children }: {
   );
 }
 
-function ConnCard({ name, type, layer, desc, isDark, onClick }: {
-  name: string; type: string; layer: ArchitecturalLayer; desc: string; isDark: boolean; onClick: () => void;
+function ConnCard({ name, type, layer, desc, onClick }: {
+  name: string; type: string; layer: ArchitecturalLayer; desc: string; isDark?: boolean; onClick: () => void;
 }) {
   const colors = LAYER_COLORS[layer];
   const tc = RELATION_COLORS[type] || '#7a7a90';
   return (
-    <button onClick={onClick} className="w-full text-left p-2.5 rounded-lg transition-all"
-      style={{ background: isDark ? '#1a1a1f' : '#f3f4f6', border: `1px solid ${isDark ? '#1e1e28' : '#e5e7eb'}` }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = isDark ? '#2a2a38' : '#d1d5db'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = isDark ? '#1e1e28' : '#e5e7eb'; e.currentTarget.style.transform = 'none'; }}>
+    <button onClick={onClick} className="w-full text-left p-2.5 rounded-lg transition-all bg-muted border border-border hover:border-muted-foreground/30 hover:-translate-y-0.5">
       <span className="text-[8px] font-medium px-1.5 py-0.5 rounded" style={{ background: `${tc}15`, color: tc }}>{type}</span>
-      <div className="text-xs font-semibold mt-1.5 flex items-center gap-1" style={{ color: isDark ? '#f4f4f8' : '#111827' }}>
+      <div className="text-xs font-semibold mt-1.5 flex items-center gap-1 text-foreground">
         <span className="w-1.5 h-1.5 rounded-full" style={{ background: colors.color }} />{name}
       </div>
-      <div className="text-[10px] mt-0.5 line-clamp-2" style={{ color: isDark ? '#505068' : '#9ca3af' }}>{desc}</div>
+      <div className="text-[10px] mt-0.5 line-clamp-2 text-muted-foreground">{desc}</div>
     </button>
   );
 }

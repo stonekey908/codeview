@@ -38,7 +38,7 @@ export function SearchPalette() {
         n.label.toLowerCase().includes(query.toLowerCase()) ||
         n.relativePath.toLowerCase().includes(query.toLowerCase()) ||
         n.layer.toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 8)
+      ).slice(0, 20)
     : [];
 
   const handleSelect = useCallback((nodeId: string) => {
@@ -68,28 +68,29 @@ export function SearchPalette() {
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOpen(false)} />
 
       {/* Palette */}
-      <div className="relative w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div role="dialog" aria-label="Search components" className="relative w-full max-w-md bg-card border border-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         {/* Input */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-zinc-800">
-          <Search size={16} className="text-zinc-500 shrink-0" />
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+          <Search size={16} className="text-muted-foreground shrink-0" />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
             onKeyDown={handleKeyDown}
             placeholder="Search components..."
-            className="flex-1 bg-transparent text-sm text-zinc-100 placeholder-zinc-500 outline-none"
+            aria-label="Search components"
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
           />
-          <kbd className="text-[9px] px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-500 font-mono">
+          <kbd className="text-[9px] px-1.5 py-0.5 bg-muted border border-border rounded text-muted-foreground font-mono">
             ESC
           </kbd>
         </div>
 
         {/* Results */}
         {query.length > 0 && (
-          <div className="max-h-64 overflow-y-auto py-1">
+          <div className="max-h-80 overflow-y-auto py-1">
             {results.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-zinc-500 text-center">
+              <p className="px-4 py-6 text-sm text-muted-foreground text-center">
                 No components matching &ldquo;{query}&rdquo;
               </p>
             ) : (
@@ -100,7 +101,7 @@ export function SearchPalette() {
                     key={node.id}
                     onClick={() => handleSelect(node.id)}
                     className={`w-full flex items-center gap-2.5 px-4 py-2 text-left transition-colors ${
-                      i === selectedIndex ? 'bg-zinc-800' : 'hover:bg-zinc-800/50'
+                      i === selectedIndex ? 'bg-accent' : 'hover:bg-accent/50'
                     }`}
                   >
                     <span
@@ -108,14 +109,14 @@ export function SearchPalette() {
                       style={{ backgroundColor: colors.color }}
                     />
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium text-zinc-200 truncate">
+                      <div className="text-sm font-medium text-foreground truncate">
                         {node.label}
                       </div>
-                      <div className="text-[10px] font-mono text-zinc-500 truncate">
+                      <div className="text-[10px] font-mono text-muted-foreground truncate">
                         {node.relativePath}
                       </div>
                     </div>
-                    <span className="text-[10px] text-zinc-600 shrink-0">
+                    <span className="text-[10px] text-muted-foreground shrink-0">
                       {node.layer}
                     </span>
                   </button>
@@ -123,8 +124,8 @@ export function SearchPalette() {
               })
             )}
             {results.length > 0 && (
-              <div className="px-4 py-2 border-t border-zinc-800 text-[10px] text-zinc-600">
-                {results.length} result{results.length !== 1 ? 's' : ''} &middot; ↑↓ navigate &middot; ↵ select
+              <div className="px-4 py-2 border-t border-border text-[10px] text-muted-foreground">
+                {results.length} result{results.length !== 1 ? 's' : ''} · ↑↓ navigate · ↵ select
               </div>
             )}
           </div>

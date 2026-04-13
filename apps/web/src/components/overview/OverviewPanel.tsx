@@ -184,7 +184,7 @@ export function OverviewPanel() {
         {overview.flows?.length > 0 && overview.flows.map((flow, fi) => (
           <section key={fi} className="mb-8">
             <h2 className="text-lg font-bold tracking-tight text-foreground mb-2 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full" style={{ background: '#4a7c8a' }} />
+              <span className="w-2 h-2 rounded-full" style={{ background: LAYER_COLORS.api.color }} />
               {flow.title}
             </h2>
             <p className="text-sm text-muted-foreground mb-3">{flow.description}</p>
@@ -218,12 +218,16 @@ export function OverviewPanel() {
               Behind the Scenes
             </h2>
             <div className="grid grid-cols-2 gap-2.5">
-              {overview.backend.map((b, i) => (
-                <div key={i} className="bg-card border border-border rounded-lg p-3.5">
-                  <h3 className="text-[13px] font-semibold mb-1">{b.icon} {b.title}</h3>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">{b.description}</p>
-                </div>
-              ))}
+              {overview.backend.map((b, i) => {
+                const node = findNodeByPath(b.componentPaths);
+                return (
+                  <button key={i} onClick={() => node && drillDown(node.id)}
+                    className="text-left bg-card border border-border rounded-lg p-3.5 transition-all hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-sm">
+                    <h3 className="text-[13px] font-semibold mb-1">{b.icon} {b.title}</h3>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">{b.description}</p>
+                  </button>
+                );
+              })}
             </div>
           </section>
         )}
