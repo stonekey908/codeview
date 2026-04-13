@@ -139,7 +139,7 @@
   border-radius: 4px;
 }
 
-/* Resize handles — show grip dots on hover */
+/* Resize handles — visible grip indicator */
 .resize-handle {
   position: relative;
 }
@@ -149,20 +149,20 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 4px;
-  height: 32px;
+  width: 3px;
+  height: 40px;
   border-radius: 2px;
-  background: var(--muted-foreground);
-  opacity: 0;
-  transition: opacity 0.15s;
+  background: var(--border);
+  transition: background 0.15s, height 0.15s;
   pointer-events: none;
 }
-.resize-handle:hover::after,
-.resize-handle:active::after {
-  opacity: 0.3;
+.resize-handle:hover::after {
+  background: var(--primary);
+  height: 60px;
 }
 .resize-handle:active::after {
-  opacity: 0.5;
+  background: var(--primary);
+  height: 80px;
 }
 
 /* ═══ React Flow ═══ */
