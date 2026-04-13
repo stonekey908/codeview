@@ -79,8 +79,23 @@ export function humanDescription(
     case 'context':
       return `Shares ${label.replace(/Context|Provider/gi, '').trim().toLowerCase() || 'data'} across the entire app without passing it through every component`;
     case 'service': {
-      const serviceName = label.replace(/Client|Service|Api/gi, '').trim();
-      return `Connects to ${serviceName || 'an external service'}${importSources.some(s => s.includes('stripe')) ? ' for payment processing' : importSources.some(s => s.includes('sendgrid') || s.includes('mail')) ? ' for sending emails' : ''}`;
+      const serviceName = label.replace(/Client|Service|Api|Functions/gi, '').trim();
+      // Detect what kind of service from imports
+      const importHints: string[] = [];
+      if (importSources.some(s => s.includes('stripe'))) importHints.push('payment processing');
+      if (importSources.some(s => s.includes('sendgrid') || s.includes('mail') || s.includes('nodemailer'))) importHints.push('sending emails');
+      if (importSources.some(s => s.includes('firebase-functions') || s.includes('functions'))) importHints.push('cloud functions');
+      if (importSources.some(s => s.includes('firebase-admin'))) importHints.push('database and auth');
+      if (importSources.some(s => s.includes('generative-ai') || s.includes('openai') || s.includes('anthropic'))) importHints.push('AI processing');
+      if (importSources.some(s => s.includes('fcm') || s.includes('messaging'))) importHints.push('push notifications');
+
+      if (exportNames.length > 5) {
+        return `Server-side hub with ${exportNames.length} cloud functions${importHints.length > 0 ? ` handling ${importHints.join(', ')}` : ''}`;
+      }
+      if (importHints.length > 0) {
+        return `${serviceName ? serviceName + ' — ' : ''}Handles ${importHints.join(', ')}`;
+      }
+      return `Connects to ${serviceName || 'an external service'}`;
     }
     case 'config':
       return `Configuration and settings${dirContext ? ` for ${dirContext}` : ' for the app'} — environment variables, feature flags, constants`;
