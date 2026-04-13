@@ -25,7 +25,7 @@ export function KeyboardShortcuts() {
 
   if (!helpOpen) return null;
   return (
-    <div className="fixed inset-0 z-[350] flex items-center justify-center">
+    <div className="fixed inset-0 z-[350] flex items-center justify-center" role="dialog" aria-label="Keyboard shortcuts">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setHelpOpen(false)} />
       <div className="relative w-full max-w-sm bg-card border border-border rounded-xl shadow-2xl p-5 animate-in fade-in zoom-in-95 duration-150">
         <h2 className="text-sm font-bold mb-4">Keyboard Shortcuts</h2>

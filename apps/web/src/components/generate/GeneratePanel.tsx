@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Sparkles, Loader2, X, Check, Square, CheckSquare } from 'lucide-react';
-import { useGraphStore } from '@/store/graph-store';
 import { LAYER_COLORS } from '@/components/canvas/layer-colors';
 
 interface ComponentStatus {
@@ -15,15 +14,13 @@ interface ComponentStatus {
 }
 
 export function GeneratePanel({ onClose }: { onClose: () => void }) {
-  const { theme } = useGraphStore();
-  const isDark = theme === 'dark';
-
   const [components, setComponents] = useState<ComponentStatus[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [generating, setGenerating] = useState(false);
   const [progress, setProgress] = useState('');
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [loading, setLoading] = useState(true);
+  const generatingRef = useRef(false);
 
   // Load component list
   useEffect(() => {
@@ -57,6 +54,7 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
   const generate = async () => {
     if (selected.size === 0) return;
     setGenerating(true);
+    generatingRef.current = true;
     setProgress(`Starting Claude for ${selected.size} components...`);
 
     const controller = new AbortController();
@@ -91,16 +89,18 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
             clearInterval(poll);
             setProgress('Done!');
             setGenerating(false);
+            generatingRef.current = false;
             setTimeout(() => setProgress(''), 2000);
           }
         } catch {}
       }, 3000);
 
-      // Timeout after 3 minutes
+      // Timeout after 3 minutes — use ref to avoid stale closure
       setTimeout(() => {
         clearInterval(poll);
-        if (generating) {
+        if (generatingRef.current) {
           setGenerating(false);
+          generatingRef.current = false;
           setProgress('Timed out — some descriptions may still be generating');
         }
       }, 180000);
@@ -111,6 +111,7 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
         setProgress('Failed to start Claude');
       }
       setGenerating(false);
+      generatingRef.current = false;
       setTimeout(() => setProgress(''), 2000);
     }
   };
@@ -127,36 +128,32 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-xl shadow-2xl overflow-hidden"
-        style={{ background: isDark ? '#18181b' : '#ffffff', border: `1px solid ${isDark ? '#27272a' : '#e4e4e7'}` }}>
+      <div role="dialog" aria-label="Generate explanations" className="relative w-full max-w-lg rounded-xl shadow-2xl overflow-hidden bg-card border border-border">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b"
-          style={{ borderColor: isDark ? '#27272a' : '#e4e4e7' }}>
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-2">
-            <Sparkles size={16} className="text-purple-400" />
-            <h2 className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>
+            <Sparkles size={16} className="text-[#8b7a9e]" />
+            <h2 className="text-sm font-bold">
               Generate Explanations
             </h2>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded"
-              style={{ background: isDark ? '#27272a' : '#f4f4f5', color: isDark ? '#71717a' : '#a1a1aa' }}>
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
               {described}/{components.length} done
             </span>
           </div>
-          <button onClick={onClose} className="text-zinc-500 hover:text-zinc-300"><X size={16} /></button>
+          <button onClick={onClose} aria-label="Close" className="text-muted-foreground hover:text-foreground transition-colors"><X size={16} /></button>
         </div>
 
         {/* Selection controls */}
-        <div className="flex items-center gap-2 px-4 py-2 border-b text-[11px]"
-          style={{ borderColor: isDark ? '#27272a' : '#e4e4e7' }}>
-          <button onClick={selectAll} className="text-blue-400 hover:text-blue-300">Select All</button>
-          <span style={{ color: isDark ? '#3f3f46' : '#d4d4d8' }}>·</span>
-          <button onClick={selectNone} className="text-blue-400 hover:text-blue-300">None</button>
-          <span style={{ color: isDark ? '#3f3f46' : '#d4d4d8' }}>·</span>
-          <button onClick={selectUndescribed} className="text-blue-400 hover:text-blue-300">
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-border text-[11px]">
+          <button onClick={selectAll} className="text-primary hover:text-primary/80">Select All</button>
+          <span className="text-border">·</span>
+          <button onClick={selectNone} className="text-primary hover:text-primary/80">None</button>
+          <span className="text-border">·</span>
+          <button onClick={selectUndescribed} className="text-primary hover:text-primary/80">
             Undescribed Only ({components.filter(c => !c.hasDescription).length})
           </button>
-          <span className="ml-auto font-medium" style={{ color: isDark ? '#a1a1aa' : '#71717a' }}>
+          <span className="ml-auto font-medium text-muted-foreground">
             {selected.size} selected
           </span>
         </div>
@@ -165,7 +162,7 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
         <div className="max-h-[50vh] overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 size={20} className="animate-spin" style={{ color: isDark ? '#52525b' : '#a1a1aa' }} />
+              <Loader2 size={20} className="animate-spin text-muted-foreground" />
             </div>
           ) : (
             components.map((comp) => {
@@ -174,23 +171,22 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
               return (
                 <div key={comp.path}
                   onClick={() => !generating && toggleSelect(comp.path)}
-                  className="flex items-start gap-2.5 px-4 py-2 cursor-pointer transition-colors"
-                  style={{ background: isSelected ? (isDark ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)') : 'transparent' }}
+                  className={`flex items-start gap-2.5 px-4 py-2 cursor-pointer transition-colors ${isSelected ? 'bg-primary/5' : 'hover:bg-accent/50'}`}
                 >
-                  <div className="mt-0.5" style={{ color: isSelected ? '#3b82f6' : (isDark ? '#3f3f46' : '#d4d4d8') }}>
+                  <div className={`mt-0.5 ${isSelected ? 'text-primary' : 'text-muted-foreground/40'}`}>
                     {isSelected ? <CheckSquare size={14} /> : <Square size={14} />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: colors?.color || '#71717a' }} />
-                      <span className="text-xs font-medium truncate" style={{ color: isDark ? '#fafafa' : '#18181b' }}>
+                      <span className="text-xs font-medium truncate text-foreground">
                         {comp.label}
                       </span>
                       {comp.hasDescription && (
                         <Check size={10} className="text-green-500 shrink-0" />
                       )}
                     </div>
-                    <div className="text-[10px] truncate mt-0.5" style={{ color: isDark ? '#52525b' : '#a1a1aa' }}>
+                    <div className="text-[10px] truncate mt-0.5 text-muted-foreground">
                       {comp.path}
                     </div>
                   </div>
@@ -201,8 +197,7 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-4 py-3 border-t"
-          style={{ borderColor: isDark ? '#27272a' : '#e4e4e7' }}>
+        <div className="flex items-center justify-between px-4 py-3 border-t border-border">
           {progress && (
             <span className="text-xs flex items-center gap-1.5" style={{ color: '#8b7a9e' }}>
               {generating && <span className="inline-block w-3 h-3 border-2 border-[#8b7a9e] border-t-transparent rounded-full animate-spin" />}

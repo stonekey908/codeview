@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useGraphStore } from '@/store/graph-store';
 import { LAYER_COLORS } from '@/components/canvas/layer-colors';
 import type { ArchitecturalLayer } from '@codeview/shared';
@@ -146,7 +147,7 @@ export function FeaturesView() {
               <span className="text-[9px] font-mono text-muted-foreground bg-card border border-border px-1.5 py-0.5 rounded">
                 {group.items.length}
               </span>
-              <span className={`text-[8px] text-muted-foreground transition-transform ${isExpanded ? 'rotate-90' : ''}`}>▶</span>
+              {isExpanded ? <ChevronDown size={12} className="text-muted-foreground shrink-0" /> : <ChevronRight size={12} className="text-muted-foreground shrink-0" />}
             </button>
 
             {/* Expanded items */}
