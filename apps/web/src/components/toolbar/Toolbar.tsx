@@ -3,12 +3,14 @@
 import { useState, useCallback } from 'react';
 import { useGraphStore } from '@/store/graph-store';
 import { GeneratePanel } from '@/components/generate/GeneratePanel';
+import { HelpGuide } from '@/components/help/HelpGuide';
 import { buildRfNodes } from '@/lib/build-rf-nodes';
 import { computeLayout } from '@codeview/graph-engine';
 
 export function Toolbar() {
   const { theme, setTheme, graphData, expandAllClusters, collapseAllClusters, expandedClusterIds, focusedNodeId, setFocusedNode, setGraphData, setRfNodes, setRfEdges } = useGraphStore();
   const [showGenerate, setShowGenerate] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [enhanceStatus, setEnhanceStatus] = useState('');
 
@@ -101,11 +103,15 @@ export function Toolbar() {
       </div>
 
       <div className="flex items-center gap-1.5">
+        <button onClick={() => setShowHelp(true)}
+          aria-label="Help guide"
+          className="w-7 h-7 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors text-xs font-bold">
+          ?
+        </button>
         <button onClick={() => {
           const next = theme === 'dark' ? 'light' : 'dark';
           setTheme(next);
           document.documentElement.classList.toggle('dark', next === 'dark');
-          // Persist theme
           try { localStorage.setItem('codeview-theme', next); } catch {}
         }}
           aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
@@ -115,6 +121,7 @@ export function Toolbar() {
       </div>
     </header>
     {showGenerate && <GeneratePanel onClose={() => setShowGenerate(false)} />}
+    {showHelp && <HelpGuide onClose={() => setShowHelp(false)} />}
     </>
   );
 }
