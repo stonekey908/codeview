@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useGraphStore } from '@/store/graph-store';
 import { LAYER_COLORS, LAYER_LABELS } from '@/components/canvas/layer-colors';
 import type { ArchitecturalLayer } from '@codeview/shared';
@@ -32,6 +32,8 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
   const [claudeLoading, setClaudeLoading] = useState(false);
   const [claudeExpl, setClaudeExpl] = useState<string | null>(null);
   const [tab, setTab] = useState<'overview' | 'connections' | 'code'>('overview');
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pendingPathRef = useRef<string | null>(null);
 
   const node = detailNodeId ? getNodeById(detailNodeId) : null;
   const isDark = theme === 'dark';
@@ -76,31 +78,76 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
     }).catch(() => {});
   }, [node?.relativePath, node?.id, claudeExplanations]);
 
+  // Persistent polling that survives re-renders and navigation
+  useEffect(() => {
+    // If we come back to a node that has a pending request, show loading
+    if (node && pendingPathRef.current === node.relativePath) {
+      setClaudeLoading(true);
+    }
+    return () => {}; // Don't clear poll on unmount — it's in a ref
+  }, [node?.relativePath]);
+
+  // Check for completed requests on every render
+  useEffect(() => {
+    if (!pendingPathRef.current) return;
+    const checkResult = async () => {
+      try {
+        const r = await fetch('/api/ask-claude');
+        const d = await r.json();
+        const path = pendingPathRef.current;
+        if (path && d.descriptions?.[path]) {
+          if (node?.relativePath === path) {
+            setClaudeExpl(d.descriptions[path]);
+            setClaudeLoading(false);
+          }
+          pendingPathRef.current = null;
+          if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+        }
+      } catch {}
+    };
+    checkResult();
+  }, [node?.relativePath]);
+
   const askClaude = async () => {
     if (!node) return;
+    const targetPath = node.relativePath;
     const previousExpl = claudeExpl;
     setClaudeLoading(true);
-    setClaudeExpl(null); // Clear old explanation to show loading state
+    setClaudeExpl(null);
+    pendingPathRef.current = targetPath;
+
+    // Clear any existing poll
+    if (pollRef.current) clearInterval(pollRef.current);
+
     try {
       await fetch('/api/trigger-claude', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'explain', componentPath: node.relativePath }),
+        body: JSON.stringify({ action: 'explain', componentPath: targetPath }),
       });
-      // Poll for new description (different from the previous one)
-      const poll = setInterval(async () => {
+      // Poll using ref — survives navigation and re-renders
+      pollRef.current = setInterval(async () => {
         try {
-          const r = await fetch(`/api/ask-claude`);
+          const r = await fetch('/api/ask-claude');
           const d = await r.json();
-          const newDesc = d.descriptions?.[node.relativePath];
+          const newDesc = d.descriptions?.[targetPath];
           if (newDesc && newDesc !== previousExpl) {
-            setClaudeExpl(newDesc);
-            setClaudeLoading(false);
-            clearInterval(poll);
+            // Update if we're still on the same node
+            const currentNode = useGraphStore.getState().getNodeById(useGraphStore.getState().detailNodeId || '');
+            if (currentNode?.relativePath === targetPath) {
+              setClaudeExpl(newDesc);
+              setClaudeLoading(false);
+            }
+            pendingPathRef.current = null;
+            if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
           }
         } catch {}
-      }, 2000);
-      setTimeout(() => { clearInterval(poll); setClaudeLoading(false); }, 60000);
-    } catch { setClaudeLoading(false); }
+      }, 2500);
+      setTimeout(() => {
+        if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+        pendingPathRef.current = null;
+        setClaudeLoading(false);
+      }, 90000);
+    } catch { setClaudeLoading(false); pendingPathRef.current = null; }
   };
 
   if (!detailNodeId || !graphData || !node) return null;

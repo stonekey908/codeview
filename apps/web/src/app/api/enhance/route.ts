@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
   prompt += '- GOOD: "Formats dates into human-readable strings, converts currency amounts, and truncates long text with ellipsis"\n';
   prompt += '- GOOD: "Encrypts sensitive data before storing it and decrypts it when retrieved, using AES-256 encryption"\n\n';
 
-  for (const node of components.slice(0, 50)) {
+  for (const node of components.slice(0, 80)) {
     const filePath = path.join(projectDir, node.relativePath);
     let preview = '';
     try {
