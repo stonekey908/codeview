@@ -29,11 +29,13 @@ export function FeaturesView() {
   const { graphData, openDetail, detailNodeId, setLeftTab } = useGraphStore();
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     fetch('/api/overview').then(r => r.json()).then(d => {
       if (d.overview) setOverview(d.overview);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const toggleGroup = (id: string) => {
@@ -58,6 +60,15 @@ export function FeaturesView() {
     }
     return null;
   };
+
+  if (loading) {
+    return (
+      <div className="px-4 py-8 text-center">
+        <span className="inline-block w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mb-2" />
+        <p className="text-xs text-muted-foreground">Loading features...</p>
+      </div>
+    );
+  }
 
   if (!overview) {
     return (

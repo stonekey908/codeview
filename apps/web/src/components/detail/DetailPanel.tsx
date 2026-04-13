@@ -36,6 +36,14 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pendingPathRef = useRef<string | null>(null);
 
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+      pendingPathRef.current = null;
+    };
+  }, []);
+
   const node = detailNodeId ? getNodeById(detailNodeId) : null;
   const isDark = theme === 'dark';
 
@@ -300,7 +308,13 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: isDark ? '#505068' : '#9ca3af' }}>Source Code</span>
                 <div className="flex items-center gap-3">
-                  <button onClick={() => { if (fileContent) navigator.clipboard.writeText(fileContent); }}
+                  <button onClick={async () => {
+                    if (fileContent) {
+                      await navigator.clipboard.writeText(fileContent);
+                      const btn = document.getElementById('copy-code-btn');
+                      if (btn) { btn.textContent = '✓ Copied'; setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000); }
+                    }
+                  }} id="copy-code-btn"
                     className="text-[10px] font-medium flex items-center gap-1" style={{ color: isDark ? '#505068' : '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>
                     📋 Copy
                   </button>

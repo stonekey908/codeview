@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useGraphStore } from '@/store/graph-store';
 import { GeneratePanel } from '@/components/generate/GeneratePanel';
+import { buildRfNodes } from '@/lib/build-rf-nodes';
+import { computeLayout } from '@codeview/graph-engine';
 
 export function Toolbar() {
-  const { theme, setTheme, graphData, expandAllClusters, collapseAllClusters, expandedClusterIds, focusedNodeId, setFocusedNode } = useGraphStore();
+  const { theme, setTheme, graphData, expandAllClusters, collapseAllClusters, expandedClusterIds, focusedNodeId, setFocusedNode, setGraphData, setRfNodes, setRfEdges } = useGraphStore();
   const [showGenerate, setShowGenerate] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
   const [enhanceStatus, setEnhanceStatus] = useState('');
@@ -14,32 +16,53 @@ export function Toolbar() {
   const conns = graphData?.edges.length ?? 0;
   const allExpanded = expandedClusterIds.size === (graphData?.clusters.length ?? 0);
 
+  // Refetch data from API without page reload
+  const refetchData = useCallback(async () => {
+    try {
+      const res = await fetch('/api/analysis');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.graph) {
+          setGraphData(data.graph);
+          const layout = await computeLayout(data.graph);
+          const { nodes, edges } = buildRfNodes(data.graph, layout, theme);
+          setRfNodes(nodes);
+          setRfEdges(edges);
+        }
+      }
+    } catch {}
+  }, [theme, setGraphData, setRfNodes, setRfEdges]);
+
   const runEnhance = async () => {
     setEnhancing(true);
-    setEnhanceStatus('Starting Claude...');
+    setEnhanceStatus('Starting...');
     try {
       const res = await fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
       const data = await res.json();
+      if (data.error) { setEnhanceStatus(`Error: ${data.error}`); setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 3000); return; }
       setEnhanceStatus(`Analysing ${data.total || total} components...`);
 
       const poll = setInterval(async () => {
-        const r = await fetch('/api/enhance');
-        const d = await r.json();
-        if (d.status === 'done') {
-          setEnhanceStatus(`Done — ${d.count} components enhanced`);
-          clearInterval(poll);
-          setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); window.location.reload(); }, 1500);
-        } else if (d.status === 'running') {
-          const batchInfo = d.batches > 1 ? ` (batch ${d.batch}/${d.batches})` : '';
-          setEnhanceStatus(`${d.done}/${d.total} enhanced${batchInfo}`);
-        } else if (d.status === 'error') {
-          setEnhanceStatus('Error');
-          clearInterval(poll);
-          setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 3000);
-        }
-      }, 2000);
-      // Longer timeout for large projects with multiple batches
-      setTimeout(() => { clearInterval(poll); setEnhancing(false); setEnhanceStatus(''); }, 600000);
+        try {
+          const r = await fetch('/api/enhance');
+          const d = await r.json();
+          if (d.status === 'done') {
+            setEnhanceStatus(`Done — ${d.count} enhanced`);
+            clearInterval(poll);
+            // Refetch data instead of page reload — preserves all state
+            await refetchData();
+            setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 2000);
+          } else if (d.status === 'running') {
+            const batchInfo = d.batches > 1 ? ` (batch ${d.batch}/${d.batches})` : '';
+            setEnhanceStatus(`${d.done}/${d.total}${batchInfo}`);
+          } else if (d.status === 'error') {
+            setEnhanceStatus('Failed');
+            clearInterval(poll);
+            setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 3000);
+          }
+        } catch {}
+      }, 2500);
+      setTimeout(() => { clearInterval(poll); setEnhancing(false); setEnhanceStatus(''); }, 300000);
     } catch { setEnhancing(false); setEnhanceStatus(''); }
   };
 
@@ -81,6 +104,8 @@ export function Toolbar() {
           const next = theme === 'dark' ? 'light' : 'dark';
           setTheme(next);
           document.documentElement.classList.toggle('dark', next === 'dark');
+          // Persist theme
+          try { localStorage.setItem('codeview-theme', next); } catch {}
         }}
           className="w-7 h-7 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
           ◐

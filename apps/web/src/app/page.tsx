@@ -22,8 +22,16 @@ const DEMO_FILES = [
 ];
 
 export default function Home() {
-  const { setGraphData, setRfNodes, setRfEdges, setLoading, theme, graphData, detailMode, middleView, detailWidth, leftWidth, leftTab, detailNodeId } = useGraphStore();
+  const { setGraphData, setRfNodes, setRfEdges, setLoading, theme, setTheme, graphData, detailMode, middleView, detailWidth, leftWidth, leftTab, detailNodeId, isLoading } = useGraphStore();
   const layoutRef = useRef<LayoutResult | null>(null);
+
+  // Restore theme from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('codeview-theme') as 'dark' | 'light' | null;
+      if (saved) { setTheme(saved); document.documentElement.classList.toggle('dark', saved === 'dark'); }
+    } catch {}
+  }, [setTheme]);
 
   useEffect(() => {
     async function init() {
