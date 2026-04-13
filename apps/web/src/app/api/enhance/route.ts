@@ -41,14 +41,24 @@ export async function POST(request: NextRequest) {
   // Build a quick skim prompt — only first 300 chars of each file
   let prompt = 'Categorize these code files for a non-technical product owner. For each file I show the path and first few lines.\n\n';
   prompt += 'Return ONLY a JSON object: { "filepath": { "title": "Short Human Name", "layer": "ui|api|data|utils|external", "summary": "What this does in plain English (1-2 sentences max)" } }\n\n';
-  prompt += 'RULES:\n';
-  prompt += '- title: Short, clear name. "Mobile Detection Hook" not "Use Mobile". "API Response Cache" not "Cache". Never just repeat the filename.\n';
-  prompt += '- summary: Explain what it DOES for the app, not what it IS. "Detects if the user is on a phone or tablet to adjust the layout" not "Helper functions: useIsMobile". Write for someone who cannot read code.\n';
-  prompt += '- layer "ui" = screens, pages, buttons, components users see and interact with\n';
-  prompt += '- layer "api" = backend endpoints that handle requests (route.ts files)\n';
-  prompt += '- layer "data" = database models, static datasets, type definitions, data files\n';
-  prompt += '- layer "utils" = helper functions, formatting, validation, caching\n';
-  prompt += '- layer "external" = connections to third-party services (Google Gemini, Stripe, SendGrid, AWS, etc.)\n\n';
+  prompt += 'RULES FOR TITLE:\n';
+  prompt += '- Short, clear, descriptive. "Daily Summary Scheduler" not "Daily Summary". "Firebase Push Notifications" not "Fcm Helper".\n';
+  prompt += '- Never just repeat the filename. Give it a name a product owner would understand.\n\n';
+  prompt += 'RULES FOR SUMMARY:\n';
+  prompt += '- Explain what it DOES for the app. "Sends parents a morning email summarizing their childrens upcoming events and tasks" not "Cloud function for daily summaries".\n';
+  prompt += '- Write for someone who cannot read code. Be specific about WHAT it does, not vague.\n\n';
+  prompt += 'RULES FOR LAYER (be precise — this matters):\n';
+  prompt += '- "ui" = screens, pages, modals, buttons, visual components users see. Includes React hooks that serve UI (useXxx).\n';
+  prompt += '- "api" = backend API endpoints, route handlers (route.ts, API controllers)\n';
+  prompt += '- "data" = static data files, constants, prompt templates, colour palettes, type definitions, config objects, seed data. If it STORES information that other code reads, it is data.\n';
+  prompt += '- "utils" = pure helper functions with no side effects: formatting, validation, string manipulation, date math. ONLY things that transform input to output.\n';
+  prompt += '- "external" = anything that talks to an external service or runs as a separate process: Cloud Functions, Firebase, Gemini API calls, push notifications, email sending, payment processing, encryption. If it makes network calls or runs server-side, it is external.\n\n';
+  prompt += 'COMMON MISTAKES TO AVOID:\n';
+  prompt += '- Cloud functions (functions/src/*) are EXTERNAL not utils — they run on a server\n';
+  prompt += '- Prompt templates and constants are DATA not utils — they store information\n';
+  prompt += '- React hooks (useXxx) are UI not utils — they serve components\n';
+  prompt += '- Encryption/crypto utilities that call external APIs are EXTERNAL not utils\n';
+  prompt += '- Index/barrel files that just re-export are UTILS\n\n';
 
   for (const node of components.slice(0, 40)) {
     const filePath = path.join(projectDir, node.relativePath);
