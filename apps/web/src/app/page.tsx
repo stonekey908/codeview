@@ -22,7 +22,7 @@ const DEMO_FILES = [
 ];
 
 export default function Home() {
-  const { setGraphData, setRfNodes, setRfEdges, setLoading, theme, graphData, detailMode, middleView, detailWidth, leftWidth, leftTab } = useGraphStore();
+  const { setGraphData, setRfNodes, setRfEdges, setLoading, theme, graphData, detailMode, middleView, detailWidth, leftWidth, leftTab, detailNodeId } = useGraphStore();
   const layoutRef = useRef<LayoutResult | null>(null);
 
   useEffect(() => {
@@ -59,14 +59,16 @@ export default function Home() {
     setRfEdges(edges);
   }, [theme, graphData, setRfNodes, setRfEdges]);
 
-  // Layout
+  // Layout — graph only for architecture tab, detail view for everything else
   const showOverview = leftTab === 'overview';
-  const showGraph = middleView === 'graph' && !showOverview;
-  const showSlideOut = detailMode === 'slide-out' && !showOverview;
-  const showExpanded = detailMode === 'expanded' && !showOverview;
+  const showArchGraph = leftTab === 'architecture';
+  const showDetailView = !showOverview && !showArchGraph;
+
+  // In architecture mode, can have graph + slide-out detail
+  const archSlideOut = showArchGraph && detailMode === 'slide-out';
 
   let gridCols = `${leftWidth}px 1fr`;
-  if (showSlideOut) gridCols = `${leftWidth}px 1fr ${detailWidth}px`;
+  if (archSlideOut) gridCols = `${leftWidth}px 1fr ${detailWidth}px`;
 
   return (
     <div className="h-screen flex flex-col">
@@ -74,9 +76,17 @@ export default function Home() {
       <div className="flex-1 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: gridCols }}>
         <LeftPanel />
         {showOverview && <OverviewPanel />}
-        {showGraph && !showExpanded && <GraphCanvas />}
-        {showExpanded && <DetailPanel fullWidth />}
-        {showSlideOut && <DetailPanel />}
+        {showArchGraph && <GraphCanvas />}
+        {archSlideOut && <DetailPanel />}
+        {showDetailView && detailNodeId && <DetailPanel fullWidth />}
+        {showDetailView && !detailNodeId && (
+          <div className="h-full flex items-center justify-center bg-background">
+            <div className="text-center">
+              <div className="text-3xl mb-3 opacity-30">←</div>
+              <p className="text-sm text-muted-foreground">Select a component from the left panel</p>
+            </div>
+          </div>
+        )}
       </div>
       <SearchPalette />
       <KeyboardShortcuts />
