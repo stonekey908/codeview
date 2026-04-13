@@ -70,15 +70,8 @@ export const ClusterNode = memo(function ClusterNode({
 
   return (
     <div
-      style={{
-        borderColor: isDark ? '#27272a' : '#e4e4e7',
-        borderLeftWidth: 3,
-        borderLeftColor: colors.border,
-        background: isDark ? '#18181b' : '#ffffff',
-        opacity, transition: 'opacity 0.2s ease',
-        minWidth: 340, maxWidth: 380,
-      }}
-      className="rounded-xl border shadow-sm"
+      style={{ borderLeftWidth: 3, borderLeftColor: colors.border, opacity, transition: 'opacity 0.2s ease', minWidth: 340, maxWidth: 380 }}
+      className="rounded-xl border border-border bg-card shadow-sm"
     >
       <Handle type="target" position={Position.Top} className="!w-2 !h-2 !border-0 !rounded-full" style={{ background: colors.color, opacity: 0.5 }} />
       <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !border-0 !rounded-full" style={{ background: colors.color, opacity: 0.5 }} />
