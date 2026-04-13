@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeView — Split View with Architecture Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--font:'Outfit',system-ui,sans-serif;--mono:'JetBrains Mono',monospace}
+  [data-theme="dark"]{--bg:#09090b;--s1:#111114;--s2:#1a1a1f;--s3:#252530;--t1:#f4f4f8;--t2:#9090a8;--t3:#505068;--b1:#1e1e28;--b2:#2a2a38;--ui:#5b8af5;--api:#3dd9a0;--data:#f7b955;--util:#7a7a90;--ext:#b088f0;--accent:#5b8af5}
+  [data-theme="light"]{--bg:#fafbfc;--s1:#ffffff;--s2:#f3f4f6;--s3:#e5e7eb;--t1:#111827;--t2:#6b7280;--t3:#9ca3af;--b1:#e5e7eb;--b2:#d1d5db;--ui:#3b82f6;--api:#10b981;--data:#f59e0b;--util:#6b7280;--ext:#8b5cf6;--accent:#3b82f6}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--t1);overflow:hidden;height:100vh;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+
+  .app{display:grid;grid-template-columns:320px 1fr;grid-template-rows:48px 1fr;height:100vh}
+
+  /* ═══ TOPBAR ═══ */
+  .topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--s1);border-bottom:1px solid var(--b1)}
+  .tb-l{display:flex;align-items:center;gap:12px}
+  .tb-r{display:flex;align-items:center;gap:6px}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;letter-spacing:-.02em}
+  .logo i{width:22px;height:22px;border-radius:5px;background:linear-gradient(135deg,var(--ui),var(--api));font-style:normal;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700}
+  .chip{font-size:10px;color:var(--t2);font-family:var(--mono);padding:3px 10px;background:var(--s2);border:1px solid var(--b1);border-radius:12px}
+  .chip .gd{width:5px;height:5px;border-radius:50%;background:var(--api);display:inline-block;margin-right:3px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .b{padding:4px 12px;border-radius:7px;font-size:11px;font-weight:500;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .15s;display:flex;align-items:center;gap:4px}
+  .b:hover{background:var(--s2);color:var(--t1)}
+
+  /* ═══ LEFT PANEL ═══ */
+  .left{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+
+  /* Tab switcher: Categories | Architecture */
+  .left-tabs{display:flex;border-bottom:1px solid var(--b1);flex-shrink:0}
+  .left-tab{flex:1;padding:9px 0;font-size:11px;font-weight:600;text-align:center;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;transition:all .15s}
+  .left-tab:hover{color:var(--t2)}
+  .left-tab.active{color:var(--t1);border-color:var(--accent)}
+
+  .left-search{margin:12px;display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;font-size:12px;color:var(--t3);flex-shrink:0}
+  .left-search input{flex:1;background:none;border:none;color:var(--t1);font-family:var(--font);font-size:12px;outline:none}
+  .left-search input::placeholder{color:var(--t3)}
+  .left-search kbd{font-family:var(--mono);font-size:9px;padding:1px 4px;background:var(--s3);border:1px solid var(--b2);border-radius:3px;color:var(--t3)}
+
+  .left-content{flex:1;overflow-y:auto}
+
+  /* ─── Categories View ─── */
+  .cat-group{margin-bottom:2px}
+  .cat-header{display:flex;align-items:center;gap:6px;padding:7px 14px;font-size:11px;font-weight:600;cursor:pointer;transition:background .1s;color:var(--t2)}
+  .cat-header:hover{background:var(--s2)}
+  .cat-header .arr{font-size:8px;color:var(--t3);width:12px;text-align:center;transition:transform .15s}
+  .cat-header .arr.open{transform:rotate(90deg)}
+  .cat-header .cdot{width:6px;height:6px;border-radius:50%}
+  .cat-header .cnt{margin-left:auto;font-size:9px;font-family:var(--mono);color:var(--t3);background:var(--s2);padding:1px 5px;border-radius:6px}
+  .cat-items{padding:2px 0}
+  .cat-item{display:flex;align-items:center;gap:6px;padding:5px 14px 5px 32px;font-size:12px;cursor:pointer;transition:all .1s;color:var(--t2)}
+  .cat-item:hover{background:var(--s2);color:var(--t1)}
+  .cat-item.active{background:rgba(91,138,245,.08);color:var(--accent);font-weight:500;border-right:2px solid var(--accent)}
+  .cat-item .ci{font-size:10px;width:16px;text-align:center;flex-shrink:0}
+  .cat-item .cn{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cat-item .cc{font-size:9px;font-family:var(--mono);color:var(--t3)}
+
+  /* ─── Architecture Flow View ─── */
+  .flow-view{padding:12px}
+  .flow-layer{margin-bottom:16px}
+  .flow-layer-header{display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:0 4px}
+  .flow-layer-dot{width:8px;height:8px;border-radius:50%}
+  .flow-layer-name{font-size:12px;font-weight:600}
+  .flow-layer-count{font-size:9px;font-family:var(--mono);color:var(--t3)}
+
+  .flow-card{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:all .15s;position:relative}
+  .flow-card:hover{border-color:var(--b2);transform:translateX(2px)}
+  .flow-card.active{border-color:var(--accent);background:rgba(91,138,245,.06);border-left:3px solid var(--accent)}
+  .flow-card-name{font-size:12px;font-weight:600;margin-bottom:2px}
+  .flow-card-desc{font-size:10px;color:var(--t3);line-height:1.4;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+
+  /* Connection indicators between layers */
+  .flow-connections{display:flex;align-items:center;gap:4px;padding:4px 12px 4px 20px;margin-bottom:4px}
+  .flow-arrow{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--t3)}
+  .flow-arrow-line{width:20px;height:1px;background:var(--b2);position:relative}
+  .flow-arrow-line::after{content:'';position:absolute;right:-1px;top:-3px;border:3px solid transparent;border-left:4px solid var(--b2)}
+  .flow-arrow-label{font-size:9px;color:var(--t3);font-family:var(--mono);padding:1px 6px;background:var(--s2);border:1px solid var(--b1);border-radius:4px}
+
+  /* Dependency chain — shows the flow path */
+  .flow-chain{padding:8px 12px;margin:8px 0;background:var(--s2);border:1px solid var(--b1);border-radius:10px}
+  .flow-chain-title{font-size:9px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+  .flow-step{display:flex;align-items:center;gap:8px;padding:4px 0}
+  .flow-step-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
+  .flow-step-name{font-size:11px;font-weight:500;flex:1}
+  .flow-step-type{font-size:9px;color:var(--t3);font-family:var(--mono)}
+  .flow-step-line{width:1px;height:12px;background:var(--b2);margin-left:10px}
+
+  /* ═══ RIGHT — Detail View (same as mockup 3) ═══ */
+  .detail{overflow-y:auto;background:var(--bg)}
+  .detail-hero{padding:24px 28px 18px;border-bottom:1px solid var(--b1);background:var(--s1)}
+  .dh-bc{font-size:11px;color:var(--t3);margin-bottom:8px;display:flex;align-items:center;gap:4px}
+  .dh-bc a{color:var(--t3);text-decoration:none;cursor:pointer}.dh-bc a:hover{color:var(--t2)}
+  .dh-title{font-size:22px;font-weight:700;letter-spacing:-.03em;margin-bottom:3px}
+  .dh-path{font-size:11px;font-family:var(--mono);color:var(--t3);margin-bottom:10px}
+  .dh-tags{display:flex;gap:5px;margin-bottom:14px}
+  .dh-tag{padding:3px 9px;border-radius:7px;font-size:10px;font-weight:500}
+  .dh-actions{display:flex;gap:6px}
+  .dh-btn{padding:5px 12px;border-radius:7px;font-size:11px;font-weight:500;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .15s;display:flex;align-items:center;gap:5px}
+  .dh-btn:hover{background:var(--s2);color:var(--t1)}
+  .dh-btn.pu{border-color:rgba(176,136,240,.2);color:#b088f0}.dh-btn.pu:hover{background:rgba(176,136,240,.06)}
+
+  .d-stats{display:flex;gap:16px;padding:14px 28px;background:var(--s1);border-bottom:1px solid var(--b1)}
+  .d-stat-v{font-size:18px;font-weight:700;letter-spacing:-.02em}
+  .d-stat-l{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-top:1px}
+
+  .d-sec{padding:18px 28px;border-bottom:1px solid var(--b1)}
+  .d-sec-t{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+  .d-desc{font-size:13px;line-height:1.65;color:var(--t2)}
+  .d-ai{padding:14px;border-radius:10px;border-left:3px solid #b088f0;background:var(--s1);font-size:13px;line-height:1.65;color:var(--t2)}
+  .d-ai strong{color:var(--t1);font-weight:600}
+
+  .d-conn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .d-conn-card{background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:10px 11px;cursor:pointer;transition:all .15s}
+  .d-conn-card:hover{border-color:var(--b2);transform:translateY(-1px)}
+  .d-conn-type{font-size:8px;font-weight:500;padding:2px 5px;border-radius:3px;display:inline-block;margin-bottom:3px}
+  .d-conn-name{font-size:12px;font-weight:600;margin-bottom:2px}
+  .d-conn-desc{font-size:10px;color:var(--t3);line-height:1.35}
+
+  .d-code{background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:14px;font-family:var(--mono);font-size:11px;line-height:1.6;color:var(--t2);white-space:pre-wrap;max-height:350px;overflow-y:auto}
+
+  ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--s3);border-radius:3px}
+
+  /* Hidden state for tab switching */
+  .view-hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="tb-l">
+      <div class="logo"><i>CV</i>CodeView</div>
+      <span class="chip"><span class="gd"></span>58 components · 126 connections</span>
+    </div>
+    <div class="tb-r">
+      <button class="b" style="border-color:rgba(247,185,85,.2);color:#f7b955">⚡ Enhance</button>
+      <button class="b" style="border-color:rgba(176,136,240,.2);color:#b088f0">✨ Describe</button>
+      <button class="b" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">◐ Theme</button>
+    </div>
+  </header>
+
+  <!-- LEFT PANEL -->
+  <nav class="left">
+    <!-- Tab switcher -->
+    <div class="left-tabs">
+      <div class="left-tab active" id="tab-cat" onclick="switchTab('cat')">Categories</div>
+      <div class="left-tab" id="tab-flow" onclick="switchTab('flow')">Architecture</div>
+    </div>
+
+    <div class="left-search">🔍 <input placeholder="Search components..." /><kbd>/</kbd></div>
+
+    <div class="left-content">
+      <!-- ─── Categories View ─── -->
+      <div id="view-cat">
+        <div class="cat-group">
+          <div class="cat-header" onclick="toggleGroup(this)"><span class="arr open">▶</span><span class="cdot" style="background:var(--ui)"></span>UI Components<span class="cnt">38</span></div>
+          <div class="cat-items">
+            <div class="cat-item active" onclick="selectItem(this)"><span class="ci">📄</span><span class="cn">Trade Flows</span><span class="cc">3</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">📄</span><span class="cn">Risk Feed</span><span class="cc">5</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">📄</span><span class="cn">HSBC Footprint</span><span class="cc">6</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">📄</span><span class="cn">Shipping</span><span class="cc">4</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">📄</span><span class="cn">News</span><span class="cc">4</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">📄</span><span class="cn">Opportunities</span><span class="cc">4</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">🧩</span><span class="cn">Globe View</span><span class="cc">2</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">🧩</span><span class="cn">Chat Panel</span><span class="cc">1</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">🧩</span><span class="cn">Refresh Bar</span><span class="cc">1</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">🧩</span><span class="cn">Risk Card</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">🧩</span><span class="cn">Status Bar</span></div>
+          </div>
+        </div>
+        <div class="cat-group">
+          <div class="cat-header" onclick="toggleGroup(this)"><span class="arr open">▶</span><span class="cdot" style="background:var(--api)"></span>API Routes<span class="cnt">7</span></div>
+          <div class="cat-items">
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">⚡</span><span class="cn">Trade Flows API</span><span class="cc">2</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">⚡</span><span class="cn">Risk Events API</span><span class="cc">2</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">⚡</span><span class="cn">Chat API</span><span class="cc">1</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">⚡</span><span class="cn">Shipping API</span><span class="cc">2</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">⚡</span><span class="cn">News API</span><span class="cc">2</span></div>
+          </div>
+        </div>
+        <div class="cat-group">
+          <div class="cat-header" onclick="toggleGroup(this)"><span class="arr open">▶</span><span class="cdot" style="background:var(--data)"></span>Data Layer<span class="cnt">8</span></div>
+          <div class="cat-items">
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">💾</span><span class="cn">HSBC Markets</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">💾</span><span class="cn">Risk Events Data</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">💾</span><span class="cn">Trade Flows Data</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">📋</span><span class="cn">Types</span></div>
+          </div>
+        </div>
+        <div class="cat-group">
+          <div class="cat-header" onclick="toggleGroup(this)"><span class="arr open">▶</span><span class="cdot" style="background:var(--util)"></span>Utilities<span class="cnt">3</span></div>
+          <div class="cat-items">
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">🔧</span><span class="cn">Data Context</span><span class="cc">15</span></div>
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">🔧</span><span class="cn">Cache</span><span class="cc">5</span></div>
+          </div>
+        </div>
+        <div class="cat-group">
+          <div class="cat-header" onclick="toggleGroup(this)"><span class="arr open">▶</span><span class="cdot" style="background:var(--ext)"></span>External Services<span class="cnt">1</span></div>
+          <div class="cat-items">
+            <div class="cat-item" onclick="selectItem(this)"><span class="ci">🔗</span><span class="cn">Gemini Client</span><span class="cc">7</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── Architecture Flow View ─── -->
+      <div id="view-flow" class="view-hidden">
+        <div class="flow-view">
+          <!-- Dependency chain for selected component -->
+          <div class="flow-chain">
+            <div class="flow-chain-title">Dependency Chain — Trade Flows Page</div>
+            <div class="flow-step"><div class="flow-step-dot" style="background:var(--ui)">1</div><div class="flow-step-name">Trade Flows Page</div><div class="flow-step-type">page</div></div>
+            <div class="flow-step-line"></div>
+            <div class="flow-step"><div class="flow-step-dot" style="background:var(--util)">2</div><div class="flow-step-name">Data Context</div><div class="flow-step-type">context</div></div>
+            <div class="flow-step-line"></div>
+            <div class="flow-step"><div class="flow-step-dot" style="background:var(--api)">3</div><div class="flow-step-name">Trade Flows API</div><div class="flow-step-type">api-route</div></div>
+            <div class="flow-step-line"></div>
+            <div class="flow-step"><div class="flow-step-dot" style="background:var(--ext)">4</div><div class="flow-step-name">Gemini Client</div><div class="flow-step-type">service</div></div>
+            <div class="flow-step-line"></div>
+            <div class="flow-step"><div class="flow-step-dot" style="background:var(--data)">5</div><div class="flow-step-name">Trade Flows Data</div><div class="flow-step-type">fallback data</div></div>
+          </div>
+
+          <!-- Layer flow with connections -->
+          <div class="flow-layer">
+            <div class="flow-layer-header"><span class="flow-layer-dot" style="background:var(--ui)"></span><span class="flow-layer-name" style="color:var(--ui)">User Sees</span><span class="flow-layer-count">8 screens</span></div>
+            <div class="flow-card active" onclick="selectFlow(this)"><div class="flow-card-name">Trade Flows Page</div><div class="flow-card-desc">Main trade corridors view with search and sorting</div></div>
+            <div class="flow-card" onclick="selectFlow(this)"><div class="flow-card-name">Risk Feed Page</div><div class="flow-card-desc">Geopolitical risk events scored by severity</div></div>
+            <div class="flow-card" onclick="selectFlow(this)"><div class="flow-card-name">HSBC Footprint Page</div><div class="flow-card-desc">Interactive globe of HSBC global offices</div></div>
+          </div>
+
+          <div class="flow-connections">
+            <div class="flow-arrow"><span>screens call</span><div class="flow-arrow-line"></div></div>
+            <div class="flow-arrow-label">via Data Context</div>
+          </div>
+
+          <div class="flow-layer">
+            <div class="flow-layer-header"><span class="flow-layer-dot" style="background:var(--api)"></span><span class="flow-layer-name" style="color:var(--api)">Backend Processes</span><span class="flow-layer-count">7 endpoints</span></div>
+            <div class="flow-card" onclick="selectFlow(this)"><div class="flow-card-name">Trade Flows API</div><div class="flow-card-desc">Fetches top 20 global trade corridors</div></div>
+            <div class="flow-card" onclick="selectFlow(this)"><div class="flow-card-name">Risk Events API</div><div class="flow-card-desc">Geopolitical events from Gemini AI</div></div>
+            <div class="flow-card" onclick="selectFlow(this)"><div class="flow-card-name">Chat API</div><div class="flow-card-desc">AI chatbot backend</div></div>
+          </div>
+
+          <div class="flow-connections">
+            <div class="flow-arrow"><span>calls</span><div class="flow-arrow-line"></div></div>
+            <div class="flow-arrow-label">for AI + data</div>
+          </div>
+
+          <div class="flow-layer">
+            <div class="flow-layer-header"><span class="flow-layer-dot" style="background:var(--ext)"></span><span class="flow-layer-name" style="color:var(--ext)">External Services</span><span class="flow-layer-count">1 service</span></div>
+            <div class="flow-card" onclick="selectFlow(this)"><div class="flow-card-name">Gemini Client</div><div class="flow-card-desc">Google AI with web search grounding</div></div>
+          </div>
+
+          <div class="flow-connections">
+            <div class="flow-arrow"><span>falls back to</span><div class="flow-arrow-line"></div></div>
+            <div class="flow-arrow-label">when AI unavailable</div>
+          </div>
+
+          <div class="flow-layer">
+            <div class="flow-layer-header"><span class="flow-layer-dot" style="background:var(--data)"></span><span class="flow-layer-name" style="color:var(--data)">Static Data</span><span class="flow-layer-count">8 datasets</span></div>
+            <div class="flow-card" onclick="selectFlow(this)"><div class="flow-card-name">HSBC Markets</div><div class="flow-card-desc">40 countries with product coverage levels</div></div>
+            <div class="flow-card" onclick="selectFlow(this)"><div class="flow-card-name">Risk Events Data</div><div class="flow-card-desc">11 pre-built geopolitical risk scenarios</div></div>
+            <div class="flow-card" onclick="selectFlow(this)"><div class="flow-card-name">Trade Flows Data</div><div class="flow-card-desc">Top global trade corridors with volumes</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- RIGHT — Detail (same as mockup 3) -->
+  <main class="detail">
+    <div class="detail-hero">
+      <div class="dh-bc"><a>UI Components</a> <span>›</span> <span style="color:var(--t2)">Trade Flows</span></div>
+      <div class="dh-title">Trade Flows</div>
+      <div class="dh-path">app/(dashboard)/trade-flows/page.tsx</div>
+      <div class="dh-tags">
+        <span class="dh-tag" style="background:rgba(91,138,245,.1);color:var(--ui)">UI Components</span>
+        <span class="dh-tag" style="background:var(--s2);color:var(--t2)">page</span>
+      </div>
+      <div class="dh-actions">
+        <button class="dh-btn">↗ Open in VS Code</button>
+        <button class="dh-btn pu">✨ Ask Claude</button>
+      </div>
+    </div>
+
+    <div class="d-stats">
+      <div><div class="d-stat-v" style="color:var(--ui)">5</div><div class="d-stat-l">Exports</div></div>
+      <div><div class="d-stat-v" style="color:var(--ui)">8</div><div class="d-stat-l">Imports</div></div>
+      <div><div class="d-stat-v" style="color:var(--ui)">3</div><div class="d-stat-l">Connections</div></div>
+      <div><div class="d-stat-v" style="color:var(--api)">1</div><div class="d-stat-l">API Calls</div></div>
+    </div>
+
+    <div class="d-sec">
+      <div class="d-sec-t">Description</div>
+      <div class="d-desc">Shows top bilateral trade routes worldwide, with search, sorting by volume/growth/tariff, and a detail popup for each corridor's commodities and statistics.</div>
+    </div>
+
+    <div class="d-sec">
+      <div class="d-sec-t"><span style="color:#b088f0">✨</span> AI Explanation</div>
+      <div class="d-ai">
+        The main trade corridors view showing the <strong>top 20 bilateral trade routes</strong> worldwide. Users can search corridors, sort by volume/growth/tariff rate, and click any corridor to see a detail popup with <strong>commodity breakdowns</strong> and statistics.
+        <br><br>
+        This is the <strong>default landing page</strong> — when users navigate to the dashboard root, they get redirected here automatically.
+        <br><br>
+        It fetches data from the <strong>Trade Flows API</strong>, which either calls Google Gemini for live data or falls back to a researched static dataset.
+      </div>
+    </div>
+
+    <div class="d-sec">
+      <div class="d-sec-t">Connections</div>
+      <div class="d-conn-grid">
+        <div class="d-conn-card">
+          <span class="d-conn-type" style="background:rgba(61,217,160,.1);color:var(--api)">fetches from</span>
+          <div class="d-conn-name">Trade Flows API</div>
+          <div class="d-conn-desc">Top 20 global trade corridors with volumes and growth rates</div>
+        </div>
+        <div class="d-conn-card">
+          <span class="d-conn-type" style="background:rgba(122,122,144,.1);color:var(--util)">uses</span>
+          <div class="d-conn-name">Data Context</div>
+          <div class="d-conn-desc">Central data hub managing loading and refresh</div>
+        </div>
+        <div class="d-conn-card">
+          <span class="d-conn-type" style="background:rgba(91,138,245,.1);color:var(--ui)">renders</span>
+          <div class="d-conn-name">Trade Flow Detail</div>
+          <div class="d-conn-desc">Popup dialog with corridor details and tariff rates</div>
+        </div>
+        <div class="d-conn-card">
+          <span class="d-conn-type" style="background:rgba(91,138,245,.1);color:var(--ui)">renders</span>
+          <div class="d-conn-name">Status Bar</div>
+          <div class="d-conn-desc">Live/loading status and last sync timestamp</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-sec">
+      <div class="d-sec-t">Source Code</div>
+      <div class="d-code">"use client"
+
+import { useDataContext } from "@/lib/data-context"
+import { TradeFlowDetail } from "@/components/trade-flow-detail"
+import { StatusBar } from "@/components/status-bar"
+import { LoadingState } from "@/components/loading-state"
+
+export default function TradeFlowsPage() {
+  const { tradeFlows, isLoading } = useDataContext()
+  const [search, setSearch] = useState("")
+  const [sortBy, setSortBy] = useState("volume")
+  const [selected, setSelected] = useState(null)
+
+  if (isLoading) return &lt;LoadingState /&gt;
+
+  const filtered = tradeFlows
+    .filter(f =&gt; f.corridor.toLowerCase()
+      .includes(search.toLowerCase()))
+    .sort((a, b) =&gt; b[sortBy] - a[sortBy])
+
+  return (
+    &lt;div className="flex flex-col h-full"&gt;
+      ...
+    &lt;/div&gt;
+  )
+}</div>
+    </div>
+  </main>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.getElementById('tab-cat').classList.toggle('active', tab === 'cat');
+  document.getElementById('tab-flow').classList.toggle('active', tab === 'flow');
+  document.getElementById('view-cat').classList.toggle('view-hidden', tab !== 'cat');
+  document.getElementById('view-flow').classList.toggle('view-hidden', tab !== 'flow');
+}
+
+function toggleGroup(el) {
+  const items = el.nextElementSibling;
+  const arrow = el.querySelector('.arr');
+  if (items.style.display === 'none') {
+    items.style.display = '';
+    arrow.classList.add('open');
+  } else {
+    items.style.display = 'none';
+    arrow.classList.remove('open');
+  }
+}
+
+function selectItem(el) {
+  document.querySelectorAll('.cat-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function selectFlow(el) {
+  document.querySelectorAll('.flow-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
