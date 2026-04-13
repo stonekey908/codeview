@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Toolbar } from '@/components/toolbar/Toolbar';
 import { LeftPanel } from '@/components/left/LeftPanel';
 import { GraphCanvas } from '@/components/graph/GraphCanvas';
@@ -143,6 +143,7 @@ const DEMO_FILES = [
 export default function Home() {
   const { setGraphData, setRfNodes, setRfEdges, setLoading, theme, setTheme, graphData, detailMode, middleView, detailWidth, leftWidth, leftTab, detailNodeId, isLoading } = useGraphStore();
   const layoutRef = useRef<LayoutResult | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
 
   // Restore theme from localStorage
   useEffect(() => {
@@ -157,6 +158,7 @@ export default function Home() {
       setLoading(true, 'Loading architecture...');
       let graph: GraphData;
       let demoEnhancements: Record<string, { title?: string; layer?: string; summary?: string }> | null = null;
+      let demoDescriptions: Record<string, string> | null = null;
       try {
         const res = await fetch('/api/analysis');
         const data = await res.json();
@@ -165,9 +167,12 @@ export default function Home() {
         } else {
           graph = buildGraph({ rootDir: '/demo', files: DEMO_FILES, errors: [] });
           demoEnhancements = data.demoEnhancements || null;
+          demoDescriptions = data.demoDescriptions || null;
+          setIsDemo(true);
         }
       } catch {
         graph = buildGraph({ rootDir: '/demo', files: DEMO_FILES, errors: [] });
+        setIsDemo(true);
       }
       // Apply demo enhancements to generated graph
       if (demoEnhancements && graph.nodes) {
@@ -198,6 +203,14 @@ export default function Home() {
           nodeIds,
           metadata: { componentCount: nodeIds.length, connectionCount: graph.edges.filter(e => nodeIds.includes(e.source) || nodeIds.includes(e.target)).length },
         }));
+      }
+      // Apply demo descriptions (longer explanations) to nodes
+      if (demoDescriptions && graph.nodes) {
+        for (const node of graph.nodes) {
+          if (demoDescriptions[node.relativePath]) {
+            node.description = demoDescriptions[node.relativePath];
+          }
+        }
       }
       setGraphData(graph);
       const layout = await computeLayout(graph);
@@ -238,6 +251,17 @@ export default function Home() {
   return (
     <div className="h-screen flex flex-col">
       <Toolbar />
+      {isDemo && (
+        <div className="flex items-center justify-between px-4 py-2 bg-[#b08d57]/10 border-b border-[#b08d57]/20 text-[#b08d57]">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="font-semibold">Demo Mode</span>
+            <span className="text-[#b08d57]/70">Showing sample &ldquo;Taskflow&rdquo; project. To visualise your own project:</span>
+          </div>
+          <code className="text-[10px] font-mono bg-[#b08d57]/10 px-2 py-1 rounded border border-[#b08d57]/20">
+            npx tsx apps/cli/bin/codeview.mjs /path/to/your/project
+          </code>
+        </div>
+      )}
       <div className="flex-1 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: gridCols }}>
         <LeftPanel />
         {showOverview && <OverviewPanel />}
