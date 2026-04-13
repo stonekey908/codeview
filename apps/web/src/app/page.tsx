@@ -59,16 +59,22 @@ export default function Home() {
     setRfEdges(edges);
   }, [theme, graphData, setRfNodes, setRfEdges]);
 
-  // Layout — graph only for architecture tab, detail view for everything else
+  // Layout
   const showOverview = leftTab === 'overview';
-  const showArchGraph = leftTab === 'architecture';
-  const showDetailView = !showOverview && !showArchGraph;
+  const isSlideOut = detailMode === 'slide-out';
+  const isExpanded = detailMode === 'expanded';
+  const hasDetail = !!detailNodeId;
 
-  // In architecture mode, can have graph + slide-out detail
-  const archSlideOut = showArchGraph && detailMode === 'slide-out';
+  // Graph shows for: Architecture tab always, OR any tab when slide-out mode
+  const showGraph = leftTab === 'architecture' || (isSlideOut && hasDetail);
+  const showSlideOut = isSlideOut && hasDetail;
+  // Full-width detail for Features/Categories when expanded
+  const showFullDetail = !showOverview && !showGraph && isExpanded && hasDetail;
+  // Empty state when no component selected in Features/Categories
+  const showEmpty = !showOverview && !showGraph && !showFullDetail && !hasDetail;
 
   let gridCols = `${leftWidth}px 1fr`;
-  if (archSlideOut) gridCols = `${leftWidth}px 1fr ${detailWidth}px`;
+  if (showSlideOut) gridCols = `${leftWidth}px 1fr ${detailWidth}px`;
 
   return (
     <div className="h-screen flex flex-col">
@@ -76,10 +82,10 @@ export default function Home() {
       <div className="flex-1 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: gridCols }}>
         <LeftPanel />
         {showOverview && <OverviewPanel />}
-        {showArchGraph && <GraphCanvas />}
-        {archSlideOut && <DetailPanel />}
-        {showDetailView && detailNodeId && <DetailPanel fullWidth />}
-        {showDetailView && !detailNodeId && (
+        {showGraph && <GraphCanvas />}
+        {showSlideOut && <DetailPanel />}
+        {showFullDetail && <DetailPanel fullWidth />}
+        {showEmpty && (
           <div className="h-full flex items-center justify-center bg-background">
             <div className="text-center">
               <div className="text-3xl mb-3 opacity-30">←</div>
