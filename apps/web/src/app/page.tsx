@@ -7,6 +7,7 @@ import { GraphCanvas } from '@/components/graph/GraphCanvas';
 import { DetailPanel } from '@/components/detail/DetailPanel';
 import { SearchPalette } from '@/components/search/SearchPalette';
 import { KeyboardShortcuts } from '@/components/keyboard/KeyboardShortcuts';
+import { OverviewPanel } from '@/components/overview/OverviewPanel';
 import { useGraphStore } from '@/store/graph-store';
 import { buildGraph, computeLayout } from '@codeview/graph-engine';
 import type { LayoutResult } from '@codeview/graph-engine';
@@ -21,7 +22,7 @@ const DEMO_FILES = [
 ];
 
 export default function Home() {
-  const { setGraphData, setRfNodes, setRfEdges, setLoading, theme, graphData, detailMode, middleView, detailWidth, leftWidth } = useGraphStore();
+  const { setGraphData, setRfNodes, setRfEdges, setLoading, theme, graphData, detailMode, middleView, detailWidth, leftWidth, leftTab } = useGraphStore();
   const layoutRef = useRef<LayoutResult | null>(null);
 
   useEffect(() => {
@@ -58,20 +59,21 @@ export default function Home() {
     setRfEdges(edges);
   }, [theme, graphData, setRfNodes, setRfEdges]);
 
-  // Layout classes
-  const showGraph = middleView === 'graph';
-  const showSlideOut = detailMode === 'slide-out';
-  const showExpanded = detailMode === 'expanded';
+  // Layout
+  const showOverview = leftTab === 'overview';
+  const showGraph = middleView === 'graph' && !showOverview;
+  const showSlideOut = detailMode === 'slide-out' && !showOverview;
+  const showExpanded = detailMode === 'expanded' && !showOverview;
 
   let gridCols = `${leftWidth}px 1fr`;
   if (showSlideOut) gridCols = `${leftWidth}px 1fr ${detailWidth}px`;
-  if (showExpanded) gridCols = `${leftWidth}px 1fr`;
 
   return (
     <div className="h-screen flex flex-col">
       <Toolbar />
       <div className="flex-1 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: gridCols }}>
         <LeftPanel />
+        {showOverview && <OverviewPanel />}
         {showGraph && !showExpanded && <GraphCanvas />}
         {showExpanded && <DetailPanel fullWidth />}
         {showSlideOut && <DetailPanel />}
