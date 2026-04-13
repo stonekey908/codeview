@@ -53,10 +53,10 @@ export function LeftPanel() {
   };
 
   return (
-    <nav className="flex flex-col overflow-hidden bg-card border-r border-border relative">
-      {/* Resize handle */}
+    <nav className="flex flex-col overflow-hidden bg-card border-r border-border relative group/panel">
+      {/* Resize handle — inside overflow bounds, z-30 above content */}
       <div onMouseDown={handleResize}
-        className="resize-handle absolute -right-1.5 top-0 bottom-0 w-3 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors z-20" />
+        className="resize-handle absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-30" />
       <div className="flex border-b border-border" role="tablist" aria-label="Navigation views">
         {(['overview', 'features', 'categories', 'architecture'] as const).map(tab => (
           <button key={tab} onClick={() => setLeftTab(tab)} role="tab" aria-selected={leftTab === tab}

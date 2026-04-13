@@ -192,7 +192,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
       {/* Resize handle */}
       {!isExpanded && (
         <div onMouseDown={handleResizeStart}
-          className="resize-handle absolute -left-1.5 top-0 bottom-0 w-3 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors z-20" />
+          className="resize-handle absolute left-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-30" />
       )}
       <div className={isExpanded ? 'max-w-[860px] mx-auto' : ''}>
         {/* Header */}

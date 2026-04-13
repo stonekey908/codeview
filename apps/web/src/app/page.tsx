@@ -156,16 +156,48 @@ export default function Home() {
     async function init() {
       setLoading(true, 'Loading architecture...');
       let graph: GraphData;
+      let demoEnhancements: Record<string, { title?: string; layer?: string; summary?: string }> | null = null;
       try {
         const res = await fetch('/api/analysis');
-        if (res.ok) {
-          const data = await res.json();
-          graph = data.graph || buildGraph({ rootDir: '/demo', files: DEMO_FILES, errors: [] });
+        const data = await res.json();
+        if (data.graph) {
+          graph = data.graph;
         } else {
           graph = buildGraph({ rootDir: '/demo', files: DEMO_FILES, errors: [] });
+          demoEnhancements = data.demoEnhancements || null;
         }
       } catch {
         graph = buildGraph({ rootDir: '/demo', files: DEMO_FILES, errors: [] });
+      }
+      // Apply demo enhancements to generated graph
+      if (demoEnhancements && graph.nodes) {
+        for (const node of graph.nodes) {
+          const enh = demoEnhancements[node.relativePath];
+          if (enh) {
+            if (enh.title) node.label = enh.title;
+            if (enh.layer && ['ui', 'api', 'data', 'utils', 'external'].includes(enh.layer)) {
+              node.layer = enh.layer as any;
+            }
+            if (enh.summary) node.description = enh.summary;
+          }
+        }
+        // Rebuild clusters
+        const layerLabels: Record<string, string> = { ui: 'UI Components', api: 'API Routes', data: 'Data Layer', utils: 'Utilities', external: 'External Services' };
+        const layerDescs: Record<string, string> = { ui: 'What users see and interact with', api: 'Behind-the-scenes request handlers', data: 'Database structure and type definitions', utils: 'Shared helper tools', external: 'Third-party services' };
+        const byLayer = new Map<string, string[]>();
+        for (const node of graph.nodes) {
+          const arr = byLayer.get(node.layer) || [];
+          arr.push(node.id);
+          byLayer.set(node.layer, arr);
+        }
+        graph.clusters = Array.from(byLayer.entries()).map(([layer, nodeIds]) => ({
+          id: `cluster-${layer}`,
+          label: layerLabels[layer] || layer,
+          description: layerDescs[layer] || '',
+          layer: layer as any,
+          nodeIds,
+          metadata: { componentCount: nodeIds.length, connectionCount: graph.edges.filter(e => nodeIds.includes(e.source) || nodeIds.includes(e.target)).length },
+        }));
       }
       setGraphData(graph);
       const layout = await computeLayout(graph);
