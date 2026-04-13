@@ -204,8 +204,8 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between px-4 py-3 border-t"
           style={{ borderColor: isDark ? '#27272a' : '#e4e4e7' }}>
           {progress && (
-            <span className="text-xs flex items-center gap-1.5" style={{ color: '#a855f7' }}>
-              {generating && <Loader2 size={12} className="animate-spin" />}
+            <span className="text-xs flex items-center gap-1.5" style={{ color: '#8b7a9e' }}>
+              {generating && <span className="inline-block w-3 h-3 border-2 border-[#8b7a9e] border-t-transparent rounded-full animate-spin" />}
               {progress}
             </span>
           )}

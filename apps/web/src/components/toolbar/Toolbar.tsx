@@ -8,6 +8,7 @@ export function Toolbar() {
   const { theme, setTheme, graphData, expandAllClusters, collapseAllClusters, expandedClusterIds, focusedNodeId, setFocusedNode } = useGraphStore();
   const [showGenerate, setShowGenerate] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
+  const [enhanceStatus, setEnhanceStatus] = useState('');
 
   const total = graphData?.nodes.length ?? 0;
   const conns = graphData?.edges.length ?? 0;
@@ -15,15 +16,29 @@ export function Toolbar() {
 
   const runEnhance = async () => {
     setEnhancing(true);
+    setEnhanceStatus('Starting Claude...');
     try {
-      await fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const res = await fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const data = await res.json();
+      setEnhanceStatus(`Analysing ${data.total || total} components...`);
+
       const poll = setInterval(async () => {
         const r = await fetch('/api/enhance');
         const d = await r.json();
-        if (d.status === 'done') { clearInterval(poll); setEnhancing(false); window.location.reload(); }
-      }, 3000);
-      setTimeout(() => { clearInterval(poll); setEnhancing(false); }, 120000);
-    } catch { setEnhancing(false); }
+        if (d.status === 'done') {
+          setEnhanceStatus(`Done — ${d.count} components enhanced`);
+          clearInterval(poll);
+          setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); window.location.reload(); }, 1500);
+        } else if (d.status === 'running') {
+          setEnhanceStatus(`Claude is reading your code...`);
+        } else if (d.status === 'error') {
+          setEnhanceStatus('Error');
+          clearInterval(poll);
+          setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 3000);
+        }
+      }, 2000);
+      setTimeout(() => { clearInterval(poll); setEnhancing(false); setEnhanceStatus(''); }, 180000);
+    } catch { setEnhancing(false); setEnhanceStatus(''); }
   };
 
   return (
@@ -46,8 +61,9 @@ export function Toolbar() {
           {allExpanded ? '↕ Collapse' : '↕ Expand'}
         </button>
         <button onClick={runEnhance} disabled={enhancing}
-          className={`px-3 py-1 text-[11px] font-medium rounded-lg border transition-all ${enhancing ? 'border-[#b08d57]/30 text-[#b08d57] bg-[#b08d57]/10' : 'border-[#b08d57]/20 text-[#b08d57] hover:bg-[#b08d57]/10'}`}>
-          {enhancing ? '⚡ Enhancing...' : '⚡ Enhance'}
+          className={`px-3 py-1 text-[11px] font-medium rounded-lg border transition-all flex items-center gap-1.5 ${enhancing ? 'border-[#b08d57]/30 text-[#b08d57] bg-[#b08d57]/10' : 'border-[#b08d57]/20 text-[#b08d57] hover:bg-[#b08d57]/10'}`}>
+          {enhancing && <span className="inline-block w-3 h-3 border-2 border-[#b08d57] border-t-transparent rounded-full animate-spin" />}
+          {enhancing ? enhanceStatus : '⚡ Enhance'}
         </button>
         <button onClick={() => setShowGenerate(true)}
           className="px-3 py-1 text-[11px] font-medium rounded-lg border border-[#8b7a9e]/20 text-[#8b7a9e] hover:bg-[#8b7a9e]/10 transition-all">
