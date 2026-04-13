@@ -99,17 +99,24 @@ html[data-theme="light"] .text-zinc-500 { color: #a1a1aa; }
   border-radius: 10px;
   font-size: 11px;
   line-height: 1.6;
-  overflow-x: auto;
+  overflow-x: hidden;
   margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .shiki code {
   font-family: 'JetBrains Mono', monospace;
   counter-reset: line;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
 
 .shiki code .line {
   display: block;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .shiki code .line::before {
