@@ -69,7 +69,7 @@ export function Toolbar() {
         </button>
         <button onClick={() => setShowGenerate(true)}
           className="px-3 py-1 text-[11px] font-medium rounded-lg border border-[#8b7a9e]/20 text-[#8b7a9e] hover:bg-[#8b7a9e]/10 transition-all">
-          ✨ Describe
+          ✨ Explain
         </button>
         {focusedNodeId && (
           <button onClick={() => setFocusedNode(null)} className="px-3 py-1 text-[11px] font-medium rounded-lg bg-primary/10 border border-primary/30 text-primary">Exit Focus</button>

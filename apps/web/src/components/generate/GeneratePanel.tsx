@@ -136,7 +136,7 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-purple-400" />
             <h2 className="text-sm font-bold" style={{ fontFamily: 'var(--font-display)' }}>
-              Generate Descriptions
+              Generate Explanations
             </h2>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded"
               style={{ background: isDark ? '#27272a' : '#f4f4f5', color: isDark ? '#71717a' : '#a1a1aa' }}>
