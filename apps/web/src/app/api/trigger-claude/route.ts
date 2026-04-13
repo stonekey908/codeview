@@ -61,7 +61,28 @@ export async function POST(request: NextRequest) {
       if (fs.existsSync(filePath)) content = fs.readFileSync(filePath, 'utf-8');
     } catch {}
 
-    const prompt = `Explain this code component in plain English for a non-technical product owner. Cover: what it does, how it works, what data it uses, and what other parts of the app it connects to. Return ONLY the explanation text, no markdown formatting.\n\nFile: ${componentPath}\n\`\`\`\n${content}\n\`\`\``;
+    const prompt = `Explain this code component in plain English for a non-technical product owner.
+
+Use this structure with markdown headings and emojis:
+
+## 🎯 What It Does
+One paragraph explaining the purpose simply.
+
+## ⚙️ How It Works
+Bullet points explaining the key steps or logic.
+
+## 🔗 What It Connects To
+Bullet points listing other parts of the app it depends on or is used by.
+
+## 📊 Key Details
+Any important data it handles, notable patterns, or things worth knowing.
+
+Keep it concise — 2-4 bullet points per section. Write for someone who cannot read code.
+
+File: ${componentPath}
+\`\`\`
+${content}
+\`\`\``;
 
     runAndSave(provider, projectDir, prompt, descPath, 'single', componentPath);
     return NextResponse.json({ status: 'started', componentPath });

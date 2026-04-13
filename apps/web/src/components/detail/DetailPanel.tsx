@@ -213,12 +213,6 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
             <span className="px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ background: `${colors.color}18`, color: colors.color }}>{LAYER_LABELS[node.layer]}</span>
             <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted text-muted-foreground">{node.role}</span>
           </div>
-          <div className="flex gap-1.5 mt-3">
-            <button onClick={askClaude}
-              className="px-3 py-1.5 rounded-md text-[11px] font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-              ✨ Explain
-            </button>
-          </div>
         </div>
 
         {/* Stats */}
@@ -254,12 +248,17 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
               <Section title="Explanation" icon="✨" iconColor="#8b7a9e"
                 action={claudeExpl ? <button onClick={askClaude} className="text-[10px] font-medium" style={{ color: '#8b7a9e' }}>↻ Regenerate</button> : null}>
                 {claudeExpl ? (
-                  <div className="p-3.5 rounded-lg text-[13px] leading-relaxed bg-muted text-muted-foreground" style={{ borderLeft: '3px solid #8b7a9e' }}>
+                  <div className="p-4 rounded-lg text-[13px] leading-relaxed bg-muted text-muted-foreground" style={{ borderLeft: '3px solid #8b7a9e' }}>
                     <ReactMarkdown components={{
+                      h2: ({ children }) => <h2 className="text-sm font-bold text-foreground mt-4 mb-1.5 first:mt-0">{children}</h2>,
+                      h3: ({ children }) => <h3 className="text-[13px] font-semibold text-foreground mt-3 mb-1">{children}</h3>,
                       p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                       strong: ({ children }) => <strong className="text-foreground font-semibold">{children}</strong>,
-                      ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2">{children}</ul>,
+                      ul: ({ children }) => <ul className="list-disc list-outside ml-4 space-y-1 mb-2">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal list-outside ml-4 space-y-1 mb-2">{children}</ol>,
+                      li: ({ children }) => <li className="text-muted-foreground">{children}</li>,
                       code: ({ children }) => <code className="text-[11px] font-mono px-1 py-0.5 rounded bg-accent">{children}</code>,
+                      hr: () => <hr className="my-3 border-border" />,
                     }}>{claudeExpl}</ReactMarkdown>
                   </div>
                 ) : claudeLoading ? (
