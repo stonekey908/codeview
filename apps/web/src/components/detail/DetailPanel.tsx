@@ -192,7 +192,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
       {/* Resize handle */}
       {!isExpanded && (
         <div onMouseDown={handleResizeStart}
-          className="resize-handle absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors z-20" />
+          className="resize-handle absolute -left-1.5 top-0 bottom-0 w-3 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors z-20" />
       )}
       <div className={isExpanded ? 'max-w-[860px] mx-auto' : ''}>
         {/* Header */}
@@ -264,7 +264,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
                   </div>
                 ) : claudeLoading ? (
                   <div className="p-3 rounded-lg text-[13px] flex items-center gap-2 bg-[#8b7a9e]/5 border border-[#8b7a9e]/15 text-[#8b7a9e]">
-                    <span className="inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></span> Claude is reading the source code...
+                    <span className="inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></span> Analysing the source code...
                   </div>
                 ) : (
                   <button onClick={askClaude} className="w-full p-3 rounded-lg text-[13px] font-medium text-center transition-colors bg-muted text-[#8b7a9e] border border-[#8b7a9e]/15 hover:bg-[#8b7a9e]/10">
