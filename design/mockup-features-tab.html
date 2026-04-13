@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeView — Features Tab Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#f8f9fa;--card:#fff;--fg:#1a1d23;--muted:#6b7280;--dimmed:#9ca3af;--border:#e2e5e9;--accent:#4a7c8a;
+    --ui:#4a90a4;--api:#5a8a6e;--data:#b08d57;--util:#7c8594;--ext:#8b7a9e;--font:'Inter',system-ui,sans-serif; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--fg);height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased}
+
+  .panel{width:320px;height:100vh;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+  .tabs{display:flex;border-bottom:1px solid var(--border)}
+  .tab{flex:1;padding:9px 0;font-size:10px;font-weight:600;text-align:center;cursor:pointer;color:var(--dimmed);border-bottom:2px solid transparent}
+  .tab.on{color:var(--fg);border-color:var(--accent)}
+  .body{flex:1;overflow-y:auto;padding:8px}
+
+  /* Feature groups */
+  .fg{margin-bottom:6px;background:var(--bg);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .fg-header{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;transition:background .1s}
+  .fg-header:hover{background:#f0f2f4}
+  .fg-icon{font-size:16px}
+  .fg-info{flex:1}
+  .fg-name{font-size:12px;font-weight:600}
+  .fg-desc{font-size:10px;color:var(--muted);margin-top:1px;line-height:1.3}
+  .fg-count{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--dimmed);background:var(--card);padding:1px 6px;border-radius:6px;border:1px solid var(--border)}
+  .fg-arrow{font-size:8px;color:var(--dimmed);transition:transform .15s}
+  .fg-arrow.open{transform:rotate(90deg)}
+
+  /* Components inside a feature group */
+  .fg-items{border-top:1px solid var(--border)}
+  .fg-item{display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px;cursor:pointer;color:var(--muted);transition:all .1s}
+  .fg-item:hover{background:rgba(74,124,138,.04);color:var(--fg)}
+  .fg-item.active{background:rgba(74,124,138,.08);color:var(--accent);font-weight:500}
+  .fg-item .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+  .fg-item .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fg-item .layer{font-size:8px;font-family:monospace;color:var(--dimmed);padding:1px 4px;border-radius:3px;background:var(--card)}
+
+  /* The little flow arrows between items */
+  .fg-flow{display:flex;align-items:center;padding:0 0 0 20px}
+  .fg-flow-line{width:1px;height:8px;background:var(--border)}
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <div class="tabs">
+    <div class="tab">Overview</div>
+    <div class="tab on">Features</div>
+    <div class="tab">Categories</div>
+    <div class="tab">Architecture</div>
+  </div>
+
+  <div class="body">
+    <!-- Feature: Document Upload -->
+    <div class="fg">
+      <div class="fg-header">
+        <span class="fg-icon">📄</span>
+        <div class="fg-info">
+          <div class="fg-name">Document Upload</div>
+          <div class="fg-desc">Scan school letters and extract events</div>
+        </div>
+        <span class="fg-count">5</span>
+        <span class="fg-arrow open">▶</span>
+      </div>
+      <div class="fg-items">
+        <div class="fg-item active">
+          <span class="dot" style="background:var(--ui)"></span>
+          <span class="name">Upload Screen</span>
+          <span class="layer" style="color:var(--ui)">ui</span>
+        </div>
+        <div class="fg-flow"><div class="fg-flow-line"></div></div>
+        <div class="fg-item">
+          <span class="dot" style="background:var(--ext)"></span>
+          <span class="name">Upload Processing</span>
+          <span class="layer" style="color:var(--ext)">cloud</span>
+        </div>
+        <div class="fg-flow"><div class="fg-flow-line"></div></div>
+        <div class="fg-item">
+          <span class="dot" style="background:var(--ext)"></span>
+          <span class="name">AI Content Generator</span>
+          <span class="layer" style="color:var(--ext)">ai</span>
+        </div>
+        <div class="fg-flow"><div class="fg-flow-line"></div></div>
+        <div class="fg-item">
+          <span class="dot" style="background:var(--ext)"></span>
+          <span class="name">Resume Processing</span>
+          <span class="layer" style="color:var(--ext)">cloud</span>
+        </div>
+        <div class="fg-flow"><div class="fg-flow-line"></div></div>
+        <div class="fg-item">
+          <span class="dot" style="background:var(--data)"></span>
+          <span class="name">Upload Prompts</span>
+          <span class="layer" style="color:var(--data)">data</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature: Home Dashboard -->
+    <div class="fg">
+      <div class="fg-header">
+        <span class="fg-icon">📊</span>
+        <div class="fg-info">
+          <div class="fg-name">Home Dashboard</div>
+          <div class="fg-desc">Priority view of what matters today</div>
+        </div>
+        <span class="fg-count">4</span>
+        <span class="fg-arrow">▶</span>
+      </div>
+    </div>
+
+    <!-- Feature: Calendar -->
+    <div class="fg">
+      <div class="fg-header">
+        <span class="fg-icon">📅</span>
+        <div class="fg-info">
+          <div class="fg-name">Calendar & Events</div>
+          <div class="fg-desc">Monthly view with per-child filtering</div>
+        </div>
+        <span class="fg-count">3</span>
+        <span class="fg-arrow">▶</span>
+      </div>
+    </div>
+
+    <!-- Feature: AI Chat -->
+    <div class="fg">
+      <div class="fg-header">
+        <span class="fg-icon">💬</span>
+        <div class="fg-info">
+          <div class="fg-name">AI Chat Assistant</div>
+          <div class="fg-desc">Ask questions about your children's school life</div>
+        </div>
+        <span class="fg-count">3</span>
+        <span class="fg-arrow">▶</span>
+      </div>
+    </div>
+
+    <!-- Feature: Notifications -->
+    <div class="fg">
+      <div class="fg-header">
+        <span class="fg-icon">🔔</span>
+        <div class="fg-info">
+          <div class="fg-name">Smart Notifications</div>
+          <div class="fg-desc">Daily summaries and evening reminders</div>
+        </div>
+        <span class="fg-count">4</span>
+        <span class="fg-arrow">▶</span>
+      </div>
+    </div>
+
+    <!-- Feature: Security -->
+    <div class="fg">
+      <div class="fg-header">
+        <span class="fg-icon">🔒</span>
+        <div class="fg-info">
+          <div class="fg-name">Security & Encryption</div>
+          <div class="fg-desc">Data encryption and account management</div>
+        </div>
+        <span class="fg-count">3</span>
+        <span class="fg-arrow">▶</span>
+      </div>
+    </div>
+
+    <!-- Feature: Children Management -->
+    <div class="fg">
+      <div class="fg-header">
+        <span class="fg-icon">👦</span>
+        <div class="fg-info">
+          <div class="fg-name">Children Profiles</div>
+          <div class="fg-desc">School details, contacts, reference info</div>
+        </div>
+        <span class="fg-count">3</span>
+        <span class="fg-arrow">▶</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
