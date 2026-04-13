@@ -47,9 +47,9 @@ export function LeftPanel() {
       <div onMouseDown={handleResize}
         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors z-20" />
       <div className="flex border-b border-border">
-        {(['categories', 'architecture'] as const).map(tab => (
+        {(['overview', 'categories', 'architecture'] as const).map(tab => (
           <button key={tab} onClick={() => setLeftTab(tab)}
-            className={`flex-1 py-2.5 text-[11px] font-semibold text-center capitalize border-b-2 transition-all ${
+            className={`flex-1 py-2.5 text-[10px] font-semibold text-center capitalize border-b-2 transition-all ${
               leftTab === tab ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}>{tab}</button>
         ))}
@@ -62,6 +62,31 @@ export function LeftPanel() {
       </div>
 
       <div className="flex-1 overflow-y-auto pb-4">
+        {leftTab === 'overview' && (
+          <div className="px-3 py-2">
+            <div className="mb-4">
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">Contents</div>
+              {['What This App Does', 'Key Features', 'How Data Flows', 'Behind the Scenes', 'Data & Storage'].map((item, i) => (
+                <button key={item} className="w-full flex items-center gap-2 px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+                  <span className="text-[9px] font-mono text-muted-foreground w-4">{i + 1}</span>{item}
+                </button>
+              ))}
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">At a Glance</div>
+              {graphData.clusters.map((c: any) => {
+                const colors = LAYER_COLORS[c.layer as ArchitecturalLayer];
+                return (
+                  <div key={c.id} className="flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground">
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: colors.color }} />
+                    {c.nodeIds.length} {c.label}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {leftTab === 'categories' && graphData.clusters.map((cluster: any) => {
           const colors = LAYER_COLORS[cluster.layer as ArchitecturalLayer];
           const nodes = cluster.nodeIds.map((id: string) => graphData.nodes.find((n: any) => n.id === id)).filter(Boolean);
