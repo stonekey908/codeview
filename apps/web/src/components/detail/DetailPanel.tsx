@@ -187,7 +187,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
                   </div>
                 ) : claudeLoading ? (
                   <div className="p-3 rounded-lg text-[13px] flex items-center gap-2 bg-[#8b7a9e]/5 border border-[#8b7a9e]/15 text-[#8b7a9e]">
-                    <span className="animate-spin">⏳</span> Claude is reading the source code...
+                    <span className="inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin"></span> Claude is reading the source code...
                   </div>
                 ) : (
                   <button onClick={askClaude} className="w-full p-3 rounded-lg text-[13px] font-medium text-center transition-colors bg-muted text-[#8b7a9e] border border-[#8b7a9e]/15 hover:bg-[#8b7a9e]/10">
@@ -244,7 +244,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
                 </div>
               </div>
               {fileLoading ? (
-                <div className="flex items-center justify-center py-12"><span className="animate-spin text-lg">⏳</span></div>
+                <div className="flex items-center justify-center py-12"><span className="inline-block w-5 h-5 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></span></div>
               ) : highlightedHtml ? (
                 <div className="rounded-lg overflow-hidden overflow-y-auto"
                   style={{ maxHeight: '60vh', border: `1px solid ${isDark ? '#1e1e28' : '#e5e7eb'}` }}
