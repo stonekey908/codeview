@@ -45,8 +45,12 @@ export function FeaturesView() {
     setExpandedGroups(next);
   };
 
-  const drillDown = (paths: string[]) => {
+  const drillDown = (paths: string[], groupId?: string) => {
     if (!graphData) return;
+    // Auto-expand the parent group
+    if (groupId && !expandedGroups.has(groupId)) {
+      setExpandedGroups(prev => new Set([...prev, groupId]));
+    }
     for (const p of paths) {
       const node = graphData.nodes.find(n => n.relativePath === p || n.id === p);
       if (node) { openDetail(node.id); return; }
@@ -133,7 +137,12 @@ export function FeaturesView() {
   return (
     <div className="px-2 py-1">
       {groups.map(group => {
-        const isExpanded = expandedGroups.has(group.id);
+        // Auto-expand if the active detail node is inside this group
+        const containsActive = detailNodeId && group.items.some(item => {
+          const node = resolveNode(item.paths);
+          return node?.id === detailNodeId;
+        });
+        const isExpanded = expandedGroups.has(group.id) || !!containsActive;
         return (
           <div key={group.id} className="mb-1.5 bg-muted border border-border rounded-lg overflow-hidden">
             {/* Header */}
@@ -164,7 +173,7 @@ export function FeaturesView() {
                         <div className="flex pl-5"><div className="w-px h-2 bg-border" /></div>
                       )}
                       <button
-                        onClick={() => item.paths.length > 0 && drillDown(item.paths)}
+                        onClick={() => item.paths.length > 0 && drillDown(item.paths, group.id)}
                         className={`w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-left transition-all ${
                           isActive ? 'bg-primary/8 text-primary font-medium' : 'text-muted-foreground hover:bg-accent/30 hover:text-foreground'
                         }`}
