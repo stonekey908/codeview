@@ -2,28 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { requireProvider } from '@/lib/ai-provider';
 
 export async function POST(request: NextRequest) {
   const { action, componentPath, componentPaths } = await request.json();
   const projectDir = process.env.CODEVIEW_PROJECT_DIR || process.cwd();
 
-  // Find claude CLI
-  let claudePath = '';
+  let provider;
   try {
-    const { execSync } = require('child_process');
-    claudePath = execSync('which claude', { encoding: 'utf-8' }).trim();
-  } catch {
-    const candidates = [
-      '/usr/local/bin/claude',
-      `${process.env.HOME}/.nvm/versions/node/v20.15.0/bin/claude`,
-    ];
-    for (const c of candidates) {
-      try { fs.accessSync(c); claudePath = c; break; } catch {}
-    }
-  }
-
-  if (!claudePath) {
-    return NextResponse.json({ error: 'Claude CLI not found. Make sure claude is installed.' }, { status: 500 });
+    provider = requireProvider();
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 
   const descDir = path.join(projectDir, '.codeview');
@@ -37,7 +26,6 @@ export async function POST(request: NextRequest) {
     }
 
     const analysis = JSON.parse(fs.readFileSync(analysisPath, 'utf-8'));
-    // If specific paths provided, use those. Otherwise take first 30.
     let components = analysis.graph.nodes;
     if (componentPaths && componentPaths.length > 0) {
       components = components.filter((n: any) => componentPaths.includes(n.relativePath));
@@ -62,7 +50,7 @@ export async function POST(request: NextRequest) {
       if (content) prompt += '```\n' + content + '\n```\n\n';
     }
 
-    runClaudeAndSave(claudePath, projectDir, prompt, descPath, 'all');
+    runAndSave(provider, projectDir, prompt, descPath, 'all');
     return NextResponse.json({ status: 'started', total: components.length });
   }
 
@@ -75,15 +63,15 @@ export async function POST(request: NextRequest) {
 
     const prompt = `Explain this code component in plain English for a non-technical product owner. Cover: what it does, how it works, what data it uses, and what other parts of the app it connects to. Return ONLY the explanation text, no markdown formatting.\n\nFile: ${componentPath}\n\`\`\`\n${content}\n\`\`\``;
 
-    runClaudeAndSave(claudePath, projectDir, prompt, descPath, 'single', componentPath);
+    runAndSave(provider, projectDir, prompt, descPath, 'single', componentPath);
     return NextResponse.json({ status: 'started', componentPath });
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
 }
 
-function runClaudeAndSave(
-  claudePath: string,
+function runAndSave(
+  provider: { bin: string; buildArgs: (prompt: string) => string[]; env?: Record<string, string> },
   cwd: string,
   prompt: string,
   descPath: string,
@@ -92,10 +80,10 @@ function runClaudeAndSave(
 ) {
   let output = '';
 
-  const child = spawn(claudePath, ['-p', prompt, '--output-format', 'text'], {
+  const child = spawn(provider.bin, provider.buildArgs(prompt), {
     cwd,
     stdio: ['pipe', 'pipe', 'pipe'],
-    env: { ...process.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
+    env: { ...process.env, ...provider.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
   });
 
   child.stdout?.on('data', (data) => {
@@ -103,19 +91,18 @@ function runClaudeAndSave(
   });
 
   child.stderr?.on('data', (data) => {
-    console.error(`[claude-err] ${data.toString().slice(0, 300)}`);
+    console.error(`[ai-err] ${data.toString().slice(0, 300)}`);
   });
 
   child.on('close', (code) => {
-    console.log(`[trigger-claude] Exited with code ${code}, output length: ${output.length}`);
+    console.log(`[trigger-ai] Exited with code ${code}, output length: ${output.length}`);
 
     if (code !== 0 || !output.trim()) {
-      console.error('[trigger-claude] Claude returned no output or failed');
+      console.error('[trigger-ai] AI returned no output or failed');
       return;
     }
 
     try {
-      // Load existing descriptions
       let existing: Record<string, string> = {};
       try {
         if (fs.existsSync(descPath)) {
@@ -124,29 +111,28 @@ function runClaudeAndSave(
       } catch {}
 
       if (mode === 'all') {
-        // Parse JSON from Claude's response
         const jsonMatch = output.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const descriptions = JSON.parse(jsonMatch[0]);
           Object.assign(existing, descriptions);
-          console.log(`[trigger-claude] Parsed ${Object.keys(descriptions).length} descriptions`);
+          console.log(`[trigger-ai] Parsed ${Object.keys(descriptions).length} descriptions`);
         } else {
-          console.error('[trigger-claude] Could not find JSON in Claude response');
-          console.error('[trigger-claude] Response:', output.slice(0, 500));
+          console.error('[trigger-ai] Could not find JSON in response');
+          console.error('[trigger-ai] Response:', output.slice(0, 500));
         }
       } else if (mode === 'single' && componentPath) {
         existing[componentPath] = output.trim();
-        console.log(`[trigger-claude] Saved explanation for ${componentPath}`);
+        console.log(`[trigger-ai] Saved explanation for ${componentPath}`);
       }
 
       fs.writeFileSync(descPath, JSON.stringify(existing, null, 2));
-      console.log(`[trigger-claude] Wrote ${Object.keys(existing).length} descriptions to ${descPath}`);
+      console.log(`[trigger-ai] Wrote ${Object.keys(existing).length} descriptions to ${descPath}`);
     } catch (err) {
-      console.error(`[trigger-claude] Error saving: ${err}`);
+      console.error(`[trigger-ai] Error saving: ${err}`);
     }
   });
 
   child.on('error', (err) => {
-    console.error(`[trigger-claude] Spawn error: ${err.message}`);
+    console.error(`[trigger-ai] Spawn error: ${err.message}`);
   });
 }

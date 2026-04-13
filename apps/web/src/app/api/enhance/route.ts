@@ -2,20 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { resolveProvider } from '@/lib/ai-provider';
 
 export async function POST(request: NextRequest) {
   const { componentPaths } = await request.json();
   const projectDir = process.env.CODEVIEW_PROJECT_DIR || process.cwd();
 
-  let claudePath = '';
-  try {
-    const { execSync } = require('child_process');
-    claudePath = execSync('which claude', { encoding: 'utf-8' }).trim();
-  } catch {
-    const candidates = ['/usr/local/bin/claude', `${process.env.HOME}/.nvm/versions/node/v20.15.0/bin/claude`];
-    for (const c of candidates) { try { fs.accessSync(c); claudePath = c; break; } catch {} }
-  }
-  if (!claudePath) return NextResponse.json({ error: 'Claude CLI not found' }, { status: 500 });
+  const provider = resolveProvider();
+  if (!provider) return NextResponse.json({ error: 'No AI CLI found. Install Claude Code, Gemini CLI, or set CODEVIEW_AI_PROVIDER.' }, { status: 500 });
 
   const analysisPath = path.join(projectDir, '.codeview', 'analysis.json');
   if (!fs.existsSync(analysisPath)) return NextResponse.json({ error: 'No analysis found' }, { status: 404 });
@@ -34,21 +28,18 @@ export async function POST(request: NextRequest) {
   const totalCount = components.length;
   fs.writeFileSync(progressPath, JSON.stringify({ status: 'running', total: totalCount, done: 0, batch: 0, batches: Math.ceil(totalCount / 30) }));
 
-  // Load existing enhancements to merge into
   let allEnhancements: Record<string, any> = {};
   try {
     if (fs.existsSync(enhancePath)) allEnhancements = JSON.parse(fs.readFileSync(enhancePath, 'utf-8'));
   } catch {}
 
-  // Process in batches of 30
   const BATCH_SIZE = 30;
   const batches: any[][] = [];
   for (let i = 0; i < components.length; i += BATCH_SIZE) {
     batches.push(components.slice(i, i + BATCH_SIZE));
   }
 
-  // Run batches sequentially
-  processBatches(batches, 0, claudePath, projectDir, descDir, enhancePath, progressPath, allEnhancements, totalCount);
+  processBatches(batches, 0, provider, projectDir, descDir, enhancePath, progressPath, allEnhancements, totalCount);
 
   return NextResponse.json({ status: 'started', total: totalCount, batches: batches.length });
 }
@@ -97,13 +88,19 @@ function buildPrompt(components: any[], projectDir: string): string {
   return prompt;
 }
 
+interface ProviderLike {
+  name: string;
+  bin: string;
+  buildArgs: (prompt: string) => string[];
+  env?: Record<string, string>;
+}
+
 function processBatches(
-  batches: any[][], batchIndex: number, claudePath: string, projectDir: string,
+  batches: any[][], batchIndex: number, provider: ProviderLike, projectDir: string,
   descDir: string, enhancePath: string, progressPath: string,
   allEnhancements: Record<string, any>, totalCount: number
 ) {
   if (batchIndex >= batches.length) {
-    // All done
     fs.writeFileSync(enhancePath, JSON.stringify(allEnhancements, null, 2));
     fs.writeFileSync(progressPath, JSON.stringify({ status: 'done', total: totalCount, done: Object.keys(allEnhancements).length, batch: batches.length, batches: batches.length }));
     console.log(`[enhance] All ${batches.length} batches complete. ${Object.keys(allEnhancements).length} total enhancements.`);
@@ -113,7 +110,7 @@ function processBatches(
   const batch = batches[batchIndex];
   const prompt = buildPrompt(batch, projectDir);
 
-  console.log(`[enhance] Starting batch ${batchIndex + 1}/${batches.length} (${batch.length} components)`);
+  console.log(`[enhance] Starting batch ${batchIndex + 1}/${batches.length} (${batch.length} components) via ${provider.name}`);
   fs.writeFileSync(progressPath, JSON.stringify({
     status: 'running', total: totalCount,
     done: Object.keys(allEnhancements).length,
@@ -121,10 +118,10 @@ function processBatches(
   }));
 
   let output = '';
-  const child = spawn(claudePath, ['-p', prompt, '--output-format', 'text'], {
+  const child = spawn(provider.bin, provider.buildArgs(prompt), {
     cwd: projectDir,
     stdio: ['pipe', 'pipe', 'pipe'],
-    env: { ...process.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
+    env: { ...process.env, ...provider.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
   });
 
   child.stdout?.on('data', (data: Buffer) => { output += data.toString(); });
@@ -139,7 +136,6 @@ function processBatches(
         if (jsonMatch) {
           const batchEnhancements = JSON.parse(jsonMatch[0]);
           Object.assign(allEnhancements, batchEnhancements);
-          // Save intermediate results so the UI can show progress
           fs.writeFileSync(enhancePath, JSON.stringify(allEnhancements, null, 2));
           console.log(`[enhance] Batch ${batchIndex + 1}: +${Object.keys(batchEnhancements).length} (total: ${Object.keys(allEnhancements).length})`);
         }
@@ -148,18 +144,15 @@ function processBatches(
       }
     }
 
-    // Process next batch
-    processBatches(batches, batchIndex + 1, claudePath, projectDir, descDir, enhancePath, progressPath, allEnhancements, totalCount);
+    processBatches(batches, batchIndex + 1, provider, projectDir, descDir, enhancePath, progressPath, allEnhancements, totalCount);
   });
 
   child.on('error', (err: Error) => {
     console.error(`[enhance] Batch ${batchIndex + 1} spawn error: ${err.message}`);
-    // Continue with next batch anyway
-    processBatches(batches, batchIndex + 1, claudePath, projectDir, descDir, enhancePath, progressPath, allEnhancements, totalCount);
+    processBatches(batches, batchIndex + 1, provider, projectDir, descDir, enhancePath, progressPath, allEnhancements, totalCount);
   });
 }
 
-// Check for enhancement progress and results
 export async function GET() {
   const projectDir = process.env.CODEVIEW_PROJECT_DIR || process.cwd();
   const dir = path.join(projectDir, '.codeview');

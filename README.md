@@ -14,16 +14,69 @@ CodeView scans any TypeScript/JavaScript project and turns it into an interactiv
 - **Architecture view** — interactive graph showing how layers connect
 - **Explain** — click any component and AI reads the source code, then explains it in plain English
 - **Enhance** — AI categorises and titles every component in your project
-- **No separate API keys** — uses your existing AI terminal subscription (see [How AI Features Work](#how-ai-features-work))
+- **Multi-AI support** — works with Claude Code, Gemini CLI, or any compatible AI terminal tool
+- **No separate API keys** — uses your existing AI terminal subscription
 - **Local and private** — runs entirely on your machine, no data leaves your computer
 
-## Prerequisites
+---
+
+## Install It With Your AI Terminal
+
+The fastest way to get CodeView running is to paste one of these prompts into your AI coding tool. It will handle the setup for you.
+
+### Claude Code
+
+```
+I want to install and run CodeView to visualise my project architecture. Here's what to do:
+
+1. Clone: git clone https://github.com/stonekey908/codeview.git
+2. cd codeview
+3. Run: pnpm install
+4. Run: pnpm build
+5. Then run: npx tsx apps/cli/bin/codeview.mjs /path/to/my/project
+
+Replace /path/to/my/project with the actual path to the project I want to visualise.
+Open the browser at the URL it shows (default http://localhost:4200).
+If pnpm isn't installed, install it first with: npm install -g pnpm
+```
+
+### Gemini CLI
+
+```
+Clone and set up CodeView for me. Run these commands:
+git clone https://github.com/stonekey908/codeview.git && cd codeview && pnpm install && pnpm build
+Then run: CODEVIEW_AI_PROVIDER=gemini npx tsx apps/cli/bin/codeview.mjs /path/to/my/project
+This will use Gemini as the AI backend instead of Claude.
+```
+
+### ChatGPT / Copilot / Other AI terminal tools
+
+```
+I want to set up CodeView (https://github.com/stonekey908/codeview). Steps:
+1. git clone https://github.com/stonekey908/codeview.git
+2. cd codeview && pnpm install && pnpm build
+3. npx tsx apps/cli/bin/codeview.mjs /path/to/my/project
+
+The core visualisation works without any AI. For AI features (Enhance, Explain, Overview),
+CodeView auto-detects which AI CLI is installed (claude, gemini) or you can set
+CODEVIEW_AI_PROVIDER=<cli-name> as an env var. It just needs any CLI that accepts a
+text prompt and returns text output.
+```
+
+---
+
+## Manual Setup
+
+### Prerequisites
 
 - **Node.js 20+**
 - **pnpm** — install with `npm install -g pnpm` if you don't have it
-- **An AI coding CLI** — currently requires [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (`claude` command available in your terminal). See [How AI Features Work](#how-ai-features-work) for details.
+- **An AI coding CLI** (optional — only needed for AI features):
+  - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — `claude` command
+  - [Gemini CLI](https://github.com/google-gemini/gemini-cli) — `gemini` command
+  - Or any CLI that accepts a text prompt via `-p` flag
 
-## Quick Start
+### Step by step
 
 ```bash
 # 1. Clone the repo
@@ -33,74 +86,91 @@ cd codeview
 # 2. Install dependencies
 pnpm install
 
-# 3. Build all packages
+# 3. Build all packages (required before first run)
 pnpm build
 
-# 4. Analyse your project (replace with your project path)
+# 4. Analyse your project
 npx tsx apps/cli/bin/codeview.mjs /path/to/your/project
 
 # Opens http://localhost:4200 with your architecture map
 ```
 
-### Example: Analyse a Next.js project
+### Examples
 
 ```bash
+# Analyse a Next.js project
 npx tsx apps/cli/bin/codeview.mjs ~/projects/my-nextjs-app
-```
 
-### Example: Analyse the current directory
+# Analyse the current directory
+cd ~/projects/my-app && npx tsx apps/cli/bin/codeview.mjs .
 
-```bash
-cd ~/projects/my-app
-npx tsx apps/cli/bin/codeview.mjs .
-```
-
-### Example: Use a custom port
-
-```bash
+# Use a custom port
 npx tsx apps/cli/bin/codeview.mjs ~/projects/my-app --port 3500
-```
 
-### Development mode (with demo data)
+# Use Gemini instead of Claude for AI features
+CODEVIEW_AI_PROVIDER=gemini npx tsx apps/cli/bin/codeview.mjs ~/projects/my-app
 
-If you just want to explore CodeView itself without pointing it at a project:
-
-```bash
+# Development mode (demo data, no real project needed)
 pnpm dev
-# Opens http://localhost:4200 with sample demo data
 ```
+
+---
 
 ## How AI Features Work
 
-CodeView's AI features (Enhance, Explain, Overview) work by calling an AI CLI tool installed on your machine. **You don't need a separate API key** — it uses whatever AI subscription you already have set up in your terminal.
+CodeView has two modes:
 
-### Current implementation
+### Without AI (always works)
+The core scanning, graphing, and navigation works with **zero AI setup**. You get:
+- Full interactive architecture map
+- All four navigation views (Overview structure, Features, Categories, Architecture)
+- Component details, connections, source code viewer
+- Search, keyboard shortcuts, resizable panels
 
-CodeView currently uses `claude -p` (Claude Code's non-interactive mode) to power its AI features. This means:
-
-- You need [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated
-- It uses your existing Claude subscription (Pro, Team, or Enterprise)
-- All processing happens locally — your code is sent to the AI model via your own authenticated session, the same as if you asked Claude Code a question in the terminal
-
-### What about other AI tools?
-
-The core visualisation (scanning, graphing, navigation) works with **zero AI** — you get a fully interactive architecture map with no AI subscription at all.
-
-The AI features (Enhance, Explain, Overview) currently call `claude -p` specifically. The architecture is designed so this could be swapped for other AI CLI tools (GitHub Copilot CLI, Gemini CLI, Cursor, etc.) — the integration point is a single API route (`/api/trigger-claude`) that spawns a CLI process with a prompt and reads the text output. Any CLI tool that accepts a prompt on stdin and returns text could be wired in.
-
-If there's demand for other AI backends, this is a straightforward extension. Contributions welcome.
-
-### What each AI feature does
+### With AI (optional, uses your existing subscription)
+The AI features (Enhance, Explain, Overview) call an AI CLI tool on your machine:
 
 | Feature | What it does | Time |
 |---------|-------------|------|
-| **Enhance** | Reads every file (batches of 30), generates better titles, correct layer categorisation, and one-sentence descriptions | 30-90s depending on project size |
-| **Explain** | Reads a single component's full source code, writes a detailed plain-English explanation | 5-15s per component |
-| **Overview** | Reads the entire architecture, generates a narrative with features, data flows, backend services, and data types | 30-60s |
+| **Enhance** | Reads every file (batches of 30), generates better titles, correct layer categorisation, one-sentence descriptions | 30-90s |
+| **Explain** | Reads a single component's source, writes a detailed plain-English explanation | 5-15s |
+| **Overview** | Reads the entire architecture, generates a narrative with features, data flows, backend | 30-60s |
+
+**No separate API keys needed** — it uses whatever AI subscription you already have authenticated in your terminal.
+
+### Supported AI providers
+
+| Provider | CLI command | How to set up | Status |
+|----------|-----------|---------------|--------|
+| **Claude Code** | `claude` | [Install Claude Code](https://docs.anthropic.com/en/docs/claude-code), sign in | Auto-detected |
+| **Gemini CLI** | `gemini` | [Install Gemini CLI](https://github.com/google-gemini/gemini-cli), sign in with Google | Auto-detected |
+| **Custom** | any path | Set `CODEVIEW_AI_PROVIDER=/path/to/binary` | Manual |
+
+CodeView auto-detects which AI CLI is available (tries `claude` then `gemini`). To force a specific one:
+
+```bash
+# Force Gemini
+CODEVIEW_AI_PROVIDER=gemini npx tsx apps/cli/bin/codeview.mjs .
+
+# Force Claude
+CODEVIEW_AI_PROVIDER=claude npx tsx apps/cli/bin/codeview.mjs .
+
+# Use a custom binary
+CODEVIEW_AI_PROVIDER=/usr/local/bin/my-ai-cli npx tsx apps/cli/bin/codeview.mjs .
+```
+
+### Adding support for new AI tools
+
+The AI integration is a single file: `apps/web/src/lib/ai-provider.ts`. Each provider just needs:
+- A binary name/path
+- A function that builds CLI arguments from a text prompt
+- The CLI must accept a prompt and return text to stdout
+
+Pull requests for new providers welcome.
+
+---
 
 ## Navigation
-
-CodeView has four views, accessible via tabs in the left panel:
 
 | Tab | What It Shows | Best For |
 |-----|--------------|----------|
@@ -118,6 +188,9 @@ Options:
   --port <number>   Port for the web server (default: 4200)
   --no-open         Don't open the browser automatically
   -h, --help        Show help
+
+Environment:
+  CODEVIEW_AI_PROVIDER   Force a specific AI CLI (claude, gemini, or /path/to/binary)
 ```
 
 ## What It Detects
@@ -142,7 +215,7 @@ codeview/
     graph-engine/     # Graph builder + clustering + labeler + layout
     prompt-builder/   # Context assembly for prompts
     watcher/          # File system watching (chokidar)
-    mcp-server/       # MCP server for Claude Code integration
+    mcp-server/       # MCP server for bidirectional AI integration
     shared/           # Shared TypeScript types
 ```
 
@@ -151,9 +224,9 @@ codeview/
 - **Monorepo:** pnpm + Turborepo
 - **Web:** Next.js 15 (App Router), React Flow, Tailwind CSS v4, Zustand
 - **Analysis:** TypeScript Compiler API, chokidar
-- **AI:** CLI-based (currently Claude Code), Shiki syntax highlighting
+- **AI:** Multi-provider (Claude Code, Gemini CLI, extensible), Shiki syntax highlighting
 - **Design:** shadcn Mist theme, Inter + JetBrains Mono, professional muted palette
-- **Integration:** MCP SDK for bidirectional communication
+- **Integration:** MCP SDK for bidirectional AI communication
 
 ## Data & Privacy
 
@@ -170,7 +243,7 @@ pnpm dev              # Dev server with demo data
 pnpm build            # Build all packages
 pnpm test             # Run all 69 tests
 
-# Run tests for specific packages
+# Individual package tests
 pnpm --filter @codeview/analyzer test       # 25 tests
 pnpm --filter @codeview/graph-engine test   # 29 tests
 pnpm --filter @codeview/prompt-builder test # 6 tests
@@ -180,17 +253,44 @@ pnpm --filter @codeview/mcp-server test     # 4 tests
 
 ## Troubleshooting
 
-### "Claude CLI not found"
-Make sure `claude` is in your PATH. Run `which claude` in your terminal. If it's not found, install Claude Code first: https://docs.anthropic.com/en/docs/claude-code
-
 ### AI features don't work but the graph loads fine
-The graph/visualisation doesn't need AI. If the Enhance/Explain/Overview buttons fail, check that `claude -p "hello"` works in your terminal.
+The graph works without AI. Check that your AI CLI works: `claude -p "hello"` or `gemini -p "hello"`. If neither is installed, AI features won't be available but everything else works.
+
+### "No AI CLI found"
+Install one of: [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or [Gemini CLI](https://github.com/google-gemini/gemini-cli). Or set `CODEVIEW_AI_PROVIDER=/path/to/your/cli`.
 
 ### No files found
-CodeView scans for `.ts`, `.tsx`, `.js`, `.jsx` files. Make sure you're pointing it at a directory that contains source code (not the root of a monorepo — point it at the specific app, e.g. `apps/web`).
+CodeView scans for `.ts`, `.tsx`, `.js`, `.jsx` files. Point it at a directory with source code (not the root of a monorepo — use `apps/web` or similar).
 
 ### Port already in use
 Use `--port` to pick a different port: `npx tsx apps/cli/bin/codeview.mjs . --port 3500`
+
+### pnpm not found
+Install it: `npm install -g pnpm`
+
+---
+
+## For AI assistants reading this README
+
+If a user asks you to help them install CodeView, here's the sequence:
+
+1. Check Node.js version: `node --version` (needs 20+)
+2. Check pnpm: `pnpm --version` (install with `npm install -g pnpm` if missing)
+3. Clone: `git clone https://github.com/stonekey908/codeview.git`
+4. `cd codeview`
+5. `pnpm install`
+6. `pnpm build`
+7. `npx tsx apps/cli/bin/codeview.mjs <path-to-user-project>`
+8. The app opens at http://localhost:4200
+
+For AI features, check which CLI is available:
+- `which claude` — if found, AI features work automatically
+- `which gemini` — if found, set `CODEVIEW_AI_PROVIDER=gemini` or it auto-detects
+- If neither: AI features won't work, but the visualisation is fully functional without them
+
+The `.codeview/` directory in the target project stores cached analysis. It can be deleted to force a re-scan. Add it to `.gitignore` if you don't want to commit it.
+
+---
 
 ## License
 
