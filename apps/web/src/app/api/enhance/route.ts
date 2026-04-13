@@ -59,6 +59,12 @@ export async function POST(request: NextRequest) {
   prompt += '- React hooks (useXxx) are UI not utils — they serve components\n';
   prompt += '- Encryption/crypto utilities that call external APIs are EXTERNAL not utils\n';
   prompt += '- Index/barrel files that just re-export are UTILS\n\n';
+  prompt += 'SPECIAL RULE FOR UTILS:\n';
+  prompt += 'Utility files are the hardest to understand from a glance. For these, your summary must explain WHAT the functions actually do, not just say "helper functions". Example:\n';
+  prompt += '- BAD: "Utility functions for the app"\n';
+  prompt += '- BAD: "Helper functions used across the app"\n';
+  prompt += '- GOOD: "Formats dates into human-readable strings, converts currency amounts, and truncates long text with ellipsis"\n';
+  prompt += '- GOOD: "Encrypts sensitive data before storing it and decrypts it when retrieved, using AES-256 encryption"\n\n';
 
   for (const node of components.slice(0, 50)) {
     const filePath = path.join(projectDir, node.relativePath);
@@ -66,11 +72,15 @@ export async function POST(request: NextRequest) {
     try {
       if (fs.existsSync(filePath)) {
         const content = fs.readFileSync(filePath, 'utf-8');
-        // UI components are already well-detected — send less
-        // Non-UI needs more context for proper categorisation
-        const isLikelyUI = node.relativePath.match(/\.(tsx|jsx)$/) &&
-          (node.relativePath.includes('/app/') || node.relativePath.includes('/components/') || node.relativePath.includes('/pages/'));
-        const charLimit = isLikelyUI ? 500 : 1500;
+        // Tiered context: UI needs less, utils/lib need more to understand
+        const rp = node.relativePath;
+        const isLikelyUI = rp.match(/\.(tsx|jsx)$/) &&
+          (rp.includes('/app/') || rp.includes('/components/') || rp.includes('/pages/'));
+        const isUtilOrLib = rp.includes('/utils/') || rp.includes('/lib/') ||
+          rp.includes('/helpers/') || rp.includes('/hooks/') ||
+          rp.includes('/constants/') || rp.includes('/functions/') ||
+          (!rp.includes('/app/') && !rp.includes('/components/') && rp.match(/\.(ts|js|mjs)$/));
+        const charLimit = isLikelyUI ? 500 : isUtilOrLib ? 3000 : 1500;
         preview = content.slice(0, charLimit);
       }
     } catch {}
