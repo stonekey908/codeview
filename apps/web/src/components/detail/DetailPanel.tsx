@@ -24,6 +24,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
     detailNodeId, detailNavStack, detailMode,
     closeDetail, goBackDetail, navigateDetail, expandDetail, shrinkDetail,
     graphData, viewMode, theme, getNodeById, getDependencies, getDependents, claudeExplanations,
+    detailWidth, setDetailWidth,
   } = useGraphStore();
 
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -158,8 +159,33 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
   const canGoBack = detailNavStack.length > 0;
   const isExpanded = detailMode === 'expanded';
 
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = detailWidth;
+    const onMove = (me: MouseEvent) => {
+      const diff = startX - me.clientX;
+      setDetailWidth(startWidth + diff);
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [detailWidth, setDetailWidth]);
+
   return (
-    <div className={`h-full overflow-y-auto animate-in slide-in-from-right-4 duration-200 ${isExpanded ? 'bg-background' : 'bg-card border-l border-border'}`}>
+    <div className={`h-full overflow-y-auto animate-in slide-in-from-right-4 duration-200 relative ${isExpanded ? 'bg-background' : 'bg-card border-l border-border'}`}>
+      {/* Resize handle */}
+      {!isExpanded && (
+        <div onMouseDown={handleResizeStart}
+          className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors z-20" />
+      )}
       <div className={isExpanded ? 'max-w-[860px] mx-auto' : ''}>
         {/* Header */}
         <div className={`sticky top-0 z-10 px-5 py-3 border-b border-border ${isExpanded ? 'bg-background' : 'bg-card'}`}>
@@ -180,10 +206,6 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
             <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted text-muted-foreground">{node.role}</span>
           </div>
           <div className="flex gap-1.5 mt-3">
-            <button onClick={() => { window.location.href = `vscode://file/${node.filePath}`; }}
-              className="px-3 py-1.5 rounded-md text-[11px] font-medium border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer">
-              ↗ VS Code
-            </button>
             <button onClick={askClaude}
               className="px-3 py-1.5 rounded-md text-[11px] font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
               ✨ Explain
@@ -281,12 +303,6 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
                   <button onClick={() => { if (fileContent) navigator.clipboard.writeText(fileContent); }}
                     className="text-[10px] font-medium flex items-center gap-1" style={{ color: isDark ? '#505068' : '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>
                     📋 Copy
-                  </button>
-                  <button onClick={() => {
-                    // Use window.location for VS Code URL scheme — avoids Safari blocking <a> links
-                    window.location.href = `vscode://file/${node.filePath}`;
-                  }} className="text-[10px] font-medium flex items-center gap-1" style={{ color: '#4a90a4', background: 'none', border: 'none', cursor: 'pointer' }}>
-                    ↗ Open in VS Code
                   </button>
                 </div>
               </div>
