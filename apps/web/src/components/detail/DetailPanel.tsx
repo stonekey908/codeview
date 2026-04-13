@@ -186,7 +186,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
             </button>
             <button onClick={askClaude}
               className="px-3 py-1.5 rounded-md text-[11px] font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-              ✨ Ask Claude
+              ✨ Explain
             </button>
           </div>
         </div>
@@ -221,7 +221,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
                 <p className="text-[13px] leading-relaxed text-muted-foreground">{node.description}</p>
               </Section>
 
-              <Section title="AI Explanation" isDark={isDark} icon="✨" iconColor="#8b7a9e"
+              <Section title="Explanation" isDark={isDark} icon="✨" iconColor="#8b7a9e"
                 action={claudeExpl ? <button onClick={askClaude} className="text-[10px] font-medium" style={{ color: '#8b7a9e' }}>↻ Regenerate</button> : null}>
                 {claudeExpl ? (
                   <div className="p-3.5 rounded-lg text-[13px] leading-relaxed bg-muted text-muted-foreground" style={{ borderLeft: '3px solid #8b7a9e' }}>
@@ -238,7 +238,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
                   </div>
                 ) : (
                   <button onClick={askClaude} className="w-full p-3 rounded-lg text-[13px] font-medium text-center transition-colors bg-muted text-[#8b7a9e] border border-[#8b7a9e]/15 hover:bg-[#8b7a9e]/10">
-                    ✨ Ask Claude to explain this component
+                    ✨ Explain to explain this component
                   </button>
                 )}
               </Section>
