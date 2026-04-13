@@ -14,11 +14,130 @@ import type { LayoutResult } from '@codeview/graph-engine';
 import type { GraphData } from '@codeview/shared';
 import { buildRfNodes } from '@/lib/build-rf-nodes';
 
+// Demo: "Taskflow" — a project management SaaS (like Linear/Asana)
+const imp = (source: string, specifiers: string[]) => ({ source, specifiers, isTypeOnly: false, isDynamic: false });
+const exp = (name: string, isDefault = false) => ({ name, isDefault, isTypeOnly: false });
+const fw = (role: string, framework = 'nextjs', confidence = 0.95) => ({ role, confidence, framework });
+const f = (relativePath: string, imports: any[], exports: any[], framework: any) => ({
+  filePath: `/demo/${relativePath}`, relativePath, imports, exports, framework,
+});
+
 const DEMO_FILES = [
-  { filePath: '/demo/src/app/page.tsx', relativePath: 'src/app/page.tsx', imports: [{ source: '@/api/auth', specifiers: ['authApi'], isTypeOnly: false, isDynamic: false }], exports: [{ name: 'default', isDefault: true, isTypeOnly: false }], framework: { role: 'page', confidence: 0.95, framework: 'nextjs' } },
-  { filePath: '/demo/src/app/layout.tsx', relativePath: 'src/app/layout.tsx', imports: [], exports: [{ name: 'default', isDefault: true, isTypeOnly: false }], framework: { role: 'layout', confidence: 0.95, framework: 'nextjs' } },
-  { filePath: '/demo/src/api/auth/route.ts', relativePath: 'src/api/auth/route.ts', imports: [], exports: [{ name: 'POST', isDefault: false, isTypeOnly: false }], framework: { role: 'api-route', confidence: 0.95, framework: 'nextjs' } },
-  { filePath: '/demo/src/utils/jwt.ts', relativePath: 'src/utils/jwt.ts', imports: [], exports: [{ name: 'signToken', isDefault: false, isTypeOnly: false }], framework: { role: 'utility', confidence: 0.6, framework: 'unknown' } },
+  // ── UI: Pages ──
+  f('src/app/page.tsx',
+    [imp('@/components/Dashboard', ['Dashboard']), imp('@/hooks/useAuth', ['useAuth']), imp('@/hooks/useProjects', ['useProjects'])],
+    [exp('default', true)], fw('page')),
+  f('src/app/layout.tsx',
+    [imp('@/components/Sidebar', ['Sidebar']), imp('@/components/TopNav', ['TopNav']), imp('@/providers/AuthProvider', ['AuthProvider'])],
+    [exp('default', true)], fw('layout')),
+  f('src/app/projects/[id]/page.tsx',
+    [imp('@/components/TaskBoard', ['TaskBoard']), imp('@/hooks/useProject', ['useProject']), imp('@/hooks/useTasks', ['useTasks'])],
+    [exp('default', true)], fw('page')),
+  f('src/app/settings/page.tsx',
+    [imp('@/components/SettingsForm', ['SettingsForm']), imp('@/hooks/useAuth', ['useAuth']), imp('@/api/billing', ['billingApi'])],
+    [exp('default', true)], fw('page')),
+  f('src/app/login/page.tsx',
+    [imp('@/components/LoginForm', ['LoginForm']), imp('@/api/auth', ['authApi'])],
+    [exp('default', true)], fw('page')),
+
+  // ── UI: Components ──
+  f('src/components/Dashboard.tsx',
+    [imp('@/components/ProjectCard', ['ProjectCard']), imp('@/components/ActivityFeed', ['ActivityFeed']), imp('@/components/StatsBar', ['StatsBar'])],
+    [exp('Dashboard')], fw('component')),
+  f('src/components/TaskBoard.tsx',
+    [imp('@/components/TaskCard', ['TaskCard']), imp('@/components/TaskColumn', ['TaskColumn']), imp('@/hooks/useDragDrop', ['useDragDrop']), imp('@/api/tasks', ['tasksApi'])],
+    [exp('TaskBoard')], fw('component')),
+  f('src/components/TaskCard.tsx',
+    [imp('@/components/Avatar', ['Avatar']), imp('@/components/PriorityBadge', ['PriorityBadge']), imp('@/utils/formatDate', ['formatDate'])],
+    [exp('TaskCard')], fw('component')),
+  f('src/components/Sidebar.tsx',
+    [imp('@/hooks/useProjects', ['useProjects']), imp('@/components/ProjectList', ['ProjectList'])],
+    [exp('Sidebar')], fw('component')),
+  f('src/components/ActivityFeed.tsx',
+    [imp('@/hooks/useRealtime', ['useRealtime']), imp('@/utils/formatDate', ['formatDate']), imp('@/utils/formatRelativeTime', ['formatRelativeTime'])],
+    [exp('ActivityFeed')], fw('component')),
+  f('src/components/LoginForm.tsx',
+    [imp('@/api/auth', ['authApi']), imp('@/utils/validateEmail', ['validateEmail'])],
+    [exp('LoginForm')], fw('component')),
+  f('src/components/SettingsForm.tsx',
+    [imp('@/api/billing', ['billingApi']), imp('@/hooks/useAuth', ['useAuth'])],
+    [exp('SettingsForm')], fw('component')),
+
+  // ── UI: Hooks ──
+  f('src/hooks/useAuth.tsx',
+    [imp('@/api/auth', ['authApi']), imp('@/lib/supabase', ['supabase'])],
+    [exp('useAuth'), exp('AuthProvider')], fw('hook')),
+  f('src/hooks/useProjects.ts',
+    [imp('@/api/projects', ['projectsApi']), imp('@/hooks/useRealtime', ['useRealtime'])],
+    [exp('useProjects')], fw('hook')),
+  f('src/hooks/useTasks.ts',
+    [imp('@/api/tasks', ['tasksApi']), imp('@/hooks/useRealtime', ['useRealtime'])],
+    [exp('useTasks')], fw('hook')),
+  f('src/hooks/useRealtime.ts',
+    [imp('@/lib/supabase', ['supabase'])],
+    [exp('useRealtime')], fw('hook')),
+
+  // ── API: Route Handlers ──
+  f('src/app/api/auth/route.ts',
+    [imp('@/lib/supabase', ['supabase']), imp('@/utils/jwt', ['signToken', 'verifyToken'])],
+    [exp('POST'), exp('GET')], fw('api-route')),
+  f('src/app/api/projects/route.ts',
+    [imp('@/lib/supabase', ['supabase']), imp('@/lib/permissions', ['checkPermission'])],
+    [exp('GET'), exp('POST'), exp('DELETE')], fw('api-route')),
+  f('src/app/api/tasks/route.ts',
+    [imp('@/lib/supabase', ['supabase']), imp('@/lib/permissions', ['checkPermission']), imp('@/services/ai-assistant', ['aiAssistant'])],
+    [exp('GET'), exp('POST'), exp('PATCH')], fw('api-route')),
+  f('src/app/api/billing/route.ts',
+    [imp('@/services/stripe', ['stripeClient']), imp('@/lib/supabase', ['supabase'])],
+    [exp('GET'), exp('POST')], fw('api-route')),
+  f('src/app/api/webhooks/stripe/route.ts',
+    [imp('@/services/stripe', ['stripeClient']), imp('@/lib/supabase', ['supabase'])],
+    [exp('POST')], fw('api-route')),
+  f('src/app/api/ai/summarize/route.ts',
+    [imp('@/services/ai-assistant', ['aiAssistant']), imp('@/lib/supabase', ['supabase'])],
+    [exp('POST')], fw('api-route')),
+
+  // ── External: Services ──
+  f('src/services/stripe.ts',
+    [],
+    [exp('stripeClient'), exp('createCheckoutSession'), exp('handleWebhook')], fw('service', 'unknown', 0.8)),
+  f('src/services/ai-assistant.ts',
+    [imp('@/lib/openai', ['openai'])],
+    [exp('aiAssistant'), exp('summarizeProject'), exp('suggestTasks')], fw('service', 'unknown', 0.8)),
+  f('src/services/email.ts',
+    [],
+    [exp('sendInvite'), exp('sendNotification')], fw('service', 'unknown', 0.7)),
+  f('src/lib/supabase.ts',
+    [],
+    [exp('supabase'), exp('supabaseAdmin')], fw('config', 'unknown', 0.9)),
+  f('src/lib/openai.ts',
+    [],
+    [exp('openai')], fw('config', 'unknown', 0.8)),
+
+  // ── Utils ──
+  f('src/utils/jwt.ts',
+    [],
+    [exp('signToken'), exp('verifyToken')], fw('utility', 'unknown', 0.6)),
+  f('src/utils/formatDate.ts',
+    [],
+    [exp('formatDate'), exp('formatRelativeTime')], fw('utility', 'unknown', 0.6)),
+  f('src/utils/validateEmail.ts',
+    [],
+    [exp('validateEmail'), exp('validatePassword')], fw('utility', 'unknown', 0.6)),
+  f('src/lib/permissions.ts',
+    [imp('@/lib/supabase', ['supabase'])],
+    [exp('checkPermission'), exp('requireAdmin')], fw('utility', 'unknown', 0.7)),
+
+  // ── Data: Types & Constants ──
+  f('src/types/project.ts',
+    [],
+    [exp('Project'), exp('Task'), exp('TaskStatus'), exp('Priority')], fw('unknown', 'unknown', 0.3)),
+  f('src/types/user.ts',
+    [],
+    [exp('User'), exp('Team'), exp('Role')], fw('unknown', 'unknown', 0.3)),
+  f('src/constants/priorities.ts',
+    [],
+    [exp('PRIORITIES'), exp('STATUS_LABELS'), exp('PRIORITY_COLORS')], fw('unknown', 'unknown', 0.3)),
 ];
 
 export default function Home() {
