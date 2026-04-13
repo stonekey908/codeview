@@ -28,13 +28,13 @@ export function Toolbar() {
 
   return (
     <>
-    <header className="flex items-center justify-between px-4 h-12 bg-zinc-900 border-b border-zinc-800">
+    <header className="flex items-center justify-between px-4 h-12 border-b border-border bg-card">
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <div className="w-[22px] h-[22px] rounded bg-gradient-to-br from-blue-500 to-green-500 flex items-center justify-center text-[9px] text-white font-bold">CV</div>
-          <span className="text-sm font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>CodeView</span>
+          <div className="w-[22px] h-[22px] rounded-md bg-gradient-to-br from-primary to-green-500 flex items-center justify-center text-[9px] text-primary-foreground font-bold">CV</div>
+          <span className="text-sm font-bold tracking-tight">CodeView</span>
         </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-zinc-800 border border-zinc-700 rounded-xl text-[10px] font-mono text-zinc-400">
+        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-muted border border-border rounded-xl text-[10px] font-mono text-muted-foreground">
           <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
           {total > 0 ? `${total} components · ${conns} connections` : 'No project loaded'}
         </div>
@@ -42,7 +42,7 @@ export function Toolbar() {
 
       <div className="flex items-center gap-2">
         <button onClick={() => allExpanded ? collapseAllClusters() : expandAllClusters()}
-          className="px-3 py-1 text-[11px] font-medium rounded-lg border border-zinc-700 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-all">
+          className="px-3 py-1 text-[11px] font-medium rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-all">
           {allExpanded ? '↕ Collapse' : '↕ Expand'}
         </button>
         <button onClick={runEnhance} disabled={enhancing}
@@ -54,13 +54,17 @@ export function Toolbar() {
           ✨ Describe
         </button>
         {focusedNodeId && (
-          <button onClick={() => setFocusedNode(null)} className="px-3 py-1 text-[11px] font-medium rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400">Exit Focus</button>
+          <button onClick={() => setFocusedNode(null)} className="px-3 py-1 text-[11px] font-medium rounded-lg bg-primary/10 border border-primary/30 text-primary">Exit Focus</button>
         )}
       </div>
 
       <div className="flex items-center gap-1.5">
-        <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="w-7 h-7 flex items-center justify-center rounded-md border border-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors">
+        <button onClick={() => {
+          const next = theme === 'dark' ? 'light' : 'dark';
+          setTheme(next);
+          document.documentElement.classList.toggle('dark', next === 'dark');
+        }}
+          className="w-7 h-7 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
           ◐
         </button>
       </div>
