@@ -44,7 +44,9 @@ interface GraphState {
   setHoveredNode: (nodeId: string | null) => void;
   setFocusedNode: (nodeId: string | null) => void;
 
-  // Panel width
+  // Panel widths
+  leftWidth: number;
+  setLeftWidth: (width: number) => void;
   detailWidth: number;
   setDetailWidth: (width: number) => void;
 
@@ -147,6 +149,8 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setHoveredNode: (nodeId) => set({ hoveredNodeId: nodeId }),
   setFocusedNode: (nodeId) => set({ focusedNodeId: nodeId }),
 
+  leftWidth: 300,
+  setLeftWidth: (width) => set({ leftWidth: Math.max(200, Math.min(500, width)) }),
   detailWidth: 480,
   setDetailWidth: (width) => set({ detailWidth: Math.max(360, Math.min(800, width)) }),
 

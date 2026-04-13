@@ -20,12 +20,32 @@ const ROLE_ICONS: Record<string, string> = {
 };
 
 export function LeftPanel() {
-  const { graphData, leftTab, setLeftTab, openDetail, detailNodeId, expandedClusterIds, toggleCluster } = useGraphStore();
+  const { graphData, leftTab, setLeftTab, openDetail, detailNodeId, expandedClusterIds, toggleCluster, leftWidth, setLeftWidth } = useGraphStore();
 
   if (!graphData) return <div className="border-r border-border bg-card" />;
 
+  const handleResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = leftWidth;
+    const onMove = (me: MouseEvent) => setLeftWidth(startWidth + (me.clientX - startX));
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
   return (
-    <nav className="flex flex-col overflow-hidden bg-card border-r border-border">
+    <nav className="flex flex-col overflow-hidden bg-card border-r border-border relative">
+      {/* Resize handle */}
+      <div onMouseDown={handleResize}
+        className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors z-20" />
       <div className="flex border-b border-border">
         {(['categories', 'architecture'] as const).map(tab => (
           <button key={tab} onClick={() => setLeftTab(tab)}
