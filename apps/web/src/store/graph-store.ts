@@ -102,14 +102,21 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   detailNavStack: [],
   detailMode: 'hidden',
 
-  openDetail: (nodeId) => set((s) => ({
-    detailNodeId: nodeId,
-    detailNavStack: [],
-    // Architecture tab uses slide-out, everything else uses expanded (full detail)
-    detailMode: s.leftTab === 'architecture' ? 'slide-out' : 'expanded',
-    middleView: s.leftTab === 'architecture' ? 'graph' : 'full-detail',
-    selectedNodeIds: new Set([nodeId]),
-  })),
+  openDetail: (nodeId) => set((s) => {
+    // Auto-expand the cluster containing this node
+    const cluster = s.graphData?.clusters.find(c => c.nodeIds.includes(nodeId));
+    const expandedClusterIds = cluster
+      ? new Set([...s.expandedClusterIds, cluster.id])
+      : s.expandedClusterIds;
+    return {
+      detailNodeId: nodeId,
+      detailNavStack: [],
+      detailMode: s.leftTab === 'architecture' ? 'slide-out' : 'expanded',
+      middleView: s.leftTab === 'architecture' ? 'graph' : 'full-detail',
+      selectedNodeIds: new Set([nodeId]),
+      expandedClusterIds,
+    };
+  }),
 
   navigateDetail: (nodeId) => set((s) => ({
     detailNodeId: nodeId,

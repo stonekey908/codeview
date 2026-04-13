@@ -21,7 +21,7 @@ export function OverviewPanel() {
   const { openDetail, graphData, setLeftTab } = useGraphStore();
 
   const drillDown = (nodeId: string) => {
-    setLeftTab('categories');
+    setLeftTab('features');
     openDetail(nodeId);
   };
   const [overview, setOverview] = useState<OverviewData | null>(null);
