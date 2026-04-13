@@ -30,14 +30,16 @@ export function Toolbar() {
           clearInterval(poll);
           setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); window.location.reload(); }, 1500);
         } else if (d.status === 'running') {
-          setEnhanceStatus(`Claude is reading your code...`);
+          const batchInfo = d.batches > 1 ? ` (batch ${d.batch}/${d.batches})` : '';
+          setEnhanceStatus(`${d.done}/${d.total} enhanced${batchInfo}`);
         } else if (d.status === 'error') {
           setEnhanceStatus('Error');
           clearInterval(poll);
           setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 3000);
         }
       }, 2000);
-      setTimeout(() => { clearInterval(poll); setEnhancing(false); setEnhanceStatus(''); }, 180000);
+      // Longer timeout for large projects with multiple batches
+      setTimeout(() => { clearInterval(poll); setEnhancing(false); setEnhanceStatus(''); }, 600000);
     } catch { setEnhancing(false); setEnhanceStatus(''); }
   };
 

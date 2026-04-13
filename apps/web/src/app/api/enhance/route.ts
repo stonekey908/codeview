@@ -3,34 +3,22 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// "Enhance" — quick AI skim to improve titles and categorization
 export async function POST(request: NextRequest) {
   const { componentPaths } = await request.json();
   const projectDir = process.env.CODEVIEW_PROJECT_DIR || process.cwd();
 
-  // Find claude
   let claudePath = '';
   try {
     const { execSync } = require('child_process');
     claudePath = execSync('which claude', { encoding: 'utf-8' }).trim();
   } catch {
-    const candidates = [
-      '/usr/local/bin/claude',
-      `${process.env.HOME}/.nvm/versions/node/v20.15.0/bin/claude`,
-    ];
-    for (const c of candidates) {
-      try { fs.accessSync(c); claudePath = c; break; } catch {}
-    }
+    const candidates = ['/usr/local/bin/claude', `${process.env.HOME}/.nvm/versions/node/v20.15.0/bin/claude`];
+    for (const c of candidates) { try { fs.accessSync(c); claudePath = c; break; } catch {} }
   }
-
-  if (!claudePath) {
-    return NextResponse.json({ error: 'Claude CLI not found' }, { status: 500 });
-  }
+  if (!claudePath) return NextResponse.json({ error: 'Claude CLI not found' }, { status: 500 });
 
   const analysisPath = path.join(projectDir, '.codeview', 'analysis.json');
-  if (!fs.existsSync(analysisPath)) {
-    return NextResponse.json({ error: 'No analysis found' }, { status: 404 });
-  }
+  if (!fs.existsSync(analysisPath)) return NextResponse.json({ error: 'No analysis found' }, { status: 404 });
 
   const analysis = JSON.parse(fs.readFileSync(analysisPath, 'utf-8'));
   let components = analysis.graph.nodes;
@@ -38,41 +26,60 @@ export async function POST(request: NextRequest) {
     components = components.filter((n: any) => componentPaths.includes(n.relativePath));
   }
 
-  // Build a quick skim prompt — only first 300 chars of each file
+  const descDir = path.join(projectDir, '.codeview');
+  fs.mkdirSync(descDir, { recursive: true });
+  const enhancePath = path.join(descDir, 'enhancements.json');
+  const progressPath = path.join(descDir, 'enhance-progress.json');
+
+  const totalCount = components.length;
+  fs.writeFileSync(progressPath, JSON.stringify({ status: 'running', total: totalCount, done: 0, batch: 0, batches: Math.ceil(totalCount / 30) }));
+
+  // Load existing enhancements to merge into
+  let allEnhancements: Record<string, any> = {};
+  try {
+    if (fs.existsSync(enhancePath)) allEnhancements = JSON.parse(fs.readFileSync(enhancePath, 'utf-8'));
+  } catch {}
+
+  // Process in batches of 30
+  const BATCH_SIZE = 30;
+  const batches: any[][] = [];
+  for (let i = 0; i < components.length; i += BATCH_SIZE) {
+    batches.push(components.slice(i, i + BATCH_SIZE));
+  }
+
+  // Run batches sequentially
+  processBatches(batches, 0, claudePath, projectDir, descDir, enhancePath, progressPath, allEnhancements, totalCount);
+
+  return NextResponse.json({ status: 'started', total: totalCount, batches: batches.length });
+}
+
+function buildPrompt(components: any[], projectDir: string): string {
   let prompt = 'Categorize these code files for a non-technical product owner. For each file I show the path and first few lines.\n\n';
   prompt += 'Return ONLY a JSON object: { "filepath": { "title": "Short Human Name", "layer": "ui|api|data|utils|external", "summary": "What this does in plain English (1-2 sentences max)" } }\n\n';
   prompt += 'RULES FOR TITLE:\n';
   prompt += '- Short, clear, descriptive. "Daily Summary Scheduler" not "Daily Summary". "Firebase Push Notifications" not "Fcm Helper".\n';
-  prompt += '- Never just repeat the filename. Give it a name a product owner would understand.\n\n';
+  prompt += '- Never just repeat the filename.\n\n';
   prompt += 'RULES FOR SUMMARY:\n';
-  prompt += '- Explain what it DOES for the app. "Sends parents a morning email summarizing their childrens upcoming events and tasks" not "Cloud function for daily summaries".\n';
-  prompt += '- Write for someone who cannot read code. Be specific about WHAT it does, not vague.\n\n';
-  prompt += 'RULES FOR LAYER (be precise — this matters):\n';
-  prompt += '- "ui" = screens, pages, modals, buttons, visual components users see. Includes React hooks that serve UI (useXxx).\n';
-  prompt += '- "api" = backend API endpoints, route handlers (route.ts, API controllers)\n';
-  prompt += '- "data" = static data files, constants, prompt templates, colour palettes, type definitions, config objects, seed data. If it STORES information that other code reads, it is data.\n';
-  prompt += '- "utils" = pure helper functions with no side effects: formatting, validation, string manipulation, date math. ONLY things that transform input to output.\n';
-  prompt += '- "external" = anything that talks to an external service or runs as a separate process: Cloud Functions, Firebase, Gemini API calls, push notifications, email sending, payment processing, encryption. If it makes network calls or runs server-side, it is external.\n\n';
-  prompt += 'COMMON MISTAKES TO AVOID:\n';
-  prompt += '- Cloud functions (functions/src/*) are EXTERNAL not utils — they run on a server\n';
-  prompt += '- Prompt templates and constants are DATA not utils — they store information\n';
-  prompt += '- React hooks (useXxx) are UI not utils — they serve components\n';
-  prompt += '- Encryption/crypto utilities that call external APIs are EXTERNAL not utils\n';
-  prompt += '- Index/barrel files that just re-export are UTILS\n\n';
-  prompt += 'SPECIAL RULE FOR UTILS:\n';
-  prompt += 'Utility files are the hardest to understand from a glance. For these, your summary must explain WHAT the functions actually do, not just say "helper functions". Example:\n';
-  prompt += '- BAD: "Utility functions for the app"\n';
-  prompt += '- BAD: "Helper functions used across the app"\n';
-  prompt += '- GOOD: "Formats dates into human-readable strings, converts currency amounts, and truncates long text with ellipsis"\n';
-  prompt += '- GOOD: "Encrypts sensitive data before storing it and decrypts it when retrieved, using AES-256 encryption"\n\n';
+  prompt += '- Explain what it DOES for the app. Be specific. Write for someone who cannot read code.\n\n';
+  prompt += 'RULES FOR LAYER:\n';
+  prompt += '- "ui" = screens, pages, modals, buttons, visual components, React hooks (useXxx)\n';
+  prompt += '- "api" = backend API endpoints, route handlers\n';
+  prompt += '- "data" = static data, constants, prompt templates, colour palettes, type definitions, config objects\n';
+  prompt += '- "utils" = pure helper functions only: formatting, validation, string manipulation\n';
+  prompt += '- "external" = anything that talks to external services or runs server-side: Cloud Functions, Firebase, AI APIs, push notifications, encryption, email\n\n';
+  prompt += 'COMMON MISTAKES:\n';
+  prompt += '- Cloud functions (functions/src/*) → EXTERNAL not utils\n';
+  prompt += '- Constants/prompt templates → DATA not utils\n';
+  prompt += '- React hooks → UI not utils\n';
+  prompt += '- Encryption/crypto → EXTERNAL not utils\n\n';
+  prompt += 'FOR UTILS: explain WHAT the functions do. "Formats dates, converts currency" not "Helper functions".\n\n';
 
-  for (const node of components.slice(0, 80)) {
+  for (const node of components) {
     const filePath = path.join(projectDir, node.relativePath);
     let preview = '';
     try {
       if (fs.existsSync(filePath)) {
         const content = fs.readFileSync(filePath, 'utf-8');
-        // Tiered context: UI needs less, utils/lib need more to understand
         const rp = node.relativePath;
         const isLikelyUI = rp.match(/\.(tsx|jsx)$/) &&
           (rp.includes('/app/') || rp.includes('/components/') || rp.includes('/pages/'));
@@ -87,14 +94,31 @@ export async function POST(request: NextRequest) {
     prompt += `File: ${node.relativePath}\n\`\`\`\n${preview}\n\`\`\`\n\n`;
   }
 
-  // Spawn claude
-  const descDir = path.join(projectDir, '.codeview');
-  fs.mkdirSync(descDir, { recursive: true });
-  const enhancePath = path.join(descDir, 'enhancements.json');
+  return prompt;
+}
 
-  // Write progress file
-  const progressPath = path.join(descDir, 'enhance-progress.json');
-  fs.writeFileSync(progressPath, JSON.stringify({ status: 'running', total: components.length, done: 0, started: new Date().toISOString() }));
+function processBatches(
+  batches: any[][], batchIndex: number, claudePath: string, projectDir: string,
+  descDir: string, enhancePath: string, progressPath: string,
+  allEnhancements: Record<string, any>, totalCount: number
+) {
+  if (batchIndex >= batches.length) {
+    // All done
+    fs.writeFileSync(enhancePath, JSON.stringify(allEnhancements, null, 2));
+    fs.writeFileSync(progressPath, JSON.stringify({ status: 'done', total: totalCount, done: Object.keys(allEnhancements).length, batch: batches.length, batches: batches.length }));
+    console.log(`[enhance] All ${batches.length} batches complete. ${Object.keys(allEnhancements).length} total enhancements.`);
+    return;
+  }
+
+  const batch = batches[batchIndex];
+  const prompt = buildPrompt(batch, projectDir);
+
+  console.log(`[enhance] Starting batch ${batchIndex + 1}/${batches.length} (${batch.length} components)`);
+  fs.writeFileSync(progressPath, JSON.stringify({
+    status: 'running', total: totalCount,
+    done: Object.keys(allEnhancements).length,
+    batch: batchIndex + 1, batches: batches.length,
+  }));
 
   let output = '';
   const child = spawn(claudePath, ['-p', prompt, '--output-format', 'text'], {
@@ -104,39 +128,34 @@ export async function POST(request: NextRequest) {
   });
 
   child.stdout?.on('data', (data: Buffer) => { output += data.toString(); });
-  child.stderr?.on('data', (data: Buffer) => {
-    console.error(`[enhance-err] ${data.toString().slice(0, 300)}`);
-  });
+  child.stderr?.on('data', (data: Buffer) => { console.error(`[enhance-err] ${data.toString().slice(0, 200)}`); });
 
   child.on('close', (code: number | null) => {
-    console.log(`[enhance] Claude exited with code ${code}, output: ${output.length} chars`);
-    if (code !== 0 || !output.trim()) {
-      fs.writeFileSync(progressPath, JSON.stringify({ status: 'error', total: components.length, done: 0 }));
-      return;
-    }
+    console.log(`[enhance] Batch ${batchIndex + 1} done. Code: ${code}, output: ${output.length} chars`);
 
-    try {
-      const jsonMatch = output.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const enhancements = JSON.parse(jsonMatch[0]);
-        fs.writeFileSync(enhancePath, JSON.stringify(enhancements, null, 2));
-        const done = Object.keys(enhancements).length;
-        console.log(`[enhance] Saved ${done} enhancements`);
-
-        // Enhancements stay separate from descriptions
-        // enhancements.json = titles, layers, short summaries (from Enhance)
-        // descriptions.json = deep explanations only (from Describe / Ask Claude)
-        fs.writeFileSync(progressPath, JSON.stringify({ status: 'done', total: components.length, done }));
+    if (code === 0 && output.trim()) {
+      try {
+        const jsonMatch = output.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const batchEnhancements = JSON.parse(jsonMatch[0]);
+          Object.assign(allEnhancements, batchEnhancements);
+          // Save intermediate results so the UI can show progress
+          fs.writeFileSync(enhancePath, JSON.stringify(allEnhancements, null, 2));
+          console.log(`[enhance] Batch ${batchIndex + 1}: +${Object.keys(batchEnhancements).length} (total: ${Object.keys(allEnhancements).length})`);
+        }
+      } catch (err) {
+        console.error(`[enhance] Batch ${batchIndex + 1} parse error: ${err}`);
       }
-    } catch (err) {
-      console.error(`[enhance] Parse error: ${err}`);
-      fs.writeFileSync(progressPath, JSON.stringify({ status: 'error', total: components.length, done: 0 }));
     }
+
+    // Process next batch
+    processBatches(batches, batchIndex + 1, claudePath, projectDir, descDir, enhancePath, progressPath, allEnhancements, totalCount);
   });
 
-  return NextResponse.json({
-    status: 'started',
-    total: components.length,
+  child.on('error', (err: Error) => {
+    console.error(`[enhance] Batch ${batchIndex + 1} spawn error: ${err.message}`);
+    // Continue with next batch anyway
+    processBatches(batches, batchIndex + 1, claudePath, projectDir, descDir, enhancePath, progressPath, allEnhancements, totalCount);
   });
 }
 
@@ -147,26 +166,29 @@ export async function GET() {
   const enhancePath = path.join(dir, 'enhancements.json');
   const progressPath = path.join(dir, 'enhance-progress.json');
 
-  // Check progress first
   let progress = null;
   try {
-    if (fs.existsSync(progressPath)) {
-      progress = JSON.parse(fs.readFileSync(progressPath, 'utf-8'));
-    }
+    if (fs.existsSync(progressPath)) progress = JSON.parse(fs.readFileSync(progressPath, 'utf-8'));
   } catch {}
 
-  // If running, return progress
   if (progress?.status === 'running') {
-    return NextResponse.json({ status: 'running', total: progress.total, done: 0 });
+    return NextResponse.json({
+      status: 'running',
+      total: progress.total,
+      done: progress.done || 0,
+      batch: progress.batch || 0,
+      batches: progress.batches || 1,
+    });
   }
 
-  // Check for completed enhancements
   if (!fs.existsSync(enhancePath)) {
     return NextResponse.json({ status: 'not-started', enhancements: null, count: 0, total: 0 });
   }
 
   try {
-    const enhancements = JSON.parse(fs.readFileSync(enhancePath, 'utf-8'));
+    const raw = fs.readFileSync(enhancePath, 'utf-8').trim();
+    if (!raw || raw.length < 2) return NextResponse.json({ status: 'not-started', enhancements: null, count: 0, total: 0 });
+    const enhancements = JSON.parse(raw);
     const count = Object.keys(enhancements).length;
     return NextResponse.json({ status: 'done', enhancements, count, total: progress?.total || count });
   } catch {
