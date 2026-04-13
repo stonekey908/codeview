@@ -19,7 +19,9 @@ export async function GET() {
       const enhancePath = path.join(path.dirname(filePath), 'enhancements.json');
       if (fs.existsSync(enhancePath)) {
         try {
-          const enhancements = JSON.parse(fs.readFileSync(enhancePath, 'utf-8'));
+          const raw = fs.readFileSync(enhancePath, 'utf-8').trim();
+          if (!raw || raw.length < 2) throw new Error('Empty file');
+          const enhancements = JSON.parse(raw);
           if (data.graph?.nodes) {
             for (const node of data.graph.nodes) {
               const enh = enhancements[node.relativePath];

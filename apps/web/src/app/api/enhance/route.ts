@@ -60,12 +60,18 @@ export async function POST(request: NextRequest) {
   prompt += '- Encryption/crypto utilities that call external APIs are EXTERNAL not utils\n';
   prompt += '- Index/barrel files that just re-export are UTILS\n\n';
 
-  for (const node of components.slice(0, 40)) {
+  for (const node of components.slice(0, 50)) {
     const filePath = path.join(projectDir, node.relativePath);
     let preview = '';
     try {
       if (fs.existsSync(filePath)) {
-        preview = fs.readFileSync(filePath, 'utf-8').slice(0, 500);
+        const content = fs.readFileSync(filePath, 'utf-8');
+        // UI components are already well-detected — send less
+        // Non-UI needs more context for proper categorisation
+        const isLikelyUI = node.relativePath.match(/\.(tsx|jsx)$/) &&
+          (node.relativePath.includes('/app/') || node.relativePath.includes('/components/') || node.relativePath.includes('/pages/'));
+        const charLimit = isLikelyUI ? 500 : 1500;
+        preview = content.slice(0, charLimit);
       }
     } catch {}
     prompt += `File: ${node.relativePath}\n\`\`\`\n${preview}\n\`\`\`\n\n`;
@@ -75,6 +81,10 @@ export async function POST(request: NextRequest) {
   const descDir = path.join(projectDir, '.codeview');
   fs.mkdirSync(descDir, { recursive: true });
   const enhancePath = path.join(descDir, 'enhancements.json');
+
+  // Write progress file
+  const progressPath = path.join(descDir, 'enhance-progress.json');
+  fs.writeFileSync(progressPath, JSON.stringify({ status: 'running', total: components.length, done: 0, started: new Date().toISOString() }));
 
   let output = '';
   const child = spawn(claudePath, ['-p', prompt, '--output-format', 'text'], {
@@ -90,14 +100,18 @@ export async function POST(request: NextRequest) {
 
   child.on('close', (code: number | null) => {
     console.log(`[enhance] Claude exited with code ${code}, output: ${output.length} chars`);
-    if (code !== 0 || !output.trim()) return;
+    if (code !== 0 || !output.trim()) {
+      fs.writeFileSync(progressPath, JSON.stringify({ status: 'error', total: components.length, done: 0 }));
+      return;
+    }
 
     try {
       const jsonMatch = output.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const enhancements = JSON.parse(jsonMatch[0]);
         fs.writeFileSync(enhancePath, JSON.stringify(enhancements, null, 2));
-        console.log(`[enhance] Saved ${Object.keys(enhancements).length} enhancements`);
+        const done = Object.keys(enhancements).length;
+        console.log(`[enhance] Saved ${done} enhancements`);
 
         // Also merge summaries into descriptions
         const descPath = path.join(descDir, 'descriptions.json');
@@ -106,38 +120,56 @@ export async function POST(request: NextRequest) {
           if (fs.existsSync(descPath)) descriptions = JSON.parse(fs.readFileSync(descPath, 'utf-8'));
         } catch {}
 
-        for (const [filePath, data] of Object.entries(enhancements) as [string, any][]) {
-          if (data.summary && !descriptions[filePath]) {
-            descriptions[filePath] = data.summary;
+        for (const [fp, data] of Object.entries(enhancements) as [string, any][]) {
+          if (data.summary && !descriptions[fp]) {
+            descriptions[fp] = data.summary;
           }
         }
         fs.writeFileSync(descPath, JSON.stringify(descriptions, null, 2));
+        fs.writeFileSync(progressPath, JSON.stringify({ status: 'done', total: components.length, done }));
       }
     } catch (err) {
       console.error(`[enhance] Parse error: ${err}`);
+      fs.writeFileSync(progressPath, JSON.stringify({ status: 'error', total: components.length, done: 0 }));
     }
   });
 
   return NextResponse.json({
     status: 'started',
-    components: components.length,
-    message: 'Claude is doing a quick skim...',
+    total: components.length,
   });
 }
 
-// Check for enhancement results
+// Check for enhancement progress and results
 export async function GET() {
   const projectDir = process.env.CODEVIEW_PROJECT_DIR || process.cwd();
-  const enhancePath = path.join(projectDir, '.codeview', 'enhancements.json');
+  const dir = path.join(projectDir, '.codeview');
+  const enhancePath = path.join(dir, 'enhancements.json');
+  const progressPath = path.join(dir, 'enhance-progress.json');
 
+  // Check progress first
+  let progress = null;
+  try {
+    if (fs.existsSync(progressPath)) {
+      progress = JSON.parse(fs.readFileSync(progressPath, 'utf-8'));
+    }
+  } catch {}
+
+  // If running, return progress
+  if (progress?.status === 'running') {
+    return NextResponse.json({ status: 'running', total: progress.total, done: 0 });
+  }
+
+  // Check for completed enhancements
   if (!fs.existsSync(enhancePath)) {
-    return NextResponse.json({ status: 'not-started', enhancements: null });
+    return NextResponse.json({ status: 'not-started', enhancements: null, count: 0, total: 0 });
   }
 
   try {
     const enhancements = JSON.parse(fs.readFileSync(enhancePath, 'utf-8'));
-    return NextResponse.json({ status: 'done', enhancements, count: Object.keys(enhancements).length });
+    const count = Object.keys(enhancements).length;
+    return NextResponse.json({ status: 'done', enhancements, count, total: progress?.total || count });
   } catch {
-    return NextResponse.json({ status: 'error', enhancements: null });
+    return NextResponse.json({ status: 'error', enhancements: null, count: 0, total: 0 });
   }
 }
