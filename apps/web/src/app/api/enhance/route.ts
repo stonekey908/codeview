@@ -113,19 +113,9 @@ export async function POST(request: NextRequest) {
         const done = Object.keys(enhancements).length;
         console.log(`[enhance] Saved ${done} enhancements`);
 
-        // Also merge summaries into descriptions
-        const descPath = path.join(descDir, 'descriptions.json');
-        let descriptions: Record<string, string> = {};
-        try {
-          if (fs.existsSync(descPath)) descriptions = JSON.parse(fs.readFileSync(descPath, 'utf-8'));
-        } catch {}
-
-        for (const [fp, data] of Object.entries(enhancements) as [string, any][]) {
-          if (data.summary && !descriptions[fp]) {
-            descriptions[fp] = data.summary;
-          }
-        }
-        fs.writeFileSync(descPath, JSON.stringify(descriptions, null, 2));
+        // Enhancements stay separate from descriptions
+        // enhancements.json = titles, layers, short summaries (from Enhance)
+        // descriptions.json = deep explanations only (from Describe / Ask Claude)
         fs.writeFileSync(progressPath, JSON.stringify({ status: 'done', total: components.length, done }));
       }
     } catch (err) {
