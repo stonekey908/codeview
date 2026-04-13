@@ -27,9 +27,17 @@ export function KeyboardShortcuts() {
   return (
     <div className="fixed inset-0 z-[350] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setHelpOpen(false)} />
-      <div className="relative w-full max-w-xs bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-5">
-        <h2 className="text-sm font-bold mb-4" style={{ fontFamily: 'var(--font-display)' }}>Keyboard Shortcuts</h2>
-        {[['/', 'Search'], ['Esc', 'Close / Back'], ['⌘A', 'Select all'], ['?', 'This help']].map(([k, d]) => (
+      <div className="relative w-full max-w-sm bg-card border border-border rounded-xl shadow-2xl p-5 animate-in fade-in zoom-in-95 duration-150">
+        <h2 className="text-sm font-bold mb-4">Keyboard Shortcuts</h2>
+        {[
+          ['/', 'Search components'],
+          ['⌘K', 'Search (alternative)'],
+          ['Esc', 'Close panel / exit focus / clear'],
+          ['⌘A', 'Select all components'],
+          ['Shift+Click', 'Multi-select components'],
+          ['Double-click', 'Focus on a component'],
+          ['?', 'Toggle this help'],
+        ].map(([k, d]) => (
           <div key={k} className="flex items-center justify-between py-1">
             <span className="text-xs text-zinc-400">{d}</span>
             <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 border border-zinc-700 rounded text-zinc-400">{k}</kbd>

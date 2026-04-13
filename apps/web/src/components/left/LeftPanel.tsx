@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useGraphStore } from '@/store/graph-store';
 import { LAYER_COLORS, LAYER_LABELS } from '@/components/canvas/layer-colors';
 import { FeaturesView } from './FeaturesView';
@@ -22,8 +23,16 @@ const ROLE_ICONS: Record<string, string> = {
 
 export function LeftPanel() {
   const { graphData, leftTab, setLeftTab, openDetail, detailNodeId, expandedClusterIds, toggleCluster, leftWidth, setLeftWidth } = useGraphStore();
+  const [searchQuery, setSearchQuery] = useState('');
 
-  if (!graphData) return <div className="border-r border-border bg-card" />;
+  if (!graphData) return (
+    <div className="border-r border-border bg-card flex items-center justify-center">
+      <div className="text-center px-6">
+        <span className="inline-block w-6 h-6 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs text-muted-foreground">Loading architecture...</p>
+      </div>
+    </div>
+  );
 
   const handleResize = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -58,8 +67,9 @@ export function LeftPanel() {
 
       <div className="mx-2.5 my-2.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-muted border border-border text-xs">
         <span className="text-muted-foreground">🔍</span>
-        <input placeholder="Search..." className="flex-1 bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground" />
-        <kbd className="text-[9px] px-1 py-px rounded bg-background border border-border text-muted-foreground font-mono">/</kbd>
+        <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+          placeholder="Filter components..." className="flex-1 bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground" />
+        {searchQuery && <button onClick={() => setSearchQuery('')} className="text-muted-foreground hover:text-foreground text-[10px]">✕</button>}
       </div>
 
       <div className="flex-1 overflow-y-auto pb-4">
@@ -92,7 +102,11 @@ export function LeftPanel() {
 
         {leftTab === 'categories' && graphData.clusters.map((cluster: any) => {
           const colors = LAYER_COLORS[cluster.layer as ArchitecturalLayer];
-          const nodes = cluster.nodeIds.map((id: string) => graphData.nodes.find((n: any) => n.id === id)).filter(Boolean);
+          const allNodes = cluster.nodeIds.map((id: string) => graphData.nodes.find((n: any) => n.id === id)).filter(Boolean);
+          const nodes = searchQuery
+            ? allNodes.filter((n: any) => n.label.toLowerCase().includes(searchQuery.toLowerCase()) || n.relativePath.toLowerCase().includes(searchQuery.toLowerCase()))
+            : allNodes;
+          if (searchQuery && nodes.length === 0) return null;
           const isExpanded = expandedClusterIds.has(cluster.id);
           return (
             <div key={cluster.id}>
