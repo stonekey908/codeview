@@ -16,7 +16,7 @@ const nodeTypes = { cluster: ClusterNode };
 export function GraphCanvas() {
   const {
     rfNodes: storeNodes, rfEdges: storeEdges,
-    setHoveredNode, theme, middleView, setMiddleView,
+    setHoveredNode, theme,
   } = useGraphStore();
   const isDark = theme === 'dark';
 
@@ -39,19 +39,10 @@ export function GraphCanvas() {
 
   return (
     <div className="relative w-full h-full" style={{ background: isDark ? '#09090b' : '#fafbfc' }}>
-      {/* Graph / Detail View toggle */}
-      <div className="absolute top-3 left-3 z-10 flex gap-0.5 p-0.5 rounded-lg"
-        style={{ background: isDark ? '#111114' : '#ffffff', border: `1px solid ${isDark ? '#1e1e28' : '#e5e7eb'}` }}>
-        {(['graph', 'full-detail'] as const).map((v) => (
-          <button key={v} onClick={() => setMiddleView(v)}
-            className="px-3 py-1 text-[11px] font-medium rounded-md transition-all capitalize"
-            style={{
-              background: middleView === v ? (isDark ? '#1a1a1f' : '#f3f4f6') : 'transparent',
-              color: middleView === v ? (isDark ? '#f4f4f8' : '#111827') : (isDark ? '#505068' : '#9ca3af'),
-            }}>
-            {v === 'full-detail' ? 'Detail View' : 'Graph'}
-          </button>
-        ))}
+      {/* Architecture view label */}
+      <div className="absolute top-3 left-3 z-10 px-3 py-1 rounded-lg text-[11px] font-medium text-muted-foreground"
+        style={{ background: isDark ? 'rgba(17,17,20,.8)' : 'rgba(255,255,255,.8)', border: `1px solid ${isDark ? '#1e1e28' : '#e5e7eb'}`, backdropFilter: 'blur(4px)' }}>
+        Architecture Graph
       </div>
 
       <ReactFlow

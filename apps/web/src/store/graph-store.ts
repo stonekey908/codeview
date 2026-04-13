@@ -105,9 +105,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   openDetail: (nodeId) => set((s) => ({
     detailNodeId: nodeId,
     detailNavStack: [],
-    // Preserve expanded mode if already in it
-    detailMode: s.detailMode === 'expanded' ? 'expanded' : 'slide-out',
-    middleView: s.middleView === 'full-detail' ? 'full-detail' : 'graph',
+    // Architecture tab uses slide-out, everything else uses expanded (full detail)
+    detailMode: s.leftTab === 'architecture' ? 'slide-out' : 'expanded',
+    middleView: s.leftTab === 'architecture' ? 'graph' : 'full-detail',
     selectedNodeIds: new Set([nodeId]),
   })),
 
