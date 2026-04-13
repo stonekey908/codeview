@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeView — Final Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--font:'Outfit',system-ui,sans-serif;--mono:'JetBrains Mono',monospace}
+  [data-theme="dark"]{--bg:#09090b;--s1:#111114;--s2:#1a1a1f;--s3:#252530;--t1:#f4f4f8;--t2:#9090a8;--t3:#505068;--b1:#1e1e28;--b2:#2a2a38;--ui:#5b8af5;--api:#3dd9a0;--data:#f7b955;--util:#7a7a90;--ext:#b088f0;--accent:#5b8af5;--line:#2a2a38}
+  [data-theme="light"]{--bg:#fafbfc;--s1:#ffffff;--s2:#f3f4f6;--s3:#e5e7eb;--t1:#111827;--t2:#6b7280;--t3:#9ca3af;--b1:#e5e7eb;--b2:#d1d5db;--ui:#3b82f6;--api:#10b981;--data:#f59e0b;--util:#6b7280;--ext:#8b5cf6;--accent:#3b82f6;--line:#d1d5db}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--t1);overflow:hidden;height:100vh;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+
+  /* Layout modes */
+  .app{display:grid;grid-template-columns:300px 1fr;grid-template-rows:48px 1fr;height:100vh}
+  /* Slide-out: graph + detail side by side */
+  .app.has-detail{grid-template-columns:300px 1fr 480px}
+  /* Full detail: graph hidden, detail takes full middle */
+  .app.full-detail{grid-template-columns:300px 1fr}
+  .app.full-detail .middle{display:none}
+  .app.full-detail .detail{display:block;grid-column:2}
+
+  /* ═══ TOPBAR ═══ */
+  .topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--s1);border-bottom:1px solid var(--b1)}
+  .tb-l{display:flex;align-items:center;gap:12px}
+  .tb-r{display:flex;align-items:center;gap:6px}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;letter-spacing:-.02em}
+  .logo i{width:22px;height:22px;border-radius:5px;background:linear-gradient(135deg,var(--ui),var(--api));font-style:normal;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700}
+  .chip{font-size:10px;color:var(--t2);font-family:var(--mono);padding:3px 10px;background:var(--s2);border:1px solid var(--b1);border-radius:12px}
+  .chip .gd{width:5px;height:5px;border-radius:50%;background:#3dd9a0;display:inline-block;margin-right:3px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .btn{padding:4px 12px;border-radius:7px;font-size:11px;font-weight:500;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .15s;display:flex;align-items:center;gap:4px}
+  .btn:hover{background:var(--s2);color:var(--t1)}
+
+  /* ═══ LEFT PANEL ═══ */
+  .left{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+  .left-tabs{display:flex;border-bottom:1px solid var(--b1);flex-shrink:0}
+  .lt{flex:1;padding:9px 0;font-size:11px;font-weight:600;text-align:center;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;transition:all .15s}
+  .lt:hover{color:var(--t2)}
+  .lt.on{color:var(--t1);border-color:var(--accent)}
+  .left-search{margin:10px;display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;flex-shrink:0}
+  .left-search input{flex:1;background:none;border:none;color:var(--t1);font-size:12px;outline:none;font-family:var(--font)}
+  .left-search input::placeholder{color:var(--t3)}
+  .left-search kbd{font-family:var(--mono);font-size:9px;padding:1px 4px;background:var(--s3);border:1px solid var(--b2);border-radius:3px;color:var(--t3)}
+  .left-body{flex:1;overflow-y:auto;padding-bottom:20px}
+
+  /* Categories tree */
+  .gh{display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;color:var(--t2);transition:background .1s}
+  .gh:hover{background:var(--s2)}
+  .gh .d{width:6px;height:6px;border-radius:50%}
+  .gh .c{margin-left:auto;font-size:9px;font-family:var(--mono);color:var(--t3);background:var(--s2);padding:1px 5px;border-radius:6px}
+  .gi{display:flex;align-items:center;gap:6px;padding:4px 12px 4px 28px;font-size:12px;cursor:pointer;color:var(--t2);transition:all .1s}
+  .gi:hover{background:var(--s2);color:var(--t1)}
+  .gi.on{background:rgba(91,138,245,.08);color:var(--accent);font-weight:500;border-right:2px solid var(--accent)}
+  .gi .ic{font-size:10px;width:14px;text-align:center;flex-shrink:0}
+  .gi .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .gi .ct{font-size:9px;font-family:var(--mono);color:var(--t3)}
+
+  /* Architecture flow */
+  .arch{padding:10px}
+  .al{margin-bottom:4px;background:var(--s2);border:1px solid var(--b1);border-radius:10px;overflow:hidden}
+  .al-h{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer}
+  .al-h:hover{background:var(--s3)}
+  .al-h .ld{width:8px;height:8px;border-radius:50%}
+  .al-h .ln{font-size:12px;font-weight:600;flex:1}
+  .al-h .lc{font-size:9px;font-family:var(--mono);color:var(--t3)}
+  .al-items{border-top:1px solid var(--b1)}
+  .al-i{display:flex;align-items:center;gap:6px;padding:5px 12px;font-size:11px;cursor:pointer;color:var(--t2);transition:all .1s}
+  .al-i:hover{background:rgba(255,255,255,.02);color:var(--t1)}
+  .al-i.on{background:rgba(91,138,245,.06);color:var(--accent);font-weight:500}
+  .al-i .ic{font-size:9px;width:14px;text-align:center}
+  .al-i .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .aw{text-align:center;padding:2px 0}
+  .aw-l{display:inline-block;width:1px;height:10px;background:var(--line)}
+  .aw-t{display:inline-block;font-size:8px;font-family:var(--mono);padding:1px 6px;background:var(--s1);border:1px solid var(--b1);border-radius:4px;color:var(--t3);margin:2px 0}
+
+  /* ═══ MIDDLE — Graph (always visible) ═══ */
+  .middle{position:relative;overflow:hidden;background:var(--bg)}
+  .middle::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.025) 1px,transparent 1px);background-size:24px 24px}
+
+  /* Graph nodes */
+  .gn{position:absolute;background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:12px 16px;z-index:2;cursor:pointer;transition:all .2s;width:200px}
+  .gn:hover{border-color:var(--b2);box-shadow:0 4px 16px rgba(0,0,0,.15)}
+  .gn.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(91,138,245,.12)}
+  .gn-top{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+  .gn-dot{width:8px;height:8px;border-radius:50%}
+  .gn-name{font-size:12px;font-weight:600;flex:1}
+  .gn-cnt{font-size:9px;font-family:var(--mono);color:var(--t3);background:var(--s2);padding:1px 6px;border-radius:4px}
+  .gn-desc{font-size:10px;color:var(--t3);line-height:1.4}
+
+  /* SVG straight lines */
+  .edges{position:absolute;inset:0;z-index:1;pointer-events:none}
+  .edge{fill:none;stroke:var(--line);stroke-width:1.5}
+  .edge.hi{stroke:var(--accent);stroke-width:2;opacity:.5}
+  .edge-label{font-size:8px;fill:var(--t3);font-family:var(--mono);text-anchor:middle;dominant-baseline:middle}
+  .edge-label-bg{fill:var(--bg);rx:3}
+  marker polygon{fill:var(--line)}
+
+  /* Middle view toggle */
+  .mid-toggle{position:absolute;top:12px;left:12px;z-index:10;display:flex;gap:2px;background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:2px}
+  .mt{padding:4px 12px;font-size:11px;font-weight:500;border-radius:6px;cursor:pointer;color:var(--t3);transition:all .15s}
+  .mt:hover{color:var(--t2)}
+  .mt.on{background:var(--s2);color:var(--t1)}
+
+  .ctrl{position:absolute;bottom:12px;left:12px;display:flex;gap:3px;z-index:10}
+  .cb{width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--s1);border:1px solid var(--b1);border-radius:6px;color:var(--t2);cursor:pointer;font-size:13px;transition:all .12s}
+  .cb:hover{background:var(--s2);color:var(--t1)}
+  .legend{position:absolute;bottom:12px;right:12px;background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:8px 12px;z-index:10;display:flex;gap:10px}
+  .leg{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--t3)}
+  .leg .ld{width:6px;height:6px;border-radius:50%}
+
+  /* ═══ RIGHT — Detail Panel ═══ */
+  .detail{background:var(--s1);border-left:1px solid var(--b1);overflow-y:auto;display:none}
+  .app.has-detail .detail{display:block;animation:slideIn .2s ease}
+  .app.full-detail .detail{display:block;border-left:none;background:var(--bg);max-width:860px;margin:0 auto}
+  @keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+
+  .dh{padding:20px 24px 16px;border-bottom:1px solid var(--b1)}
+  .dh-back{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t3);cursor:pointer;margin-bottom:8px;transition:color .12s}
+  .dh-back:hover{color:var(--t1)}
+  .dh-title{font-size:20px;font-weight:700;letter-spacing:-.03em;margin-bottom:2px}
+  .dh-path{font-size:10px;font-family:var(--mono);color:var(--t3);margin-bottom:10px}
+  .dh-tags{display:flex;gap:5px;margin-bottom:12px}
+  .dh-tag{padding:3px 9px;border-radius:7px;font-size:10px;font-weight:500}
+  .dh-actions{display:flex;gap:6px}
+  .dh-btn{padding:5px 12px;border-radius:7px;font-size:11px;font-weight:500;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .15s;display:flex;align-items:center;gap:5px}
+  .dh-btn:hover{background:var(--s2);color:var(--t1)}
+  .dh-btn.pu{border-color:rgba(176,136,240,.2);color:#b088f0}
+
+  .ds{display:flex;gap:16px;padding:12px 24px;background:var(--s1);border-bottom:1px solid var(--b1)}
+  .ds-v{font-size:18px;font-weight:700;letter-spacing:-.02em}
+  .ds-l{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-top:1px}
+
+  .dx{padding:16px 24px;border-bottom:1px solid var(--b1)}
+  .dx-t{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+  .dx-t .regen{margin-left:auto;font-size:10px;color:#b088f0;cursor:pointer;font-weight:500}
+  .dx-desc{font-size:13px;line-height:1.6;color:var(--t2)}
+  .dx-ai{padding:14px;border-radius:10px;border-left:3px solid #b088f0;background:var(--s2);font-size:13px;line-height:1.6;color:var(--t2)}
+  .dx-ai strong{color:var(--t1);font-weight:600}
+
+  .dx-cg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .dx-cc{background:var(--s2);border:1px solid var(--b1);border-radius:9px;padding:10px;cursor:pointer;transition:all .15s}
+  .dx-cc:hover{border-color:var(--b2);transform:translateY(-1px)}
+  .dx-ct{font-size:8px;font-weight:500;padding:2px 5px;border-radius:3px;display:inline-block;margin-bottom:3px}
+  .dx-cn{font-size:12px;font-weight:600;margin-bottom:2px}
+  .dx-cd{font-size:10px;color:var(--t3);line-height:1.35}
+
+  .dx-code{background:var(--s2);border:1px solid var(--b1);border-radius:10px;padding:14px;font-family:var(--mono);font-size:11px;line-height:1.6;color:var(--t2);white-space:pre-wrap;max-height:300px;overflow-y:auto}
+  .dx-code-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .dx-code-link{font-size:10px;color:var(--accent);text-decoration:none;display:flex;align-items:center;gap:4px}
+
+  .hidden{display:none!important}
+  ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--s3);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="tb-l">
+      <div class="logo"><i>CV</i>CodeView</div>
+      <span class="chip"><span class="gd"></span>58 components · 126 connections</span>
+    </div>
+    <div class="tb-r">
+      <button class="btn" style="border-color:rgba(247,185,85,.2);color:#f7b955">⚡ Enhance</button>
+      <button class="btn" style="border-color:rgba(176,136,240,.2);color:#b088f0">✨ Describe</button>
+      <button class="btn" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">◐</button>
+    </div>
+  </header>
+
+  <!-- LEFT -->
+  <nav class="left">
+    <div class="left-tabs">
+      <div class="lt on" onclick="swLeft('cat',this)">Categories</div>
+      <div class="lt" onclick="swLeft('arch',this)">Architecture</div>
+    </div>
+    <div class="left-search">🔍 <input placeholder="Search..." /><kbd>/</kbd></div>
+    <div class="left-body">
+      <!-- Categories -->
+      <div id="v-cat">
+        <div><div class="gh"><span class="d" style="background:var(--ui)"></span>UI Components<span class="c">38</span></div><div class="gi-list"><div class="gi on" onclick="openDetail(this,'Trade Flows','app/(dashboard)/trade-flows/page.tsx','ui','page')"><span class="ic">📄</span><span class="nm">Trade Flows</span><span class="ct">3</span></div><div class="gi" onclick="openDetail(this,'Risk Feed','app/(dashboard)/risk-feed/page.tsx','ui','page')"><span class="ic">📄</span><span class="nm">Risk Feed</span><span class="ct">5</span></div><div class="gi" onclick="openDetail(this,'HSBC Footprint','app/(dashboard)/hsbc-footprint/page.tsx','ui','page')"><span class="ic">📄</span><span class="nm">HSBC Footprint</span><span class="ct">6</span></div><div class="gi" onclick="openDetail(this,'Shipping','app/(dashboard)/shipping/page.tsx','ui','page')"><span class="ic">📄</span><span class="nm">Shipping</span><span class="ct">4</span></div><div class="gi" onclick="openDetail(this,'News','app/(dashboard)/news/page.tsx','ui','page')"><span class="ic">📄</span><span class="nm">News</span><span class="ct">4</span></div><div class="gi" onclick="openDetail(this,'Opportunities','app/(dashboard)/opportunities/page.tsx','ui','page')"><span class="ic">📄</span><span class="nm">Opportunities</span><span class="ct">4</span></div><div class="gi" onclick="openDetail(this,'Globe View','components/globe-view.tsx','ui','component')"><span class="ic">🧩</span><span class="nm">Globe View</span><span class="ct">2</span></div><div class="gi" onclick="openDetail(this,'Chat Panel','components/chat-panel.tsx','ui','component')"><span class="ic">🧩</span><span class="nm">Chat Panel</span><span class="ct">1</span></div><div class="gi"><span class="ic">🧩</span><span class="nm">Refresh Bar</span><span class="ct">1</span></div><div class="gi"><span class="ic">🧩</span><span class="nm">Risk Card</span></div><div class="gi"><span class="ic">🧩</span><span class="nm">Status Bar</span></div></div></div>
+        <div><div class="gh"><span class="d" style="background:var(--api)"></span>API Routes<span class="c">7</span></div><div class="gi-list"><div class="gi" onclick="openDetail(this,'Trade Flows API','app/api/trade-flows/route.ts','api','api-route')"><span class="ic">⚡</span><span class="nm">Trade Flows API</span><span class="ct">2</span></div><div class="gi" onclick="openDetail(this,'Risk Events API','app/api/risk-events/route.ts','api','api-route')"><span class="ic">⚡</span><span class="nm">Risk Events API</span><span class="ct">2</span></div><div class="gi"><span class="ic">⚡</span><span class="nm">Chat API</span><span class="ct">1</span></div><div class="gi"><span class="ic">⚡</span><span class="nm">Shipping API</span><span class="ct">2</span></div><div class="gi"><span class="ic">⚡</span><span class="nm">News API</span><span class="ct">2</span></div></div></div>
+        <div><div class="gh"><span class="d" style="background:var(--data)"></span>Data Layer<span class="c">8</span></div><div class="gi-list"><div class="gi"><span class="ic">💾</span><span class="nm">HSBC Markets</span></div><div class="gi"><span class="ic">💾</span><span class="nm">Risk Events Data</span></div><div class="gi"><span class="ic">💾</span><span class="nm">Trade Flows Data</span></div><div class="gi"><span class="ic">📋</span><span class="nm">Types</span></div></div></div>
+        <div><div class="gh"><span class="d" style="background:var(--util)"></span>Utilities<span class="c">3</span></div><div class="gi-list"><div class="gi" onclick="openDetail(this,'Data Context','lib/data-context.tsx','util','context')"><span class="ic">🔧</span><span class="nm">Data Context</span><span class="ct">15</span></div><div class="gi"><span class="ic">🔧</span><span class="nm">Cache</span><span class="ct">5</span></div></div></div>
+        <div><div class="gh"><span class="d" style="background:var(--ext)"></span>External<span class="c">1</span></div><div class="gi-list"><div class="gi" onclick="openDetail(this,'Gemini Client','lib/gemini.ts','ext','service')"><span class="ic">🔗</span><span class="nm">Gemini Client</span><span class="ct">7</span></div></div></div>
+      </div>
+
+      <!-- Architecture -->
+      <div id="v-arch" class="hidden">
+        <div class="arch">
+          <div class="al"><div class="al-h"><span class="ld" style="background:var(--ui)"></span><span class="ln" style="color:var(--ui)">What Users See</span><span class="lc">8 screens</span></div><div class="al-items"><div class="al-i on" onclick="openDetail(this,'Trade Flows','app/(dashboard)/trade-flows/page.tsx','ui','page')"><span class="ic">📄</span><span class="nm">Trade Flows</span></div><div class="al-i" onclick="openDetail(this,'Risk Feed','app/(dashboard)/risk-feed/page.tsx','ui','page')"><span class="ic">📄</span><span class="nm">Risk Feed</span></div><div class="al-i"><span class="ic">📄</span><span class="nm">HSBC Footprint</span></div><div class="al-i"><span class="ic">📄</span><span class="nm">Shipping</span></div><div class="al-i"><span class="ic">📄</span><span class="nm">News</span></div><div class="al-i"><span class="ic">📄</span><span class="nm">Opportunities</span></div></div></div>
+          <div class="aw"><div class="aw-l"></div><br><span class="aw-t">request data via</span><br><div class="aw-l"></div></div>
+          <div class="al"><div class="al-h"><span class="ld" style="background:var(--util)"></span><span class="ln" style="color:var(--util)">Data Hub</span><span class="lc">central</span></div><div class="al-items"><div class="al-i"><span class="ic">🔧</span><span class="nm">Data Context</span></div><div class="al-i"><span class="ic">🔧</span><span class="nm">Cache</span></div></div></div>
+          <div class="aw"><div class="aw-l"></div><br><span class="aw-t">which calls</span><br><div class="aw-l"></div></div>
+          <div class="al"><div class="al-h"><span class="ld" style="background:var(--api)"></span><span class="ln" style="color:var(--api)">API Endpoints</span><span class="lc">7 routes</span></div><div class="al-items"><div class="al-i"><span class="ic">⚡</span><span class="nm">Trade Flows API</span></div><div class="al-i"><span class="ic">⚡</span><span class="nm">Risk Events API</span></div><div class="al-i"><span class="ic">⚡</span><span class="nm">Chat API</span></div><div class="al-i"><span class="ic">⚡</span><span class="nm">Shipping API</span></div><div class="al-i"><span class="ic">⚡</span><span class="nm">News API</span></div></div></div>
+          <div class="aw"><div class="aw-l"></div><br><span class="aw-t">which ask</span><br><div class="aw-l"></div></div>
+          <div class="al"><div class="al-h"><span class="ld" style="background:var(--ext)"></span><span class="ln" style="color:var(--ext)">AI & External</span><span class="lc">1 service</span></div><div class="al-items"><div class="al-i"><span class="ic">🔗</span><span class="nm">Gemini Client</span></div></div></div>
+          <div class="aw"><div class="aw-l"></div><br><span class="aw-t">falls back to</span><br><div class="aw-l"></div></div>
+          <div class="al"><div class="al-h"><span class="ld" style="background:var(--data)"></span><span class="ln" style="color:var(--data)">Static Datasets</span><span class="lc">8 files</span></div><div class="al-items"><div class="al-i"><span class="ic">💾</span><span class="nm">HSBC Markets</span></div><div class="al-i"><span class="ic">💾</span><span class="nm">Risk Events Data</span></div><div class="al-i"><span class="ic">💾</span><span class="nm">Trade Flows Data</span></div></div></div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MIDDLE — Graph (always visible behind detail) -->
+  <div class="middle">
+    <svg class="edges" width="100%" height="100%">
+      <defs><marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6"/></marker></defs>
+      <!-- UI → Data Hub -->
+      <line class="edge hi" x1="260" y1="108" x2="380" y2="108" marker-end="url(#arr)"/>
+      <rect class="edge-label-bg" x="290" y="96" width="60" height="14" fill="var(--bg)"/>
+      <text class="edge-label" x="320" y="105">8 calls</text>
+      <!-- Data Hub → API -->
+      <line class="edge" x1="480" y1="140" x2="480" y2="220" marker-end="url(#arr)"/>
+      <rect class="edge-label-bg" x="448" y="172" width="64" height="14" fill="var(--bg)"/>
+      <text class="edge-label" x="480" y="181">7 routes</text>
+      <!-- API → Data -->
+      <path class="edge" d="M 380 280 L 260 280 L 260 360" marker-end="url(#arr)"/>
+      <rect class="edge-label-bg" x="282" y="270" width="56" height="14" fill="var(--bg)"/>
+      <text class="edge-label" x="310" y="279">fallback</text>
+      <!-- API → External -->
+      <line class="edge" x1="580" y1="280" x2="680" y2="280" marker-end="url(#arr)"/>
+      <rect class="edge-label-bg" x="604" y="270" width="52" height="14" fill="var(--bg)"/>
+      <text class="edge-label" x="630" y="279">AI calls</text>
+      <!-- External → Data -->
+      <path class="edge" d="M 780 312 L 780 400 L 370 400" marker-end="url(#arr)"/>
+      <rect class="edge-label-bg" x="548" y="390" width="56" height="14" fill="var(--bg)"/>
+      <text class="edge-label" x="576" y="399">fallback</text>
+    </svg>
+
+    <!-- View toggle: Graph | Full Detail -->
+    <div class="mid-toggle">
+      <div class="mt on" onclick="setView('graph',this)">Graph</div>
+      <div class="mt" onclick="setView('full-detail',this)">Detail View</div>
+    </div>
+
+    <!-- Row 1 -->
+    <div class="gn sel" style="top:72px;left:40px;border-left:3px solid var(--ui)" onclick="highlightNode(this)">
+      <div class="gn-top"><span class="gn-dot" style="background:var(--ui)"></span><span class="gn-name" style="color:var(--ui)">UI Components</span><span class="gn-cnt">38</span></div>
+      <div class="gn-desc">Screens and components users see</div>
+    </div>
+    <div class="gn" style="top:72px;left:380px;border-left:3px solid var(--util)" onclick="highlightNode(this)">
+      <div class="gn-top"><span class="gn-dot" style="background:var(--util)"></span><span class="gn-name" style="color:var(--util)">Data Hub</span><span class="gn-cnt">3</span></div>
+      <div class="gn-desc">Context, cache, shared state</div>
+    </div>
+    <!-- Row 2 -->
+    <div class="gn" style="top:240px;left:380px;border-left:3px solid var(--api)" onclick="highlightNode(this)">
+      <div class="gn-top"><span class="gn-dot" style="background:var(--api)"></span><span class="gn-name" style="color:var(--api)">API Endpoints</span><span class="gn-cnt">7</span></div>
+      <div class="gn-desc">Backend routes handling requests</div>
+    </div>
+    <div class="gn" style="top:240px;left:680px;border-left:3px solid var(--ext)" onclick="highlightNode(this)">
+      <div class="gn-top"><span class="gn-dot" style="background:var(--ext)"></span><span class="gn-name" style="color:var(--ext)">Gemini AI</span><span class="gn-cnt">1</span></div>
+      <div class="gn-desc">Google AI with web grounding</div>
+    </div>
+    <!-- Row 3 -->
+    <div class="gn" style="top:360px;left:140px;border-left:3px solid var(--data)" onclick="highlightNode(this)">
+      <div class="gn-top"><span class="gn-dot" style="background:var(--data)"></span><span class="gn-name" style="color:var(--data)">Static Data</span><span class="gn-cnt">8</span></div>
+      <div class="gn-desc">Fallback datasets and type defs</div>
+    </div>
+
+    <div class="ctrl"><button class="cb">+</button><button class="cb">−</button><button class="cb">⛶</button></div>
+    <div class="legend"><div class="leg"><span class="ld" style="background:var(--ui)"></span>UI</div><div class="leg"><span class="ld" style="background:var(--api)"></span>API</div><div class="leg"><span class="ld" style="background:var(--data)"></span>Data</div><div class="leg"><span class="ld" style="background:var(--util)"></span>Utils</div><div class="leg"><span class="ld" style="background:var(--ext)"></span>External</div></div>
+  </div>
+
+  <!-- RIGHT — Detail Panel -->
+  <aside class="detail" id="detail">
+    <div class="dh">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="dh-back" onclick="closeDetail()" style="margin:0">← Back to Graph</div>
+        <div style="display:flex;gap:4px">
+          <button class="dh-btn" onclick="toggleExpand()" id="expand-btn" style="padding:3px 8px;font-size:10px">⛶ Expand</button>
+        </div>
+      </div>
+      <div class="dh-title" id="dt-name">Trade Flows</div>
+      <div class="dh-path" id="dt-path">app/(dashboard)/trade-flows/page.tsx</div>
+      <div class="dh-tags" id="dt-tags">
+        <span class="dh-tag" style="background:rgba(91,138,245,.1);color:var(--ui)">UI Components</span>
+        <span class="dh-tag" style="background:var(--s2);color:var(--t2)">page</span>
+      </div>
+      <div class="dh-actions">
+        <button class="dh-btn">↗ Open in VS Code</button>
+        <button class="dh-btn pu">✨ Ask Claude</button>
+      </div>
+    </div>
+    <div class="ds">
+      <div><div class="ds-v" style="color:var(--ui)">5</div><div class="ds-l">Exports</div></div>
+      <div><div class="ds-v" style="color:var(--ui)">8</div><div class="ds-l">Imports</div></div>
+      <div><div class="ds-v" style="color:var(--ui)">3</div><div class="ds-l">Connections</div></div>
+    </div>
+    <div class="dx">
+      <div class="dx-t">Description</div>
+      <div class="dx-desc">Shows top bilateral trade routes worldwide, with search, sorting by volume/growth/tariff, and a detail popup for each corridor.</div>
+    </div>
+    <div class="dx">
+      <div class="dx-t"><span style="color:#b088f0">✨</span> AI Explanation <span class="regen">↻ Regenerate</span></div>
+      <div class="dx-ai">
+        The main trade corridors view showing the <strong>top 20 bilateral trade routes</strong> worldwide. Users can search, sort by volume/growth/tariff, and click any corridor for <strong>commodity breakdowns</strong>.
+        <br><br>
+        This is the <strong>default landing page</strong> — dashboard redirects here. Fetches from the <strong>Trade Flows API</strong>, which calls Gemini or falls back to static data.
+      </div>
+    </div>
+    <div class="dx">
+      <div class="dx-t">Connections</div>
+      <div class="dx-cg">
+        <div class="dx-cc" onclick="openDetail(null,'Trade Flows API','app/api/trade-flows/route.ts','api','api-route')"><span class="dx-ct" style="background:rgba(61,217,160,.1);color:var(--api)">fetches from</span><div class="dx-cn">Trade Flows API</div><div class="dx-cd">Top 20 global corridors</div></div>
+        <div class="dx-cc" onclick="openDetail(null,'Data Context','lib/data-context.tsx','util','context')"><span class="dx-ct" style="background:rgba(122,122,144,.1);color:var(--util)">uses</span><div class="dx-cn">Data Context</div><div class="dx-cd">Central data hub</div></div>
+        <div class="dx-cc"><span class="dx-ct" style="background:rgba(91,138,245,.1);color:var(--ui)">renders</span><div class="dx-cn">Trade Flow Detail</div><div class="dx-cd">Corridor detail popup</div></div>
+        <div class="dx-cc"><span class="dx-ct" style="background:rgba(91,138,245,.1);color:var(--ui)">renders</span><div class="dx-cn">Status Bar</div><div class="dx-cd">Sync status display</div></div>
+      </div>
+    </div>
+    <div class="dx">
+      <div class="dx-code-header">
+        <div class="dx-t" style="margin:0">Source Code</div>
+        <a class="dx-code-link" href="#">↗ Open in VS Code</a>
+      </div>
+      <div class="dx-code">"use client"
+
+import { useDataContext } from "@/lib/data-context"
+import { TradeFlowDetail } from "@/components/trade-flow-detail"
+import { StatusBar } from "@/components/status-bar"
+
+export default function TradeFlowsPage() {
+  const { tradeFlows, isLoading } = useDataContext()
+  const [search, setSearch] = useState("")
+  const [sortBy, setSortBy] = useState("volume")
+
+  if (isLoading) return &lt;LoadingState /&gt;
+
+  const filtered = tradeFlows
+    .filter(f =&gt; f.corridor.toLowerCase()
+      .includes(search.toLowerCase()))
+    .sort((a, b) =&gt; b[sortBy] - a[sortBy])
+
+  return (
+    &lt;div className="flex flex-col h-full"&gt;
+      ...
+    &lt;/div&gt;
+  )
+}</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+const layerColors = {ui:'var(--ui)',api:'var(--api)',data:'var(--data)',util:'var(--util)',ext:'var(--ext)'};
+const layerNames = {ui:'UI Components',api:'API Routes',data:'Data Layer',util:'Utilities',ext:'External Services'};
+let isExpanded = false;
+
+function swLeft(v,el){
+  document.querySelectorAll('.lt').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('v-cat').classList.toggle('hidden',v!=='cat');
+  document.getElementById('v-arch').classList.toggle('hidden',v!=='arch');
+}
+
+function openDetail(listItem, name, path, layer, role){
+  document.querySelectorAll('.gi,.al-i').forEach(i=>i.classList.remove('on'));
+  if(listItem) listItem.classList.add('on');
+
+  document.getElementById('dt-name').textContent = name;
+  document.getElementById('dt-path').textContent = path;
+  document.getElementById('dt-tags').innerHTML = `<span class="dh-tag" style="background:${layerColors[layer]}20;color:${layerColors[layer]}">${layerNames[layer]}</span><span class="dh-tag" style="background:var(--s2);color:var(--t2)">${role}</span>`;
+
+  const app = document.getElementById('app');
+  app.classList.remove('full-detail');
+  app.classList.add('has-detail');
+  isExpanded = false;
+  document.getElementById('expand-btn').textContent = '⛶ Expand';
+}
+
+function closeDetail(){
+  const app = document.getElementById('app');
+  app.classList.remove('has-detail','full-detail');
+  isExpanded = false;
+}
+
+function toggleExpand(){
+  const app = document.getElementById('app');
+  isExpanded = !isExpanded;
+  if(isExpanded){
+    app.classList.remove('has-detail');
+    app.classList.add('full-detail');
+    document.getElementById('expand-btn').textContent = '⛶ Shrink';
+  } else {
+    app.classList.remove('full-detail');
+    app.classList.add('has-detail');
+    document.getElementById('expand-btn').textContent = '⛶ Expand';
+  }
+}
+
+function setView(view, el){
+  document.querySelectorAll('.mt').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  const app = document.getElementById('app');
+  if(view === 'full-detail'){
+    // If no component selected, select the first one
+    if(!document.getElementById('dt-name').textContent || document.getElementById('dt-name').textContent === ''){
+      const first = document.querySelector('.gi');
+      if(first) first.click();
+    }
+    app.classList.remove('has-detail');
+    app.classList.add('full-detail');
+    isExpanded = true;
+    document.getElementById('expand-btn').textContent = '⛶ Shrink';
+  } else {
+    app.classList.remove('full-detail');
+    // Keep detail open as slide-out if a component was selected
+    const hasContent = document.getElementById('dt-name').textContent && document.getElementById('dt-name').textContent !== '';
+    if(hasContent){
+      app.classList.add('has-detail');
+    }
+    isExpanded = false;
+    document.getElementById('expand-btn').textContent = '⛶ Expand';
+  }
+}
+
+function highlightNode(el){
+  document.querySelectorAll('.gn').forEach(n=>n.classList.remove('sel'));
+  el.classList.add('sel');
+}
+</script>
+</body>
+</html>

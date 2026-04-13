@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeView — Clean Graph with Straight Lines</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--font:'Outfit',system-ui,sans-serif;--mono:'JetBrains Mono',monospace}
+  [data-theme="dark"]{--bg:#09090b;--s1:#111114;--s2:#1a1a1f;--s3:#252530;--t1:#f4f4f8;--t2:#9090a8;--t3:#505068;--b1:#1e1e28;--b2:#2a2a38;--ui:#5b8af5;--api:#3dd9a0;--data:#f7b955;--util:#7a7a90;--ext:#b088f0;--accent:#5b8af5;--line:#2a2a38}
+  [data-theme="light"]{--bg:#fafbfc;--s1:#ffffff;--s2:#f3f4f6;--s3:#e5e7eb;--t1:#111827;--t2:#6b7280;--t3:#9ca3af;--b1:#e5e7eb;--b2:#d1d5db;--ui:#3b82f6;--api:#10b981;--data:#f59e0b;--util:#6b7280;--ext:#8b5cf6;--accent:#3b82f6;--line:#d1d5db}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--t1);overflow:hidden;height:100vh;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+
+  .app{display:grid;grid-template-columns:300px 1fr;grid-template-rows:48px 1fr;height:100vh}
+
+  /* Topbar */
+  .topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--s1);border-bottom:1px solid var(--b1)}
+  .tb-l{display:flex;align-items:center;gap:12px}
+  .tb-r{display:flex;align-items:center;gap:6px}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;letter-spacing:-.02em}
+  .logo i{width:22px;height:22px;border-radius:5px;background:linear-gradient(135deg,var(--ui),var(--api));font-style:normal;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700}
+  .chip{font-size:10px;color:var(--t2);font-family:var(--mono);padding:3px 10px;background:var(--s2);border:1px solid var(--b1);border-radius:12px}
+  .chip .gd{width:5px;height:5px;border-radius:50%;background:#3dd9a0;display:inline-block;margin-right:3px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .b{padding:4px 12px;border-radius:7px;font-size:11px;font-weight:500;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .15s;display:flex;align-items:center;gap:4px}
+  .b:hover{background:var(--s2);color:var(--t1)}
+
+  /* Left panel */
+  .left{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+  .left-tabs{display:flex;border-bottom:1px solid var(--b1)}
+  .lt{flex:1;padding:9px 0;font-size:11px;font-weight:600;text-align:center;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;transition:all .15s}
+  .lt:hover{color:var(--t2)}
+  .lt.on{color:var(--t1);border-color:var(--accent)}
+  .left-search{margin:10px;display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--s2);border:1px solid var(--b1);border-radius:8px}
+  .left-search input{flex:1;background:none;border:none;color:var(--t1);font-size:12px;outline:none;font-family:var(--font)}
+  .left-search input::placeholder{color:var(--t3)}
+  .left-body{flex:1;overflow-y:auto;padding-bottom:20px}
+
+  /* Tree items */
+  .grp-h{display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;color:var(--t2);transition:background .1s}
+  .grp-h:hover{background:var(--s2)}
+  .grp-h .dot{width:6px;height:6px;border-radius:50%}
+  .grp-h .cnt{margin-left:auto;font-size:9px;font-family:var(--mono);color:var(--t3);background:var(--s2);padding:1px 5px;border-radius:6px}
+  .itm{display:flex;align-items:center;gap:6px;padding:4px 12px 4px 28px;font-size:12px;cursor:pointer;color:var(--t2);transition:all .1s}
+  .itm:hover{background:var(--s2);color:var(--t1)}
+  .itm.on{background:rgba(91,138,245,.08);color:var(--accent);font-weight:500;border-right:2px solid var(--accent)}
+  .itm .ic{font-size:10px;width:14px;text-align:center}
+  .itm .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .itm .ct{font-size:9px;font-family:var(--mono);color:var(--t3)}
+
+  /* Architecture tree */
+  .arch{padding:10px}
+  .al{margin-bottom:4px;background:var(--s2);border:1px solid var(--b1);border-radius:10px;overflow:hidden}
+  .al-h{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer}
+  .al-h:hover{background:var(--s3)}
+  .al-h .d{width:8px;height:8px;border-radius:50%}
+  .al-h .n{font-size:12px;font-weight:600;flex:1}
+  .al-h .c{font-size:9px;font-family:var(--mono);color:var(--t3)}
+  .al-items{border-top:1px solid var(--b1)}
+  .al-i{display:flex;align-items:center;gap:6px;padding:5px 12px;font-size:11px;cursor:pointer;color:var(--t2);transition:all .1s}
+  .al-i:hover{background:rgba(255,255,255,.02);color:var(--t1)}
+  .al-i.on{background:rgba(91,138,245,.06);color:var(--accent);font-weight:500}
+  .al-i .ic{font-size:9px;width:14px;text-align:center}
+  .al-i .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* Arrows between layers */
+  .al-arrow{text-align:center;padding:2px 0}
+  .al-arrow-line{display:inline-block;width:1px;height:10px;background:var(--line)}
+  .al-arrow-label{display:inline-block;font-size:8px;font-family:var(--mono);padding:1px 6px;background:var(--s1);border:1px solid var(--b1);border-radius:4px;color:var(--t3);margin:2px 0}
+
+  /* ═══ MIDDLE — Graph ═══ */
+  .middle{position:relative;overflow:hidden;background:var(--bg)}
+  .middle::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.025) 1px,transparent 1px);background-size:24px 24px}
+
+  /* Graph nodes — neat grid layout */
+  .gn{position:absolute;background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:12px 16px;z-index:2;cursor:pointer;transition:all .2s;width:200px}
+  .gn:hover{border-color:var(--b2);box-shadow:0 4px 16px rgba(0,0,0,.15)}
+  .gn.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(91,138,245,.12)}
+  .gn-top{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+  .gn-dot{width:8px;height:8px;border-radius:50%}
+  .gn-name{font-size:12px;font-weight:600;flex:1}
+  .gn-cnt{font-size:9px;font-family:var(--mono);color:var(--t3);background:var(--s2);padding:1px 6px;border-radius:4px}
+  .gn-desc{font-size:10px;color:var(--t3);line-height:1.4}
+
+  /* SVG straight lines + right-angle routing */
+  .edges{position:absolute;inset:0;z-index:1;pointer-events:none}
+  .edge{fill:none;stroke:var(--line);stroke-width:1.5}
+  .edge.hi{stroke:var(--accent);stroke-width:2;opacity:.5}
+  .edge-label{font-size:8px;fill:var(--t3);font-family:var(--mono);text-anchor:middle;dominant-baseline:middle}
+  .edge-label-bg{fill:var(--bg);rx:3}
+
+  /* Arrowhead */
+  marker polygon{fill:var(--line)}
+
+  /* Controls */
+  .ctrl{position:absolute;bottom:12px;left:12px;display:flex;gap:3px;z-index:10}
+  .cb{width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--s1);border:1px solid var(--b1);border-radius:6px;color:var(--t2);cursor:pointer;font-size:13px;transition:all .12s}
+  .cb:hover{background:var(--s2);color:var(--t1)}
+
+  /* Legend */
+  .legend{position:absolute;bottom:12px;right:12px;background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:8px 12px;z-index:10;display:flex;gap:10px}
+  .leg-item{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--t3)}
+  .leg-dot{width:6px;height:6px;border-radius:50%}
+
+  .hidden{display:none!important}
+  ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--s3);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="tb-l">
+      <div class="logo"><i>CV</i>CodeView</div>
+      <span class="chip"><span class="gd"></span>58 components · 126 connections</span>
+    </div>
+    <div class="tb-r">
+      <button class="b" style="border-color:rgba(247,185,85,.2);color:#f7b955">⚡ Enhance</button>
+      <button class="b" style="border-color:rgba(176,136,240,.2);color:#b088f0">✨ Describe</button>
+      <button class="b" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">◐</button>
+    </div>
+  </header>
+
+  <!-- LEFT -->
+  <nav class="left">
+    <div class="left-tabs">
+      <div class="lt on" onclick="sw('cat',this)">Categories</div>
+      <div class="lt" onclick="sw('arch',this)">Architecture</div>
+    </div>
+    <div class="left-search">🔍 <input placeholder="Search..." /></div>
+    <div class="left-body">
+      <div id="v-cat">
+        <div><div class="grp-h"><span class="dot" style="background:var(--ui)"></span>UI Components<span class="cnt">38</span></div><div><div class="itm on"><span class="ic">📄</span><span class="nm">Trade Flows</span><span class="ct">3</span></div><div class="itm"><span class="ic">📄</span><span class="nm">Risk Feed</span><span class="ct">5</span></div><div class="itm"><span class="ic">📄</span><span class="nm">HSBC Footprint</span><span class="ct">6</span></div><div class="itm"><span class="ic">📄</span><span class="nm">Shipping</span><span class="ct">4</span></div><div class="itm"><span class="ic">📄</span><span class="nm">News</span><span class="ct">4</span></div><div class="itm"><span class="ic">🧩</span><span class="nm">Globe View</span><span class="ct">2</span></div><div class="itm"><span class="ic">🧩</span><span class="nm">Chat Panel</span><span class="ct">1</span></div></div></div>
+        <div><div class="grp-h"><span class="dot" style="background:var(--api)"></span>API Routes<span class="cnt">7</span></div><div><div class="itm"><span class="ic">⚡</span><span class="nm">Trade Flows API</span><span class="ct">2</span></div><div class="itm"><span class="ic">⚡</span><span class="nm">Risk Events API</span><span class="ct">2</span></div><div class="itm"><span class="ic">⚡</span><span class="nm">Chat API</span><span class="ct">1</span></div></div></div>
+        <div><div class="grp-h"><span class="dot" style="background:var(--data)"></span>Data Layer<span class="cnt">8</span></div><div><div class="itm"><span class="ic">💾</span><span class="nm">HSBC Markets</span></div><div class="itm"><span class="ic">💾</span><span class="nm">Risk Events Data</span></div></div></div>
+        <div><div class="grp-h"><span class="dot" style="background:var(--util)"></span>Utilities<span class="cnt">3</span></div><div><div class="itm"><span class="ic">🔧</span><span class="nm">Data Context</span><span class="ct">15</span></div><div class="itm"><span class="ic">🔧</span><span class="nm">Cache</span></div></div></div>
+        <div><div class="grp-h"><span class="dot" style="background:var(--ext)"></span>External<span class="cnt">1</span></div><div><div class="itm"><span class="ic">🔗</span><span class="nm">Gemini Client</span><span class="ct">7</span></div></div></div>
+      </div>
+      <div id="v-arch" class="hidden">
+        <div class="arch">
+          <div class="al"><div class="al-h"><span class="d" style="background:var(--ui)"></span><span class="n" style="color:var(--ui)">What Users See</span><span class="c">8 screens</span></div><div class="al-items"><div class="al-i on"><span class="ic">📄</span><span class="nm">Trade Flows</span></div><div class="al-i"><span class="ic">📄</span><span class="nm">Risk Feed</span></div><div class="al-i"><span class="ic">📄</span><span class="nm">HSBC Footprint</span></div><div class="al-i"><span class="ic">📄</span><span class="nm">Shipping</span></div><div class="al-i"><span class="ic">📄</span><span class="nm">News</span></div></div></div>
+          <div class="al-arrow"><div class="al-arrow-line"></div><br><span class="al-arrow-label">request data via</span><br><div class="al-arrow-line"></div></div>
+          <div class="al"><div class="al-h"><span class="d" style="background:var(--util)"></span><span class="n" style="color:var(--util)">Data Hub</span><span class="c">central</span></div><div class="al-items"><div class="al-i"><span class="ic">🔧</span><span class="nm">Data Context</span></div><div class="al-i"><span class="ic">🔧</span><span class="nm">Cache</span></div></div></div>
+          <div class="al-arrow"><div class="al-arrow-line"></div><br><span class="al-arrow-label">which calls</span><br><div class="al-arrow-line"></div></div>
+          <div class="al"><div class="al-h"><span class="d" style="background:var(--api)"></span><span class="n" style="color:var(--api)">API Endpoints</span><span class="c">7 routes</span></div><div class="al-items"><div class="al-i"><span class="ic">⚡</span><span class="nm">Trade Flows API</span></div><div class="al-i"><span class="ic">⚡</span><span class="nm">Risk Events API</span></div><div class="al-i"><span class="ic">⚡</span><span class="nm">Chat API</span></div></div></div>
+          <div class="al-arrow"><div class="al-arrow-line"></div><br><span class="al-arrow-label">which ask</span><br><div class="al-arrow-line"></div></div>
+          <div class="al"><div class="al-h"><span class="d" style="background:var(--ext)"></span><span class="n" style="color:var(--ext)">AI & External</span><span class="c">1 service</span></div><div class="al-items"><div class="al-i"><span class="ic">🔗</span><span class="nm">Gemini Client</span></div></div></div>
+          <div class="al-arrow"><div class="al-arrow-line"></div><br><span class="al-arrow-label">falls back to</span><br><div class="al-arrow-line"></div></div>
+          <div class="al"><div class="al-h"><span class="d" style="background:var(--data)"></span><span class="n" style="color:var(--data)">Static Datasets</span><span class="c">8 files</span></div><div class="al-items"><div class="al-i"><span class="ic">💾</span><span class="nm">HSBC Markets</span></div><div class="al-i"><span class="ic">💾</span><span class="nm">Risk Events Data</span></div><div class="al-i"><span class="ic">💾</span><span class="nm">Trade Flows Data</span></div></div></div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MIDDLE — Clean Graph -->
+  <div class="middle">
+    <!-- SVG edges — straight orthogonal lines -->
+    <svg class="edges" width="100%" height="100%">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6"/></marker>
+      </defs>
+
+      <!-- Row 1: UI → Data Hub (horizontal) -->
+      <line class="edge hi" x1="260" y1="108" x2="380" y2="108" marker-end="url(#arr)"/>
+      <rect class="edge-label-bg" x="290" y="96" width="60" height="14"/>
+      <text class="edge-label" x="320" y="105">8 calls</text>
+
+      <!-- Row 1: Data Hub → API (vertical down) -->
+      <line class="edge" x1="480" y1="140" x2="480" y2="220" marker-end="url(#arr)"/>
+      <rect class="edge-label-bg" x="448" y="172" width="64" height="14"/>
+      <text class="edge-label" x="480" y="181">7 routes</text>
+
+      <!-- Row 2: API left → Data (horizontal left, then down) -->
+      <path class="edge" d="M 380 280 L 260 280 L 260 360" marker-end="url(#arr)"/>
+      <rect class="edge-label-bg" x="282" y="270" width="56" height="14"/>
+      <text class="edge-label" x="310" y="279">fallback</text>
+
+      <!-- Row 2: API right → External (horizontal right) -->
+      <line class="edge" x1="580" y1="280" x2="680" y2="280" marker-end="url(#arr)"/>
+      <rect class="edge-label-bg" x="604" y="270" width="52" height="14"/>
+      <text class="edge-label" x="630" y="279">AI calls</text>
+
+      <!-- External → Data (vertical down, then left) -->
+      <path class="edge" d="M 780 312 L 780 400 L 370 400" marker-end="url(#arr)"/>
+      <rect class="edge-label-bg" x="548" y="390" width="56" height="14"/>
+      <text class="edge-label" x="576" y="399">fallback</text>
+    </svg>
+
+    <!-- Row 1: UI Components + Data Hub — aligned horizontally -->
+    <div class="gn sel" style="top:72px;left:40px;border-left:3px solid var(--ui)">
+      <div class="gn-top"><span class="gn-dot" style="background:var(--ui)"></span><span class="gn-name" style="color:var(--ui)">UI Components</span><span class="gn-cnt">38</span></div>
+      <div class="gn-desc">Screens and components users see</div>
+    </div>
+
+    <div class="gn" style="top:72px;left:380px;border-left:3px solid var(--util)">
+      <div class="gn-top"><span class="gn-dot" style="background:var(--util)"></span><span class="gn-name" style="color:var(--util)">Data Hub</span><span class="gn-cnt">3</span></div>
+      <div class="gn-desc">Context, cache, shared state</div>
+    </div>
+
+    <!-- Row 2: API Routes + External — aligned horizontally -->
+    <div class="gn" style="top:240px;left:380px;border-left:3px solid var(--api)">
+      <div class="gn-top"><span class="gn-dot" style="background:var(--api)"></span><span class="gn-name" style="color:var(--api)">API Endpoints</span><span class="gn-cnt">7</span></div>
+      <div class="gn-desc">Backend routes handling requests</div>
+    </div>
+
+    <div class="gn" style="top:240px;left:680px;border-left:3px solid var(--ext)">
+      <div class="gn-top"><span class="gn-dot" style="background:var(--ext)"></span><span class="gn-name" style="color:var(--ext)">Gemini AI</span><span class="gn-cnt">1</span></div>
+      <div class="gn-desc">Google AI with web grounding</div>
+    </div>
+
+    <!-- Row 3: Static Data — bottom left -->
+    <div class="gn" style="top:360px;left:140px;border-left:3px solid var(--data)">
+      <div class="gn-top"><span class="gn-dot" style="background:var(--data)"></span><span class="gn-name" style="color:var(--data)">Static Data</span><span class="gn-cnt">8</span></div>
+      <div class="gn-desc">Fallback datasets and type defs</div>
+    </div>
+
+    <!-- Controls -->
+    <div class="ctrl">
+      <button class="cb">+</button><button class="cb">−</button><button class="cb">⛶</button>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="leg-item"><span class="leg-dot" style="background:var(--ui)"></span>UI</div>
+      <div class="leg-item"><span class="leg-dot" style="background:var(--api)"></span>API</div>
+      <div class="leg-item"><span class="leg-dot" style="background:var(--data)"></span>Data</div>
+      <div class="leg-item"><span class="leg-dot" style="background:var(--util)"></span>Utils</div>
+      <div class="leg-item"><span class="leg-dot" style="background:var(--ext)"></span>External</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function sw(v,el){
+  document.querySelectorAll('.lt').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('v-cat').classList.toggle('hidden',v!=='cat');
+  document.getElementById('v-arch').classList.toggle('hidden',v!=='arch');
+}
+</script>
+</body>
+</html>
