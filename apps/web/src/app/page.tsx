@@ -21,7 +21,7 @@ const DEMO_FILES = [
 ];
 
 export default function Home() {
-  const { setGraphData, setRfNodes, setRfEdges, setLoading, theme, graphData, detailMode, middleView, detailWidth } = useGraphStore();
+  const { setGraphData, setRfNodes, setRfEdges, setLoading, theme, graphData, detailMode, middleView, detailWidth, leftWidth } = useGraphStore();
   const layoutRef = useRef<LayoutResult | null>(null);
 
   useEffect(() => {
@@ -63,9 +63,9 @@ export default function Home() {
   const showSlideOut = detailMode === 'slide-out';
   const showExpanded = detailMode === 'expanded';
 
-  let gridCols = '300px 1fr'; // default: left + graph
-  if (showSlideOut) gridCols = `300px 1fr ${detailWidth}px`;
-  if (showExpanded) gridCols = '300px 1fr';
+  let gridCols = `${leftWidth}px 1fr`;
+  if (showSlideOut) gridCols = `${leftWidth}px 1fr ${detailWidth}px`;
+  if (showExpanded) gridCols = `${leftWidth}px 1fr`;
 
   return (
     <div className="h-screen flex flex-col">
