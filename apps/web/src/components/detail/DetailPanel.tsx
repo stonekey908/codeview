@@ -56,21 +56,26 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
 
   const askClaude = async () => {
     if (!node) return;
+    const previousExpl = claudeExpl;
     setClaudeLoading(true);
+    setClaudeExpl(null); // Clear old explanation to show loading state
     try {
       await fetch('/api/trigger-claude', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'explain', componentPath: node.relativePath }),
       });
+      // Poll for new description (different from the previous one)
       const poll = setInterval(async () => {
-        const r = await fetch('/api/generate-descriptions');
-        const d = await r.json();
-        const comp = d.components?.find((c: any) => c.path === node.relativePath);
-        if (comp?.hasDescription) {
-          setClaudeExpl(comp.description);
-          setClaudeLoading(false);
-          clearInterval(poll);
-        }
+        try {
+          const r = await fetch(`/api/ask-claude`);
+          const d = await r.json();
+          const newDesc = d.descriptions?.[node.relativePath];
+          if (newDesc && newDesc !== previousExpl) {
+            setClaudeExpl(newDesc);
+            setClaudeLoading(false);
+            clearInterval(poll);
+          }
+        } catch {}
       }, 2000);
       setTimeout(() => { clearInterval(poll); setClaudeLoading(false); }, 60000);
     } catch { setClaudeLoading(false); }

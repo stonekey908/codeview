@@ -5,7 +5,7 @@ import { useGraphStore } from '@/store/graph-store';
 import { GeneratePanel } from '@/components/generate/GeneratePanel';
 
 export function Toolbar() {
-  const { viewMode, setViewMode, theme, setTheme, graphData, expandAllClusters, collapseAllClusters, expandedClusterIds, focusedNodeId, setFocusedNode } = useGraphStore();
+  const { theme, setTheme, graphData, expandAllClusters, collapseAllClusters, expandedClusterIds, focusedNodeId, setFocusedNode } = useGraphStore();
   const [showGenerate, setShowGenerate] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
 
@@ -49,22 +49,16 @@ export function Toolbar() {
           className={`px-3 py-1 text-[11px] font-medium rounded-lg border transition-all ${enhancing ? 'border-amber-500/30 text-amber-400 bg-amber-500/10' : 'border-amber-500/20 text-amber-400 hover:bg-amber-500/10'}`}>
           {enhancing ? '⚡ Enhancing...' : '⚡ Enhance'}
         </button>
-        {viewMode === 'descriptive' && (
-          <button onClick={() => setShowGenerate(true)}
-            className="px-3 py-1 text-[11px] font-medium rounded-lg border border-purple-500/20 text-purple-400 hover:bg-purple-500/10 transition-all">
-            ✨ Describe
-          </button>
-        )}
+        <button onClick={() => setShowGenerate(true)}
+          className="px-3 py-1 text-[11px] font-medium rounded-lg border border-purple-500/20 text-purple-400 hover:bg-purple-500/10 transition-all">
+          ✨ Describe
+        </button>
         {focusedNodeId && (
           <button onClick={() => setFocusedNode(null)} className="px-3 py-1 text-[11px] font-medium rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400">Exit Focus</button>
         )}
       </div>
 
       <div className="flex items-center gap-1.5">
-        <button onClick={() => setViewMode(viewMode === 'descriptive' ? 'technical' : 'descriptive')}
-          className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${viewMode === 'technical' ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' : 'border-zinc-700 text-zinc-400 hover:text-zinc-200'}`}>
-          👁 Technical
-        </button>
         <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           className="w-7 h-7 flex items-center justify-center rounded-md border border-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors">
           ◐
