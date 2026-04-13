@@ -106,7 +106,7 @@ export const ClusterNode = memo(function ClusterNode({
       </div>
 
       {/* Description */}
-      {viewMode === 'descriptive' && (
+      {(
         <p className="text-[11px] leading-snug px-4 pb-2"
           style={{ color: isDark ? '#a1a1aa' : '#71717a' }}>
           {data.description}
@@ -165,7 +165,7 @@ export const ClusterNode = memo(function ClusterNode({
                       WebkitBoxOrient: 'vertical' as any,
                       overflow: 'hidden',
                     }}>
-                    {viewMode === 'descriptive' ? comp.description : comp.relativePath}
+                    {comp.description}
                   </div>
                 </div>
                 {comp.connectionCount > 0 && (
