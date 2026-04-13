@@ -53,11 +53,9 @@ export function LeftPanel() {
   };
 
   return (
-    <div className="relative">
-      {/* Resize handle — lives outside the overflow-hidden nav */}
-      <div onMouseDown={handleResize}
-        className="resize-handle absolute right-0 top-0 bottom-0 w-2 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-30" />
+    <div className="relative h-full overflow-hidden">
     <nav className="flex flex-col overflow-hidden bg-card border-r border-border h-full">
+
       <div className="flex border-b border-border" role="tablist" aria-label="Navigation views">
         {(['overview', 'features', 'categories', 'architecture'] as const).map(tab => (
           <button key={tab} onClick={() => setLeftTab(tab)} role="tab" aria-selected={leftTab === tab}
@@ -179,6 +177,12 @@ export function LeftPanel() {
         )}
       </div>
     </nav>
+      {/* Resize handle — after nav, overlaps the border */}
+      <div onMouseDown={handleResize}
+        className="absolute right-0 top-0 bottom-0 w-[6px] cursor-col-resize z-40 group/resize"
+      >
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[3px] h-10 rounded-full bg-border transition-all group-hover/resize:bg-primary group-hover/resize:h-16 group-active/resize:bg-primary group-active/resize:h-20" />
+      </div>
     </div>
   );
 }
