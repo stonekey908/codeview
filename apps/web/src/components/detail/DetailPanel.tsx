@@ -112,65 +112,55 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
   const isExpanded = detailMode === 'expanded';
 
   return (
-    <div className="h-full overflow-y-auto" style={{
-      background: isExpanded ? (isDark ? '#09090b' : '#fafbfc') : (isDark ? '#111114' : '#ffffff'),
-      borderLeft: isExpanded ? 'none' : `1px solid ${isDark ? '#1e1e28' : '#e5e7eb'}`,
-      animation: 'slideIn .2s ease',
-    }}>
-      <style>{`@keyframes slideIn{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}`}</style>
-
+    <div className={`h-full overflow-y-auto animate-in slide-in-from-right-4 duration-200 ${isExpanded ? 'bg-background' : 'bg-card border-l border-border'}`}>
       <div className={isExpanded ? 'max-w-[860px] mx-auto' : ''}>
         {/* Header */}
-        <div className="sticky top-0 z-10 px-5 py-3 border-b" style={{
-          background: isExpanded ? (isDark ? '#09090b' : '#fafbfc') : (isDark ? '#111114' : '#ffffff'),
-          borderColor: isDark ? '#1e1e28' : '#e5e7eb',
-        }}>
+        <div className={`sticky top-0 z-10 px-5 py-3 border-b border-border ${isExpanded ? 'bg-background' : 'bg-card'}`}>
           <div className="flex items-center justify-between mb-2">
             <button onClick={canGoBack ? goBackDetail : closeDetail}
-              className="text-[11px] transition-colors" style={{ color: isDark ? '#505068' : '#9ca3af' }}
-              onMouseEnter={e => e.currentTarget.style.color = isDark ? '#f4f4f8' : '#111827'}
-              onMouseLeave={e => e.currentTarget.style.color = isDark ? '#505068' : '#9ca3af'}>
+              className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">
               ← {canGoBack ? 'Back' : 'Close'}
             </button>
             <button onClick={isExpanded ? shrinkDetail : expandDetail}
-              className="text-[10px] px-2 py-1 rounded transition-colors"
-              style={{ color: isDark ? '#505068' : '#9ca3af', border: `1px solid ${isDark ? '#1e1e28' : '#e5e7eb'}` }}
-              onMouseEnter={e => { e.currentTarget.style.background = isDark ? '#1a1a1f' : '#f3f4f6'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
+              className="text-[10px] px-2 py-1 rounded border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
               {isExpanded ? '⛶ Shrink' : '⛶ Expand'}
             </button>
           </div>
-          <h2 className="text-xl font-bold tracking-tight" style={{ fontFamily: 'var(--font-display)', color: isDark ? '#f4f4f8' : '#111827' }}>{node.label}</h2>
-          <p className="text-[10px] font-mono mt-0.5" style={{ color: isDark ? '#505068' : '#9ca3af' }}>{node.relativePath}</p>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">{node.label}</h2>
+          <p className="text-[10px] font-mono mt-0.5 text-muted-foreground">{node.relativePath}</p>
           <div className="flex gap-1.5 mt-2.5">
             <span className="px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ background: `${colors.color}18`, color: colors.color }}>{LAYER_LABELS[node.layer]}</span>
-            <span className="px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ background: isDark ? '#1a1a1f' : '#f3f4f6', color: isDark ? '#9090a8' : '#6b7280' }}>{node.role}</span>
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-muted text-muted-foreground">{node.role}</span>
           </div>
           <div className="flex gap-1.5 mt-3">
             <button onClick={() => { window.location.href = `vscode://file/${node.filePath}`; }}
-              className="px-3 py-1 rounded-md text-[11px] font-medium flex items-center gap-1 transition-colors"
-              style={{ border: `1px solid ${isDark ? '#1e1e28' : '#e5e7eb'}`, color: isDark ? '#9090a8' : '#6b7280', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>↗ VS Code</button>
-            <button onClick={askClaude} className="px-3 py-1 rounded-md text-[11px] font-medium flex items-center gap-1"
-              style={{ border: '1px solid rgba(176,136,240,.2)', color: '#b088f0' }}>✨ Ask Claude</button>
+              className="px-3 py-1.5 rounded-md text-[11px] font-medium border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer">
+              ↗ VS Code
+            </button>
+            <button onClick={askClaude}
+              className="px-3 py-1.5 rounded-md text-[11px] font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+              ✨ Ask Claude
+            </button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="flex gap-4 px-5 py-3 border-b" style={{ borderColor: isDark ? '#1e1e28' : '#e5e7eb' }}>
+        <div className="flex gap-4 px-5 py-3 border-b border-border">
           {[{ v: node.metadata.exportCount, l: 'Exports' }, { v: node.metadata.importCount, l: 'Imports' }, { v: node.metadata.connectionCount, l: 'Connections' }].map(s => (
             <div key={s.l}>
-              <div className="text-lg font-bold" style={{ color: colors.color, fontFamily: 'var(--font-display)' }}>{s.v}</div>
-              <div className="text-[9px] uppercase tracking-wider" style={{ color: isDark ? '#505068' : '#9ca3af' }}>{s.l}</div>
+              <div className="text-lg font-bold" style={{ color: colors.color }}>{s.v}</div>
+              <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{s.l}</div>
             </div>
           ))}
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b px-5" style={{ borderColor: isDark ? '#1e1e28' : '#e5e7eb' }}>
+        <div className="flex border-b border-border px-5">
           {(['overview', 'connections', 'code'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
-              className="px-3 py-2 text-[11px] font-medium capitalize border-b-2 transition-colors"
-              style={{ borderColor: tab === t ? '#5b8af5' : 'transparent', color: tab === t ? (isDark ? '#f4f4f8' : '#111827') : (isDark ? '#505068' : '#9ca3af') }}>
+              className={`px-3 py-2 text-[11px] font-medium capitalize border-b-2 transition-colors ${
+                tab === t ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+              }`}>
               {t}
             </button>
           ))}

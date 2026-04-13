@@ -143,7 +143,7 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setFocusedNode: (nodeId) => set({ focusedNodeId: nodeId }),
 
   viewMode: 'descriptive',
-  theme: 'dark',
+  theme: 'light',
   isLoading: false,
   loadingMessage: '',
   expandedClusterIds: new Set(),
