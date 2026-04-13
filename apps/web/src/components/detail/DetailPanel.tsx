@@ -27,6 +27,7 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
   } = useGraphStore();
 
   const [fileContent, setFileContent] = useState<string | null>(null);
+  const [highlightedHtml, setHighlightedHtml] = useState<string | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
   const [claudeLoading, setClaudeLoading] = useState(false);
   const [claudeExpl, setClaudeExpl] = useState<string | null>(null);
@@ -35,13 +36,34 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
   const node = detailNodeId ? getNodeById(detailNodeId) : null;
   const isDark = theme === 'dark';
 
-  // Load file content for code tab
+  // Load file content + syntax highlighting for code tab
   useEffect(() => {
     if (!node || tab !== 'code') return;
     setFileLoading(true);
+    setHighlightedHtml(null);
     fetch(`/api/file-content?path=${encodeURIComponent(node.relativePath)}`)
-      .then(r => r.json()).then(d => setFileContent(d.content || 'Could not load'))
-      .catch(() => setFileContent('Could not load'))
+      .then(r => r.json())
+      .then(async (d) => {
+        const code = d.content || 'Could not load file';
+        setFileContent(code);
+        if (d.content) {
+          // Detect language from extension
+          const ext = node.relativePath.split('.').pop() || 'tsx';
+          const langMap: Record<string, string> = {
+            ts: 'typescript', tsx: 'tsx', js: 'javascript', jsx: 'jsx',
+            mjs: 'javascript', mts: 'typescript', json: 'json', css: 'css',
+          };
+          try {
+            const hRes = await fetch('/api/highlight', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code: d.content, lang: langMap[ext] || 'tsx' }),
+            });
+            const hData = await hRes.json();
+            if (hData.html) setHighlightedHtml(hData.html);
+          } catch {}
+        }
+      })
+      .catch(() => setFileContent('Could not load file'))
       .finally(() => setFileLoading(false));
   }, [node?.relativePath, tab]);
 
@@ -125,8 +147,9 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
             <span className="px-2 py-0.5 rounded-md text-[10px] font-medium" style={{ background: isDark ? '#1a1a1f' : '#f3f4f6', color: isDark ? '#9090a8' : '#6b7280' }}>{node.role}</span>
           </div>
           <div className="flex gap-1.5 mt-3">
-            <a href={`vscode://file/${node.filePath}`} className="px-3 py-1 rounded-md text-[11px] font-medium flex items-center gap-1 transition-colors"
-              style={{ border: `1px solid ${isDark ? '#1e1e28' : '#e5e7eb'}`, color: isDark ? '#9090a8' : '#6b7280' }}>↗ VS Code</a>
+            <button onClick={() => { window.location.href = `vscode://file/${node.filePath}`; }}
+              className="px-3 py-1 rounded-md text-[11px] font-medium flex items-center gap-1 transition-colors"
+              style={{ border: `1px solid ${isDark ? '#1e1e28' : '#e5e7eb'}`, color: isDark ? '#9090a8' : '#6b7280', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>↗ VS Code</button>
             <button onClick={askClaude} className="px-3 py-1 rounded-md text-[11px] font-medium flex items-center gap-1"
               style={{ border: '1px solid rgba(176,136,240,.2)', color: '#b088f0' }}>✨ Ask Claude</button>
           </div>
@@ -218,10 +241,25 @@ export function DetailPanel({ fullWidth }: { fullWidth?: boolean }) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: isDark ? '#505068' : '#9ca3af' }}>Source Code</span>
-                <a href={`vscode://file/${node.filePath}`} className="text-[10px] font-medium flex items-center gap-1" style={{ color: '#5b8af5' }}>↗ Open in VS Code</a>
+                <div className="flex items-center gap-3">
+                  <button onClick={() => { if (fileContent) navigator.clipboard.writeText(fileContent); }}
+                    className="text-[10px] font-medium flex items-center gap-1" style={{ color: isDark ? '#505068' : '#9ca3af', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    📋 Copy
+                  </button>
+                  <button onClick={() => {
+                    // Use window.location for VS Code URL scheme — avoids Safari blocking <a> links
+                    window.location.href = `vscode://file/${node.filePath}`;
+                  }} className="text-[10px] font-medium flex items-center gap-1" style={{ color: '#5b8af5', background: 'none', border: 'none', cursor: 'pointer' }}>
+                    ↗ Open in VS Code
+                  </button>
+                </div>
               </div>
               {fileLoading ? (
                 <div className="flex items-center justify-center py-12"><span className="animate-spin text-lg">⏳</span></div>
+              ) : highlightedHtml ? (
+                <div className="rounded-lg overflow-hidden overflow-y-auto"
+                  style={{ maxHeight: '60vh', border: `1px solid ${isDark ? '#1e1e28' : '#e5e7eb'}` }}
+                  dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
               ) : fileContent ? (
                 <pre className="p-4 rounded-lg font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words overflow-y-auto"
                   style={{ background: isDark ? '#0a0a0c' : '#fafbfc', color: isDark ? '#9090a8' : '#6b7280', border: `1px solid ${isDark ? '#1e1e28' : '#e5e7eb'}`, maxHeight: '60vh' }}>
