@@ -2,6 +2,7 @@
 
 import { useGraphStore } from '@/store/graph-store';
 import { LAYER_COLORS, LAYER_LABELS } from '@/components/canvas/layer-colors';
+import { FeaturesView } from './FeaturesView';
 import type { ArchitecturalLayer } from '@codeview/shared';
 
 const LAYER_FLOW_ORDER: ArchitecturalLayer[] = ['ui', 'utils', 'api', 'external', 'data'];
@@ -47,9 +48,9 @@ export function LeftPanel() {
       <div onMouseDown={handleResize}
         className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/30 transition-colors z-20" />
       <div className="flex border-b border-border">
-        {(['overview', 'categories', 'architecture'] as const).map(tab => (
+        {(['overview', 'features', 'categories', 'architecture'] as const).map(tab => (
           <button key={tab} onClick={() => setLeftTab(tab)}
-            className={`flex-1 py-2.5 text-[10px] font-semibold text-center capitalize border-b-2 transition-all ${
+            className={`flex-1 py-2.5 text-[9px] font-semibold text-center capitalize border-b-2 transition-all ${
               leftTab === tab ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}>{tab}</button>
         ))}
@@ -86,6 +87,8 @@ export function LeftPanel() {
             </div>
           </div>
         )}
+
+        {leftTab === 'features' && <FeaturesView />}
 
         {leftTab === 'categories' && graphData.clusters.map((cluster: any) => {
           const colors = LAYER_COLORS[cluster.layer as ArchitecturalLayer];

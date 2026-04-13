@@ -5,7 +5,7 @@ import type { Node, Edge } from '@xyflow/react';
 import type { GraphData, GraphNode, GraphCluster } from '@codeview/shared';
 
 export type ViewMode = 'descriptive' | 'technical';
-export type LeftTab = 'overview' | 'categories' | 'architecture';
+export type LeftTab = 'overview' | 'features' | 'categories' | 'architecture';
 export type MiddleView = 'graph' | 'full-detail';
 export type DetailMode = 'hidden' | 'slide-out' | 'expanded';
 
