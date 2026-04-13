@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     const prompt = `Explain this code component in plain English for a non-technical product owner.
 
-Use this structure with markdown headings and emojis:
+Use EXACTLY this structure with markdown headings and emojis — nothing else:
 
 ## 🎯 What It Does
 One paragraph explaining the purpose simply.
@@ -77,7 +77,12 @@ Bullet points listing other parts of the app it depends on or is used by.
 ## 📊 Key Details
 Any important data it handles, notable patterns, or things worth knowing.
 
-Keep it concise — 2-4 bullet points per section. Write for someone who cannot read code.
+RULES:
+- Keep it concise — 2-4 bullet points per section
+- Write for someone who cannot read code
+- Use ONLY the four sections above — do NOT add any extra sections like "Insight", "Summary", "Technical Notes", or anything else
+- Do NOT add horizontal lines or separators
+- End after the Key Details section — nothing more
 
 File: ${componentPath}
 \`\`\`
