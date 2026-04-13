@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
+import { resolveProvider } from '@/lib/ai-provider';
 
 // GET — return cached overview
 export async function GET() {
@@ -9,7 +10,6 @@ export async function GET() {
   const overviewPath = path.join(projectDir, '.codeview', 'overview.json');
   const progressPath = path.join(projectDir, '.codeview', 'overview-progress.json');
 
-  // Check progress
   let progress = null;
   try {
     if (fs.existsSync(progressPath)) progress = JSON.parse(fs.readFileSync(progressPath, 'utf-8'));
@@ -33,7 +33,7 @@ export async function GET() {
   }
 }
 
-// POST — generate overview using Claude
+// POST — generate overview using AI
 export async function POST() {
   const projectDir = process.env.CODEVIEW_PROJECT_DIR || process.cwd();
   const descDir = path.join(projectDir, '.codeview');
@@ -44,16 +44,8 @@ export async function POST() {
     return NextResponse.json({ error: 'No analysis found' }, { status: 404 });
   }
 
-  // Find claude
-  let claudePath = '';
-  try {
-    const { execSync } = require('child_process');
-    claudePath = execSync('which claude', { encoding: 'utf-8' }).trim();
-  } catch {
-    const candidates = ['/usr/local/bin/claude', `${process.env.HOME}/.nvm/versions/node/v20.15.0/bin/claude`];
-    for (const c of candidates) { try { fs.accessSync(c); claudePath = c; break; } catch {} }
-  }
-  if (!claudePath) return NextResponse.json({ error: 'Claude CLI not found' }, { status: 500 });
+  const provider = resolveProvider();
+  if (!provider) return NextResponse.json({ error: 'No AI CLI found. Install Claude Code, Gemini CLI, or set CODEVIEW_AI_PROVIDER.' }, { status: 500 });
 
   const analysis = JSON.parse(fs.readFileSync(analysisPath, 'utf-8'));
   const graph = analysis.graph;
@@ -70,7 +62,7 @@ export async function POST() {
     if (fs.existsSync(descPath)) descriptions = JSON.parse(fs.readFileSync(descPath, 'utf-8'));
   } catch {}
 
-  // Build the component summary for Claude
+  // Build the component summary
   const layers: Record<string, any[]> = {};
   for (const node of graph.nodes) {
     const enh = enhancements[node.relativePath];
@@ -130,7 +122,6 @@ export async function POST() {
   }
 
   prompt += `\n--- CONNECTIONS (${graph.edges.length} total) ---\n`;
-  // Show sample connections
   const sampleEdges = graph.edges.slice(0, 30);
   for (const e of sampleEdges) {
     const src = graph.nodes.find((n: any) => n.id === e.source);
@@ -144,17 +135,17 @@ export async function POST() {
   fs.writeFileSync(progressPath, JSON.stringify({ status: 'running', started: new Date().toISOString() }));
 
   let output = '';
-  const child = spawn(claudePath, ['-p', prompt, '--output-format', 'text'], {
+  const child = spawn(provider.bin, provider.buildArgs(prompt), {
     cwd: projectDir,
     stdio: ['pipe', 'pipe', 'pipe'],
-    env: { ...process.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
+    env: { ...process.env, ...provider.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
   });
 
   child.stdout?.on('data', (data: Buffer) => { output += data.toString(); });
   child.stderr?.on('data', (data: Buffer) => { console.error(`[overview-err] ${data.toString().slice(0, 200)}`); });
 
   child.on('close', (code: number | null) => {
-    console.log(`[overview] Claude exited with code ${code}, output: ${output.length} chars`);
+    console.log(`[overview] AI exited with code ${code}, output: ${output.length} chars`);
     if (code === 0 && output.trim()) {
       try {
         const jsonMatch = output.match(/\{[\s\S]*\}/);
