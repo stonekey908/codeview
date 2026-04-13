@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeView — Split View with Full Architecture + Visual Graph</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--font:'Outfit',system-ui,sans-serif;--mono:'JetBrains Mono',monospace}
+  [data-theme="dark"]{--bg:#09090b;--s1:#111114;--s2:#1a1a1f;--s3:#252530;--t1:#f4f4f8;--t2:#9090a8;--t3:#505068;--b1:#1e1e28;--b2:#2a2a38;--ui:#5b8af5;--api:#3dd9a0;--data:#f7b955;--util:#7a7a90;--ext:#b088f0;--accent:#5b8af5}
+  [data-theme="light"]{--bg:#fafbfc;--s1:#ffffff;--s2:#f3f4f6;--s3:#e5e7eb;--t1:#111827;--t2:#6b7280;--t3:#9ca3af;--b1:#e5e7eb;--b2:#d1d5db;--ui:#3b82f6;--api:#10b981;--data:#f59e0b;--util:#6b7280;--ext:#8b5cf6;--accent:#3b82f6}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--t1);overflow:hidden;height:100vh;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+
+  .app{display:grid;grid-template-columns:300px 1fr;grid-template-rows:48px 1fr;height:100vh}
+  .app.detail-open{grid-template-columns:300px 1fr 480px}
+
+  /* ═══ TOPBAR ═══ */
+  .topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--s1);border-bottom:1px solid var(--b1)}
+  .tb-l{display:flex;align-items:center;gap:12px}
+  .tb-r{display:flex;align-items:center;gap:6px}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;letter-spacing:-.02em}
+  .logo i{width:22px;height:22px;border-radius:5px;background:linear-gradient(135deg,var(--ui),var(--api));font-style:normal;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700}
+  .chip{font-size:10px;color:var(--t2);font-family:var(--mono);padding:3px 10px;background:var(--s2);border:1px solid var(--b1);border-radius:12px}
+  .chip .gd{width:5px;height:5px;border-radius:50%;background:var(--api);display:inline-block;margin-right:3px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .b{padding:4px 12px;border-radius:7px;font-size:11px;font-weight:500;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .15s;display:flex;align-items:center;gap:4px}
+  .b:hover{background:var(--s2);color:var(--t1)}
+
+  /* ═══ LEFT PANEL ═══ */
+  .left{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden}
+  .left-tabs{display:flex;border-bottom:1px solid var(--b1);flex-shrink:0}
+  .left-tab{flex:1;padding:9px 0;font-size:11px;font-weight:600;text-align:center;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;transition:all .15s}
+  .left-tab:hover{color:var(--t2)}
+  .left-tab.active{color:var(--t1);border-color:var(--accent)}
+  .left-search{margin:10px;display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;font-size:12px;color:var(--t3);flex-shrink:0}
+  .left-search input{flex:1;background:none;border:none;color:var(--t1);font-family:var(--font);font-size:12px;outline:none}
+  .left-search input::placeholder{color:var(--t3)}
+  .left-content{flex:1;overflow-y:auto;padding-bottom:20px}
+
+  /* Categories */
+  .cg{margin-bottom:2px}
+  .cg-h{display:flex;align-items:center;gap:6px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;color:var(--t2);transition:background .1s}
+  .cg-h:hover{background:var(--s2)}
+  .cg-h .a{font-size:8px;color:var(--t3);width:12px;text-align:center;transition:transform .15s}
+  .cg-h .a.o{transform:rotate(90deg)}
+  .cg-h .d{width:6px;height:6px;border-radius:50%}
+  .cg-h .c{margin-left:auto;font-size:9px;font-family:var(--mono);color:var(--t3);background:var(--s2);padding:1px 5px;border-radius:6px}
+  .ci{display:flex;align-items:center;gap:6px;padding:4px 12px 4px 28px;font-size:12px;cursor:pointer;color:var(--t2);transition:all .1s}
+  .ci:hover{background:var(--s2);color:var(--t1)}
+  .ci.act{background:rgba(91,138,245,.08);color:var(--accent);font-weight:500;border-right:2px solid var(--accent)}
+  .ci .ic{font-size:10px;width:14px;text-align:center;flex-shrink:0}
+  .ci .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ci .ct{font-size:9px;font-family:var(--mono);color:var(--t3)}
+
+  /* Architecture flow */
+  .arch{padding:10px}
+  .arch-layer{margin-bottom:4px;background:var(--s2);border:1px solid var(--b1);border-radius:10px;overflow:hidden}
+  .arch-layer-h{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;transition:background .1s}
+  .arch-layer-h:hover{background:var(--s3)}
+  .arch-layer-h .ld{width:8px;height:8px;border-radius:50%}
+  .arch-layer-h .ln{font-size:12px;font-weight:600;flex:1}
+  .arch-layer-h .lc{font-size:9px;font-family:var(--mono);color:var(--t3)}
+  .arch-layer-h .la{font-size:8px;color:var(--t3);transition:transform .15s}
+  .arch-layer-h .la.o{transform:rotate(90deg)}
+  .arch-items{border-top:1px solid var(--b1)}
+  .arch-item{display:flex;align-items:center;gap:6px;padding:5px 12px;font-size:11px;cursor:pointer;color:var(--t2);transition:all .1s}
+  .arch-item:hover{background:rgba(255,255,255,.02);color:var(--t1)}
+  .arch-item.act{background:rgba(91,138,245,.06);color:var(--accent);font-weight:500}
+  .arch-item .ai{font-size:9px;width:14px;text-align:center}
+  .arch-item .an{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* Flow arrows between layers */
+  .arch-arrow{display:flex;align-items:center;justify-content:center;gap:6px;padding:3px 0;color:var(--t3)}
+  .arch-arrow-line{width:1px;height:14px;background:var(--b2)}
+  .arch-arrow-label{font-size:8px;font-family:var(--mono);padding:1px 6px;background:var(--s1);border:1px solid var(--b1);border-radius:4px;color:var(--t3)}
+  .arch-arrow-down{font-size:8px}
+
+  /* ═══ MIDDLE — Visual Graph OR Detail ═══ */
+  .middle{position:relative;overflow:hidden;background:var(--bg);transition:background .3s}
+
+  /* Middle tabs: Graph | Detail */
+  .mid-tabs{position:absolute;top:12px;left:12px;z-index:10;display:flex;gap:2px;background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:2px}
+  .mid-tab{padding:4px 12px;font-size:11px;font-weight:500;border-radius:6px;cursor:pointer;color:var(--t3);transition:all .15s}
+  .mid-tab:hover{color:var(--t2)}
+  .mid-tab.active{background:var(--s2);color:var(--t1)}
+
+  /* Graph view */
+  .graph-view{position:absolute;inset:0;padding-top:48px}
+  .graph-view::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.025) 1px,transparent 1px);background-size:24px 24px;z-index:0}
+
+  /* Visual nodes on graph */
+  .gnode{position:absolute;background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:10px 14px;min-width:160px;z-index:2;cursor:pointer;transition:all .2s}
+  .gnode:hover{border-color:var(--b2);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,.2)}
+  .gnode.focused{border-color:var(--accent);box-shadow:0 0 0 2px rgba(91,138,245,.15)}
+  .gnode-title{font-size:11px;font-weight:600;display:flex;align-items:center;gap:6px}
+  .gnode-dot{width:6px;height:6px;border-radius:50%}
+  .gnode-sub{font-size:9px;color:var(--t3);margin-top:2px}
+  .gnode-count{font-size:8px;font-family:var(--mono);color:var(--t3);background:var(--s2);padding:1px 5px;border-radius:4px;margin-left:auto}
+
+  /* SVG edges on graph */
+  .graph-edges{position:absolute;inset:0;z-index:1;pointer-events:none}
+  .ge{fill:none;stroke:var(--b2);stroke-width:1.5;opacity:.6}
+  .ge.hi{stroke:var(--accent);opacity:.4;stroke-width:2;stroke-dasharray:6 4;animation:dash 1.5s linear infinite}
+  .ge-label{font-size:8px;fill:var(--t3);font-family:var(--mono);text-anchor:middle}
+  @keyframes dash{to{stroke-dashoffset:-10}}
+
+  /* Graph controls */
+  .graph-ctrl{position:absolute;bottom:12px;left:12px;display:flex;gap:3px;z-index:10}
+  .gc{width:28px;height:28px;display:flex;align-items:center;justify-content:center;background:var(--s1);border:1px solid var(--b1);border-radius:6px;color:var(--t2);cursor:pointer;font-size:13px;transition:all .12s}
+  .gc:hover{background:var(--s2);color:var(--t1)}
+
+  /* Detail view (replaces graph when component selected) */
+  .detail-view{position:absolute;inset:0;overflow-y:auto;background:var(--bg);display:none}
+  .detail-view.visible{display:block}
+
+  .dv-hero{padding:24px 28px 18px;border-bottom:1px solid var(--b1);background:var(--s1)}
+  .dv-back{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t3);cursor:pointer;margin-bottom:10px;transition:color .12s}
+  .dv-back:hover{color:var(--t1)}
+  .dv-title{font-size:22px;font-weight:700;letter-spacing:-.03em;margin-bottom:3px}
+  .dv-path{font-size:11px;font-family:var(--mono);color:var(--t3);margin-bottom:10px}
+  .dv-tags{display:flex;gap:5px;margin-bottom:12px}
+  .dv-tag{padding:3px 9px;border-radius:7px;font-size:10px;font-weight:500}
+  .dv-actions{display:flex;gap:6px}
+  .dv-btn{padding:5px 12px;border-radius:7px;font-size:11px;font-weight:500;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .15s;display:flex;align-items:center;gap:5px}
+  .dv-btn:hover{background:var(--s2);color:var(--t1)}
+  .dv-btn.pu{border-color:rgba(176,136,240,.2);color:#b088f0}
+
+  .dv-stats{display:flex;gap:16px;padding:14px 28px;background:var(--s1);border-bottom:1px solid var(--b1)}
+  .dv-sv{font-size:18px;font-weight:700;letter-spacing:-.02em}
+  .dv-sl{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-top:1px}
+
+  .dv-sec{padding:18px 28px;border-bottom:1px solid var(--b1)}
+  .dv-st{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+  .dv-desc{font-size:13px;line-height:1.65;color:var(--t2)}
+  .dv-ai{padding:14px;border-radius:10px;border-left:3px solid #b088f0;background:var(--s1);font-size:13px;line-height:1.65;color:var(--t2)}
+  .dv-ai strong{color:var(--t1);font-weight:600}
+
+  .dv-cg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .dv-cc{background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:10px 11px;cursor:pointer;transition:all .15s}
+  .dv-cc:hover{border-color:var(--b2);transform:translateY(-1px)}
+  .dv-ct{font-size:8px;font-weight:500;padding:2px 5px;border-radius:3px;display:inline-block;margin-bottom:3px}
+  .dv-cn{font-size:12px;font-weight:600;margin-bottom:2px}
+  .dv-cd{font-size:10px;color:var(--t3);line-height:1.35}
+
+  .dv-code{background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:14px;font-family:var(--mono);font-size:11px;line-height:1.6;color:var(--t2);white-space:pre-wrap;max-height:300px;overflow-y:auto}
+
+  .hidden{display:none!important}
+  ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--s3);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="tb-l">
+      <div class="logo"><i>CV</i>CodeView</div>
+      <span class="chip"><span class="gd"></span>58 components · 126 connections</span>
+    </div>
+    <div class="tb-r">
+      <button class="b" style="border-color:rgba(247,185,85,.2);color:#f7b955">⚡ Enhance</button>
+      <button class="b" style="border-color:rgba(176,136,240,.2);color:#b088f0">✨ Describe</button>
+      <button class="b" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">◐</button>
+    </div>
+  </header>
+
+  <!-- LEFT PANEL -->
+  <nav class="left">
+    <div class="left-tabs">
+      <div class="left-tab active" onclick="switchLeft('cat',this)">Categories</div>
+      <div class="left-tab" onclick="switchLeft('arch',this)">Architecture</div>
+    </div>
+    <div class="left-search">🔍 <input placeholder="Search..." /></div>
+    <div class="left-content">
+      <!-- Categories -->
+      <div id="left-cat">
+        <div class="cg"><div class="cg-h"><span class="a o">▶</span><span class="d" style="background:var(--ui)"></span>UI Components<span class="c">38</span></div><div class="cg-items"><div class="ci act" onclick="openDetail('trade-flows')"><span class="ic">📄</span><span class="nm">Trade Flows</span><span class="ct">3</span></div><div class="ci" onclick="openDetail('risk-feed')"><span class="ic">📄</span><span class="nm">Risk Feed</span><span class="ct">5</span></div><div class="ci" onclick="openDetail('hsbc')"><span class="ic">📄</span><span class="nm">HSBC Footprint</span><span class="ct">6</span></div><div class="ci" onclick="openDetail('shipping')"><span class="ic">📄</span><span class="nm">Shipping</span><span class="ct">4</span></div><div class="ci" onclick="openDetail('news')"><span class="ic">📄</span><span class="nm">News</span><span class="ct">4</span></div><div class="ci"><span class="ic">🧩</span><span class="nm">Globe View</span><span class="ct">2</span></div><div class="ci"><span class="ic">🧩</span><span class="nm">Chat Panel</span><span class="ct">1</span></div><div class="ci"><span class="ic">🧩</span><span class="nm">Status Bar</span></div></div></div>
+        <div class="cg"><div class="cg-h"><span class="a o">▶</span><span class="d" style="background:var(--api)"></span>API Routes<span class="c">7</span></div><div class="cg-items"><div class="ci"><span class="ic">⚡</span><span class="nm">Trade Flows API</span><span class="ct">2</span></div><div class="ci"><span class="ic">⚡</span><span class="nm">Risk Events API</span><span class="ct">2</span></div><div class="ci"><span class="ic">⚡</span><span class="nm">Chat API</span><span class="ct">1</span></div><div class="ci"><span class="ic">⚡</span><span class="nm">Shipping API</span><span class="ct">2</span></div></div></div>
+        <div class="cg"><div class="cg-h"><span class="a o">▶</span><span class="d" style="background:var(--data)"></span>Data Layer<span class="c">8</span></div><div class="cg-items"><div class="ci"><span class="ic">💾</span><span class="nm">HSBC Markets</span></div><div class="ci"><span class="ic">💾</span><span class="nm">Risk Events Data</span></div><div class="ci"><span class="ic">📋</span><span class="nm">Types</span></div></div></div>
+        <div class="cg"><div class="cg-h"><span class="a o">▶</span><span class="d" style="background:var(--util)"></span>Utilities<span class="c">3</span></div><div class="cg-items"><div class="ci"><span class="ic">🔧</span><span class="nm">Data Context</span><span class="ct">15</span></div><div class="ci"><span class="ic">🔧</span><span class="nm">Cache</span><span class="ct">5</span></div></div></div>
+        <div class="cg"><div class="cg-h"><span class="a o">▶</span><span class="d" style="background:var(--ext)"></span>External Services<span class="c">1</span></div><div class="cg-items"><div class="ci"><span class="ic">🔗</span><span class="nm">Gemini Client</span><span class="ct">7</span></div></div></div>
+      </div>
+
+      <!-- Architecture -->
+      <div id="left-arch" class="hidden">
+        <div class="arch">
+          <div class="arch-layer">
+            <div class="arch-layer-h"><span class="ld" style="background:var(--ui)"></span><span class="ln" style="color:var(--ui)">What Users See</span><span class="lc">8 screens</span><span class="la o">▶</span></div>
+            <div class="arch-items">
+              <div class="arch-item act" onclick="openDetail('trade-flows')"><span class="ai">📄</span><span class="an">Trade Flows</span></div>
+              <div class="arch-item" onclick="openDetail('risk-feed')"><span class="ai">📄</span><span class="an">Risk Feed</span></div>
+              <div class="arch-item"><span class="ai">📄</span><span class="an">HSBC Footprint</span></div>
+              <div class="arch-item"><span class="ai">📄</span><span class="an">Shipping</span></div>
+              <div class="arch-item"><span class="ai">📄</span><span class="an">News</span></div>
+              <div class="arch-item"><span class="ai">📄</span><span class="an">Opportunities</span></div>
+            </div>
+          </div>
+
+          <div class="arch-arrow"><div class="arch-arrow-line"></div></div>
+          <div style="text-align:center"><span class="arch-arrow-label">screens request data via</span></div>
+          <div class="arch-arrow"><div class="arch-arrow-line"></div></div>
+
+          <div class="arch-layer">
+            <div class="arch-layer-h"><span class="ld" style="background:var(--util)"></span><span class="ln" style="color:var(--util)">Data Hub</span><span class="lc">central</span><span class="la o">▶</span></div>
+            <div class="arch-items">
+              <div class="arch-item"><span class="ai">🔧</span><span class="an">Data Context</span></div>
+              <div class="arch-item"><span class="ai">🔧</span><span class="an">Cache</span></div>
+            </div>
+          </div>
+
+          <div class="arch-arrow"><div class="arch-arrow-line"></div></div>
+          <div style="text-align:center"><span class="arch-arrow-label">which calls</span></div>
+          <div class="arch-arrow"><div class="arch-arrow-line"></div></div>
+
+          <div class="arch-layer">
+            <div class="arch-layer-h"><span class="ld" style="background:var(--api)"></span><span class="ln" style="color:var(--api)">API Endpoints</span><span class="lc">7 routes</span><span class="la o">▶</span></div>
+            <div class="arch-items">
+              <div class="arch-item"><span class="ai">⚡</span><span class="an">Trade Flows API</span></div>
+              <div class="arch-item"><span class="ai">⚡</span><span class="an">Risk Events API</span></div>
+              <div class="arch-item"><span class="ai">⚡</span><span class="an">Chat API</span></div>
+              <div class="arch-item"><span class="ai">⚡</span><span class="an">Shipping API</span></div>
+              <div class="arch-item"><span class="ai">⚡</span><span class="an">News API</span></div>
+            </div>
+          </div>
+
+          <div class="arch-arrow"><div class="arch-arrow-line"></div></div>
+          <div style="text-align:center"><span class="arch-arrow-label">which ask</span></div>
+          <div class="arch-arrow"><div class="arch-arrow-line"></div></div>
+
+          <div class="arch-layer">
+            <div class="arch-layer-h"><span class="ld" style="background:var(--ext)"></span><span class="ln" style="color:var(--ext)">AI & External</span><span class="lc">1 service</span><span class="la o">▶</span></div>
+            <div class="arch-items">
+              <div class="arch-item"><span class="ai">🔗</span><span class="an">Gemini Client</span></div>
+            </div>
+          </div>
+
+          <div class="arch-arrow"><div class="arch-arrow-line"></div></div>
+          <div style="text-align:center"><span class="arch-arrow-label">falls back to</span></div>
+          <div class="arch-arrow"><div class="arch-arrow-line"></div></div>
+
+          <div class="arch-layer">
+            <div class="arch-layer-h"><span class="ld" style="background:var(--data)"></span><span class="ln" style="color:var(--data)">Static Datasets</span><span class="lc">8 files</span><span class="la o">▶</span></div>
+            <div class="arch-items">
+              <div class="arch-item"><span class="ai">💾</span><span class="an">HSBC Markets</span></div>
+              <div class="arch-item"><span class="ai">💾</span><span class="an">Risk Events Data</span></div>
+              <div class="arch-item"><span class="ai">💾</span><span class="an">Trade Flows Data</span></div>
+              <div class="arch-item"><span class="ai">📋</span><span class="an">Types</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MIDDLE — Graph + Detail -->
+  <div class="middle">
+    <!-- View tabs -->
+    <div class="mid-tabs">
+      <div class="mid-tab active" onclick="switchMiddle('graph',this)">Graph</div>
+      <div class="mid-tab" onclick="switchMiddle('detail',this)">Detail</div>
+    </div>
+
+    <!-- ═══ GRAPH VIEW ═══ -->
+    <div class="graph-view" id="mid-graph">
+      <svg class="graph-edges" width="100%" height="100%">
+        <defs><marker id="ah" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="var(--b2)"/></marker></defs>
+        <!-- UI → Utils (Data Context) -->
+        <path class="ge hi" d="M 250 120 C 250 200, 500 140, 500 100" marker-end="url(#ah)"/>
+        <text class="ge-label" x="375" y="140">8 connections</text>
+        <!-- Utils → API -->
+        <path class="ge" d="M 560 120 C 600 200, 350 280, 350 310" marker-end="url(#ah)"/>
+        <text class="ge-label" x="490" y="230">7 calls</text>
+        <!-- API → External -->
+        <path class="ge" d="M 450 370 C 500 400, 620 380, 620 340" marker-end="url(#ah)"/>
+        <text class="ge-label" x="540" y="395">7 calls</text>
+        <!-- API → Data -->
+        <path class="ge" d="M 300 380 C 280 440, 200 440, 200 430" marker-end="url(#ah)"/>
+        <text class="ge-label" x="260" y="445">fallback</text>
+      </svg>
+
+      <!-- Graph nodes -->
+      <div class="gnode focused" style="top:60px;left:40px;border-left:3px solid var(--ui)" onclick="openDetail('trade-flows')">
+        <div class="gnode-title"><span class="gnode-dot" style="background:var(--ui)"></span><span style="color:var(--ui)">UI Components</span><span class="gnode-count">38</span></div>
+        <div class="gnode-sub">Screens and components users interact with</div>
+      </div>
+      <div class="gnode" style="top:60px;left:420px;border-left:3px solid var(--util)" onclick="openDetail('data-context')">
+        <div class="gnode-title"><span class="gnode-dot" style="background:var(--util)"></span><span style="color:var(--util)">Utilities</span><span class="gnode-count">3</span></div>
+        <div class="gnode-sub">Data context, cache, helpers</div>
+      </div>
+      <div class="gnode" style="top:270px;left:200px;border-left:3px solid var(--api)">
+        <div class="gnode-title"><span class="gnode-dot" style="background:var(--api)"></span><span style="color:var(--api)">API Routes</span><span class="gnode-count">7</span></div>
+        <div class="gnode-sub">Backend endpoints handling requests</div>
+      </div>
+      <div class="gnode" style="top:270px;left:540px;border-left:3px solid var(--ext)">
+        <div class="gnode-title"><span class="gnode-dot" style="background:var(--ext)"></span><span style="color:var(--ext)">Gemini AI</span><span class="gnode-count">1</span></div>
+        <div class="gnode-sub">Google AI with web search</div>
+      </div>
+      <div class="gnode" style="top:400px;left:80px;border-left:3px solid var(--data)">
+        <div class="gnode-title"><span class="gnode-dot" style="background:var(--data)"></span><span style="color:var(--data)">Static Data</span><span class="gnode-count">8</span></div>
+        <div class="gnode-sub">Fallback datasets and types</div>
+      </div>
+
+      <div class="graph-ctrl">
+        <button class="gc">+</button><button class="gc">−</button><button class="gc">⛶</button>
+      </div>
+    </div>
+
+    <!-- ═══ DETAIL VIEW ═══ -->
+    <div class="detail-view" id="mid-detail">
+      <div class="dv-hero">
+        <div class="dv-back" onclick="switchMiddle('graph',document.querySelector('.mid-tab'))">← Back to Graph</div>
+        <div class="dv-title">Trade Flows</div>
+        <div class="dv-path">app/(dashboard)/trade-flows/page.tsx</div>
+        <div class="dv-tags">
+          <span class="dv-tag" style="background:rgba(91,138,245,.1);color:var(--ui)">UI Components</span>
+          <span class="dv-tag" style="background:var(--s2);color:var(--t2)">page</span>
+        </div>
+        <div class="dv-actions">
+          <button class="dv-btn">↗ Open in VS Code</button>
+          <button class="dv-btn pu">✨ Ask Claude</button>
+        </div>
+      </div>
+
+      <div class="dv-stats">
+        <div><div class="dv-sv" style="color:var(--ui)">5</div><div class="dv-sl">Exports</div></div>
+        <div><div class="dv-sv" style="color:var(--ui)">8</div><div class="dv-sl">Imports</div></div>
+        <div><div class="dv-sv" style="color:var(--ui)">3</div><div class="dv-sl">Connections</div></div>
+      </div>
+
+      <div class="dv-sec">
+        <div class="dv-st">Description</div>
+        <div class="dv-desc">Shows top bilateral trade routes worldwide, with search, sorting by volume/growth/tariff, and a detail popup for each corridor.</div>
+      </div>
+
+      <div class="dv-sec">
+        <div class="dv-st"><span style="color:#b088f0">✨</span> AI Explanation</div>
+        <div class="dv-ai">
+          The main trade corridors view showing the <strong>top 20 bilateral trade routes</strong> worldwide. Users can search, sort by volume/growth/tariff, and click any corridor to see <strong>commodity breakdowns</strong> and statistics.
+          <br><br>
+          This is the <strong>default landing page</strong> — the dashboard redirects here automatically. It fetches data from the <strong>Trade Flows API</strong>, which calls Google Gemini or falls back to static data.
+        </div>
+      </div>
+
+      <div class="dv-sec">
+        <div class="dv-st">Connections</div>
+        <div class="dv-cg">
+          <div class="dv-cc"><span class="dv-ct" style="background:rgba(61,217,160,.1);color:var(--api)">fetches from</span><div class="dv-cn">Trade Flows API</div><div class="dv-cd">Top 20 global trade corridors</div></div>
+          <div class="dv-cc"><span class="dv-ct" style="background:rgba(122,122,144,.1);color:var(--util)">uses</span><div class="dv-cn">Data Context</div><div class="dv-cd">Central data hub</div></div>
+          <div class="dv-cc"><span class="dv-ct" style="background:rgba(91,138,245,.1);color:var(--ui)">renders</span><div class="dv-cn">Trade Flow Detail</div><div class="dv-cd">Corridor detail popup</div></div>
+          <div class="dv-cc"><span class="dv-ct" style="background:rgba(91,138,245,.1);color:var(--ui)">renders</span><div class="dv-cn">Status Bar</div><div class="dv-cd">Sync status display</div></div>
+        </div>
+      </div>
+
+      <div class="dv-sec">
+        <div class="dv-st">Source Code</div>
+        <div class="dv-code">"use client"
+
+import { useDataContext } from "@/lib/data-context"
+import { TradeFlowDetail } from "@/components/trade-flow-detail"
+import { StatusBar } from "@/components/status-bar"
+
+export default function TradeFlowsPage() {
+  const { tradeFlows, isLoading } = useDataContext()
+  const [search, setSearch] = useState("")
+  const [selected, setSelected] = useState(null)
+
+  return (
+    &lt;div className="flex flex-col h-full"&gt;
+      ...
+    &lt;/div&gt;
+  )
+}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchLeft(view, el) {
+  document.querySelectorAll('.left-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  else document.querySelector(`.left-tab:nth-child(${view==='cat'?1:2})`).classList.add('active');
+  document.getElementById('left-cat').classList.toggle('hidden', view !== 'cat');
+  document.getElementById('left-arch').classList.toggle('hidden', view !== 'arch');
+}
+
+function switchMiddle(view, el) {
+  document.querySelectorAll('.mid-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.getElementById('mid-graph').style.display = view === 'graph' ? '' : 'none';
+  document.getElementById('mid-detail').classList.toggle('visible', view === 'detail');
+}
+
+function openDetail(id) {
+  // Select in left panel
+  document.querySelectorAll('.ci,.arch-item').forEach(i => i.classList.remove('act','active'));
+  event?.target?.closest('.ci,.arch-item')?.classList.add('act');
+  // Switch to detail view
+  switchMiddle('detail', document.querySelectorAll('.mid-tab')[1]);
+}
+</script>
+</body>
+</html>

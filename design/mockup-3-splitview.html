@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeView — Mockup 3: Split View</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{--font:'Outfit',system-ui,sans-serif;--mono:'JetBrains Mono',monospace}
+  [data-theme="dark"]{--bg:#09090b;--s1:#111114;--s2:#1a1a1f;--s3:#252530;--t1:#f4f4f8;--t2:#9090a8;--t3:#505068;--b1:#1e1e28;--b2:#2a2a38;--ui:#5b8af5;--api:#3dd9a0;--data:#f7b955;--util:#7a7a90;--ext:#b088f0;--accent:#5b8af5}
+  [data-theme="light"]{--bg:#fafbfc;--s1:#ffffff;--s2:#f3f4f6;--s3:#e5e7eb;--t1:#111827;--t2:#6b7280;--t3:#9ca3af;--b1:#e5e7eb;--b2:#d1d5db;--ui:#3b82f6;--api:#10b981;--data:#f59e0b;--util:#6b7280;--ext:#8b5cf6;--accent:#3b82f6}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font);background:var(--bg);color:var(--t1);overflow:hidden;height:100vh;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+
+  .app{display:grid;grid-template-columns:320px 1fr;grid-template-rows:48px 1fr;height:100vh}
+
+  /* ═══ TOPBAR ═══ */
+  .topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--s1);border-bottom:1px solid var(--b1)}
+  .tb-l{display:flex;align-items:center;gap:12px}
+  .tb-r{display:flex;align-items:center;gap:6px}
+  .logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;letter-spacing:-.02em}
+  .logo i{width:22px;height:22px;border-radius:5px;background:linear-gradient(135deg,var(--ui),var(--api));font-style:normal;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700}
+  .chip{font-size:10px;color:var(--t2);font-family:var(--mono);padding:3px 10px;background:var(--s2);border:1px solid var(--b1);border-radius:12px}
+  .b{padding:4px 12px;border-radius:7px;font-size:11px;font-weight:500;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .15s;display:flex;align-items:center;gap:4px}
+  .b:hover{background:var(--s2);color:var(--t1)}
+
+  /* ═══ LEFT — Tree View ═══ */
+  .tree{background:var(--s1);border-right:1px solid var(--b1);overflow-y:auto;padding:12px 0}
+  .tree-search{margin:0 12px 12px;display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--s2);border:1px solid var(--b1);border-radius:8px;font-size:12px;color:var(--t3)}
+  .tree-search input{flex:1;background:none;border:none;color:var(--t1);font-family:var(--font);font-size:12px;outline:none}
+  .tree-search input::placeholder{color:var(--t3)}
+  .tree-group{margin-bottom:4px}
+  .tree-group-header{display:flex;align-items:center;gap:6px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;transition:background .1s;color:var(--t2)}
+  .tree-group-header:hover{background:var(--s2)}
+  .tree-group-header .arrow{font-size:8px;color:var(--t3);width:12px;text-align:center;transition:transform .15s}
+  .tree-group-header .arrow.open{transform:rotate(90deg)}
+  .tree-group-header .gdot{width:6px;height:6px;border-radius:50%}
+  .tree-group-header .gcount{margin-left:auto;font-size:9px;font-family:var(--mono);color:var(--t3);background:var(--s2);padding:1px 5px;border-radius:6px}
+  .tree-items{padding:2px 0}
+  .tree-item{display:flex;align-items:center;gap:6px;padding:5px 14px 5px 32px;font-size:12px;cursor:pointer;transition:all .1s;color:var(--t2)}
+  .tree-item:hover{background:var(--s2);color:var(--t1)}
+  .tree-item.active{background:rgba(91,138,245,.08);color:var(--accent);font-weight:500;border-right:2px solid var(--accent)}
+  .tree-item .ti-icon{font-size:10px;width:16px;text-align:center;flex-shrink:0}
+  .tree-item .ti-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tree-item .ti-count{font-size:9px;font-family:var(--mono);color:var(--t3)}
+
+  /* ═══ RIGHT — Detail View ═══ */
+  .detail{overflow-y:auto;background:var(--bg)}
+  .detail-hero{padding:28px 32px 20px;border-bottom:1px solid var(--b1);background:var(--s1)}
+  .dh-breadcrumb{font-size:11px;color:var(--t3);margin-bottom:10px;display:flex;align-items:center;gap:4px}
+  .dh-breadcrumb a{color:var(--t3);text-decoration:none;cursor:pointer}
+  .dh-breadcrumb a:hover{color:var(--t2)}
+  .dh-title{font-size:22px;font-weight:700;letter-spacing:-.03em;margin-bottom:4px}
+  .dh-path{font-size:11px;font-family:var(--mono);color:var(--t3);margin-bottom:12px}
+  .dh-tags{display:flex;gap:6px;margin-bottom:16px}
+  .dh-tag{padding:3px 10px;border-radius:8px;font-size:10px;font-weight:500}
+  .dh-actions{display:flex;gap:6px}
+  .dh-btn{padding:6px 14px;border-radius:8px;font-size:11px;font-weight:500;border:1px solid var(--b1);background:transparent;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .15s;display:flex;align-items:center;gap:5px}
+  .dh-btn:hover{background:var(--s2);color:var(--t1)}
+  .dh-btn.purple{border-color:rgba(176,136,240,.2);color:#b088f0}
+
+  /* Sections */
+  .d-section{padding:20px 32px;border-bottom:1px solid var(--b1)}
+  .d-sec-title{font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+  .d-desc{font-size:14px;line-height:1.7;color:var(--t2)}
+  .d-ai{padding:16px;border-radius:12px;border-left:3px solid #b088f0;background:var(--s1);font-size:13px;line-height:1.7;color:var(--t2)}
+  .d-ai strong{color:var(--t1);font-weight:600}
+
+  /* Connections */
+  .d-conn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .d-conn-card{background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:10px 12px;cursor:pointer;transition:all .15s}
+  .d-conn-card:hover{border-color:var(--b2);transform:translateY(-1px)}
+  .d-conn-type{font-size:9px;font-weight:500;padding:2px 6px;border-radius:4px;display:inline-block;margin-bottom:4px}
+  .d-conn-name{font-size:12px;font-weight:600;margin-bottom:2px}
+  .d-conn-desc{font-size:10px;color:var(--t3);line-height:1.4}
+
+  /* Code */
+  .d-code{background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:16px;font-family:var(--mono);font-size:11px;line-height:1.65;color:var(--t2);white-space:pre-wrap;max-height:400px;overflow-y:auto}
+
+  /* Stats bar */
+  .d-stats{display:flex;gap:20px;padding:16px 32px;background:var(--s1);border-bottom:1px solid var(--b1)}
+  .d-stat{text-align:center}
+  .d-stat-val{font-size:20px;font-weight:700;letter-spacing:-.02em}
+  .d-stat-label{font-size:9px;color:var(--t3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px}
+
+  ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--s3);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="tb-l">
+      <div class="logo"><i>CV</i>CodeView</div>
+      <span class="chip">GTS Trade Intelligence · 58 components</span>
+    </div>
+    <div class="tb-r">
+      <button class="b" style="border-color:rgba(247,185,85,.2);color:#f7b955">⚡ Enhance</button>
+      <button class="b" style="border-color:rgba(176,136,240,.2);color:#b088f0">✨ Describe</button>
+      <button class="b" onclick="document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark'">◐</button>
+    </div>
+  </header>
+
+  <!-- LEFT — Tree -->
+  <nav class="tree">
+    <div class="tree-search">🔍 <input placeholder="Search components..." /></div>
+
+    <div class="tree-group">
+      <div class="tree-group-header"><span class="arrow open">▶</span><span class="gdot" style="background:var(--ui)"></span>UI Components<span class="gcount">38</span></div>
+      <div class="tree-items">
+        <div class="tree-item active"><span class="ti-icon">📄</span><span class="ti-name">Trade Flows</span><span class="ti-count">3</span></div>
+        <div class="tree-item"><span class="ti-icon">📄</span><span class="ti-name">Risk Feed</span><span class="ti-count">5</span></div>
+        <div class="tree-item"><span class="ti-icon">📄</span><span class="ti-name">HSBC Footprint</span><span class="ti-count">6</span></div>
+        <div class="tree-item"><span class="ti-icon">📄</span><span class="ti-name">Shipping</span><span class="ti-count">4</span></div>
+        <div class="tree-item"><span class="ti-icon">📄</span><span class="ti-name">News</span><span class="ti-count">4</span></div>
+        <div class="tree-item"><span class="ti-icon">📄</span><span class="ti-name">Opportunities</span><span class="ti-count">4</span></div>
+        <div class="tree-item"><span class="ti-icon">🧩</span><span class="ti-name">Globe View</span><span class="ti-count">2</span></div>
+        <div class="tree-item"><span class="ti-icon">🧩</span><span class="ti-name">Chat Panel</span><span class="ti-count">1</span></div>
+        <div class="tree-item"><span class="ti-icon">🧩</span><span class="ti-name">Refresh Bar</span><span class="ti-count">1</span></div>
+        <div class="tree-item"><span class="ti-icon">🧩</span><span class="ti-name">Risk Card</span></div>
+        <div class="tree-item"><span class="ti-icon">🧩</span><span class="ti-name">News Ticker</span></div>
+        <div class="tree-item"><span class="ti-icon">🧩</span><span class="ti-name">Status Bar</span></div>
+      </div>
+    </div>
+
+    <div class="tree-group">
+      <div class="tree-group-header"><span class="arrow open">▶</span><span class="gdot" style="background:var(--api)"></span>API Routes<span class="gcount">7</span></div>
+      <div class="tree-items">
+        <div class="tree-item"><span class="ti-icon">⚡</span><span class="ti-name">Trade Flows API</span><span class="ti-count">2</span></div>
+        <div class="tree-item"><span class="ti-icon">⚡</span><span class="ti-name">Risk Events API</span><span class="ti-count">2</span></div>
+        <div class="tree-item"><span class="ti-icon">⚡</span><span class="ti-name">Chat API</span><span class="ti-count">1</span></div>
+        <div class="tree-item"><span class="ti-icon">⚡</span><span class="ti-name">Shipping API</span><span class="ti-count">2</span></div>
+        <div class="tree-item"><span class="ti-icon">⚡</span><span class="ti-name">News API</span><span class="ti-count">2</span></div>
+      </div>
+    </div>
+
+    <div class="tree-group">
+      <div class="tree-group-header"><span class="arrow open">▶</span><span class="gdot" style="background:var(--data)"></span>Data Layer<span class="gcount">8</span></div>
+      <div class="tree-items">
+        <div class="tree-item"><span class="ti-icon">💾</span><span class="ti-name">HSBC Markets</span></div>
+        <div class="tree-item"><span class="ti-icon">💾</span><span class="ti-name">Risk Events Data</span></div>
+        <div class="tree-item"><span class="ti-icon">💾</span><span class="ti-name">Trade Flows Data</span></div>
+        <div class="tree-item"><span class="ti-icon">📋</span><span class="ti-name">Types</span></div>
+      </div>
+    </div>
+
+    <div class="tree-group">
+      <div class="tree-group-header"><span class="arrow open">▶</span><span class="gdot" style="background:var(--ext)"></span>External Services<span class="gcount">1</span></div>
+      <div class="tree-items">
+        <div class="tree-item"><span class="ti-icon">🔗</span><span class="ti-name">Gemini Client</span><span class="ti-count">7</span></div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- RIGHT — Detail -->
+  <main class="detail">
+    <div class="detail-hero">
+      <div class="dh-breadcrumb">
+        <a>UI Components</a> <span>›</span> <span style="color:var(--t2)">Trade Flows</span>
+      </div>
+      <div class="dh-title">Trade Flows</div>
+      <div class="dh-path">app/(dashboard)/trade-flows/page.tsx</div>
+      <div class="dh-tags">
+        <span class="dh-tag" style="background:rgba(91,138,245,.1);color:var(--ui)">UI Components</span>
+        <span class="dh-tag" style="background:var(--s2);color:var(--t2)">page</span>
+      </div>
+      <div class="dh-actions">
+        <button class="dh-btn">↗ Open in VS Code</button>
+        <button class="dh-btn purple">✨ Ask Claude</button>
+      </div>
+    </div>
+
+    <div class="d-stats">
+      <div class="d-stat"><div class="d-stat-val" style="color:var(--ui)">5</div><div class="d-stat-label">Exports</div></div>
+      <div class="d-stat"><div class="d-stat-val" style="color:var(--ui)">8</div><div class="d-stat-label">Imports</div></div>
+      <div class="d-stat"><div class="d-stat-val" style="color:var(--ui)">3</div><div class="d-stat-label">Connections</div></div>
+      <div class="d-stat"><div class="d-stat-val" style="color:var(--api)">1</div><div class="d-stat-label">API Calls</div></div>
+    </div>
+
+    <div class="d-section">
+      <div class="d-sec-title">Description</div>
+      <div class="d-desc">Shows top bilateral trade routes worldwide, with search, sorting by volume/growth/tariff, and a detail popup for each corridor</div>
+    </div>
+
+    <div class="d-section">
+      <div class="d-sec-title">✨ AI Explanation</div>
+      <div class="d-ai">
+        The main trade corridors view showing the <strong>top 20 bilateral trade routes</strong> worldwide. Users can search corridors, sort by volume/growth/tariff rate, and click any corridor to see a detail popup with <strong>commodity breakdowns</strong> and statistics.
+        <br><br>
+        This is the <strong>default landing page</strong> — when users navigate to the dashboard root, they get redirected here automatically, making Trade Flows the de facto home screen of the application.
+        <br><br>
+        It fetches data from the <strong>Trade Flows API</strong>, which either calls Google Gemini for live data or falls back to a researched static dataset of the world's busiest trade corridors.
+      </div>
+    </div>
+
+    <div class="d-section">
+      <div class="d-sec-title">Connections</div>
+      <div class="d-conn-grid">
+        <div class="d-conn-card">
+          <span class="d-conn-type" style="background:rgba(61,217,160,.1);color:var(--api)">fetches from</span>
+          <div class="d-conn-name">Trade Flows API</div>
+          <div class="d-conn-desc">GET endpoint returning top 20 global trade corridors with volumes</div>
+        </div>
+        <div class="d-conn-card">
+          <span class="d-conn-type" style="background:rgba(122,122,144,.1);color:var(--util)">uses</span>
+          <div class="d-conn-name">Data Context</div>
+          <div class="d-conn-desc">Central data hub that manages loading, caching, and refresh across all views</div>
+        </div>
+        <div class="d-conn-card">
+          <span class="d-conn-type" style="background:rgba(91,138,245,.1);color:var(--ui)">renders</span>
+          <div class="d-conn-name">Trade Flow Detail</div>
+          <div class="d-conn-desc">Popup dialog showing corridor details, commodity breakdowns, and tariff rates</div>
+        </div>
+        <div class="d-conn-card">
+          <span class="d-conn-type" style="background:rgba(91,138,245,.1);color:var(--ui)">renders</span>
+          <div class="d-conn-name">Status Bar</div>
+          <div class="d-conn-desc">Bottom bar showing live/loading status and last sync timestamp</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-section">
+      <div class="d-sec-title">Source Code</div>
+      <div class="d-code">"use client"
+
+import { useDataContext } from "@/lib/data-context"
+import { TradeFlowDetail } from "@/components/trade-flow-detail"
+import { StatusBar } from "@/components/status-bar"
+import { LoadingState } from "@/components/loading-state"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+
+export default function TradeFlowsPage() {
+  const { tradeFlows, isLoading } = useDataContext()
+  const [search, setSearch] = useState("")
+  const [sortBy, setSortBy] = useState("volume")
+  const [selected, setSelected] = useState(null)
+
+  if (isLoading) return &lt;LoadingState /&gt;
+
+  const filtered = tradeFlows
+    .filter(f =&gt; f.corridor.toLowerCase()
+      .includes(search.toLowerCase()))
+    .sort((a, b) =&gt; b[sortBy] - a[sortBy])
+
+  return (
+    &lt;div className="flex flex-col h-full"&gt;
+      ...</div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>
