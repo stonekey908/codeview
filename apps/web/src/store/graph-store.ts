@@ -44,6 +44,10 @@ interface GraphState {
   setHoveredNode: (nodeId: string | null) => void;
   setFocusedNode: (nodeId: string | null) => void;
 
+  // Panel width
+  detailWidth: number;
+  setDetailWidth: (width: number) => void;
+
   // Display
   viewMode: ViewMode;
   theme: 'dark' | 'light';
@@ -96,13 +100,14 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   detailNavStack: [],
   detailMode: 'hidden',
 
-  openDetail: (nodeId) => set({
+  openDetail: (nodeId) => set((s) => ({
     detailNodeId: nodeId,
     detailNavStack: [],
-    detailMode: 'slide-out',
-    middleView: 'graph',
+    // Preserve expanded mode if already in it
+    detailMode: s.detailMode === 'expanded' ? 'expanded' : 'slide-out',
+    middleView: s.middleView === 'full-detail' ? 'full-detail' : 'graph',
     selectedNodeIds: new Set([nodeId]),
-  }),
+  })),
 
   navigateDetail: (nodeId) => set((s) => ({
     detailNodeId: nodeId,
@@ -141,6 +146,9 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   clearSelection: () => set({ selectedNodeIds: new Set() }),
   setHoveredNode: (nodeId) => set({ hoveredNodeId: nodeId }),
   setFocusedNode: (nodeId) => set({ focusedNodeId: nodeId }),
+
+  detailWidth: 480,
+  setDetailWidth: (width) => set({ detailWidth: Math.max(360, Math.min(800, width)) }),
 
   viewMode: 'descriptive',
   theme: 'light',

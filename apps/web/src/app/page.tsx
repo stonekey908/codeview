@@ -21,7 +21,7 @@ const DEMO_FILES = [
 ];
 
 export default function Home() {
-  const { setGraphData, setRfNodes, setRfEdges, setLoading, theme, graphData, detailMode, middleView } = useGraphStore();
+  const { setGraphData, setRfNodes, setRfEdges, setLoading, theme, graphData, detailMode, middleView, detailWidth } = useGraphStore();
   const layoutRef = useRef<LayoutResult | null>(null);
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export default function Home() {
   const showExpanded = detailMode === 'expanded';
 
   let gridCols = '300px 1fr'; // default: left + graph
-  if (showSlideOut) gridCols = '300px 1fr 480px';
+  if (showSlideOut) gridCols = `300px 1fr ${detailWidth}px`;
   if (showExpanded) gridCols = '300px 1fr';
 
   return (

@@ -59,7 +59,7 @@ export function GraphCanvas() {
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
         onNodeMouseEnter={onNodeMouseEnter} onNodeMouseLeave={onNodeMouseLeave}
         nodeTypes={nodeTypes} colorMode={theme}
-        fitView fitViewOptions={{ padding: 0.3 }}
+        fitView fitViewOptions={{ padding: 0.1, maxZoom: 1 }}
         snapToGrid snapGrid={[20, 20]} minZoom={0.2} maxZoom={2}
         defaultEdgeOptions={{
           type: 'smoothstep', animated: true,
