@@ -1,17 +1,19 @@
 # CodeView
 
-**Visual architecture companion for Claude Code** — see your codebase as an interactive graph, ask Claude to explain any component in plain English.
+**Visual architecture companion for Claude Code** — see your codebase as an interactive graph, ask AI to explain any component in plain English.
 
 ![CodeView](https://img.shields.io/badge/status-beta-purple) ![Tests](https://img.shields.io/badge/tests-69%20passing-green) ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## What It Does
 
-CodeView scans any TypeScript/JavaScript project and visualizes it as an interactive architecture graph. Non-technical product owners can understand what's being built without reading code.
+CodeView scans any TypeScript/JavaScript project and visualizes it as an interactive architecture map. Non-technical product owners can understand what's being built without reading code.
 
-- **See your architecture** — components organized by layer (UI, API, Data, Utils, External) with connection lines showing how they relate
-- **Ask Claude** — click any component and Claude reads the actual source code, then explains what it does in plain English
-- **No API keys needed** — uses your existing Claude Code installation. CodeView is just a visual layer on top of it
-- **Works on any project** — point it at any folder. It scans, analyzes, and renders in seconds
+- **Overview** — auto-generated narrative explaining what the app does, key features, data flows, and backend services
+- **Features view** — components grouped by business function (Document Upload, Calendar, AI Chat) across all layers
+- **Architecture view** — interactive graph showing how layers connect with straight-line edges
+- **Explain** — click any component and AI reads the actual source code, then explains what it does
+- **No API keys needed** — uses your existing Claude Code installation
+- **Works on any project** — point it at any folder, scans in seconds
 
 ## Quick Start
 
@@ -26,70 +28,35 @@ pnpm install
 # 3. Point it at your project
 npx tsx apps/cli/bin/codeview.mjs /path/to/your/project
 
-# That's it. Opens http://localhost:4200 with your architecture graph.
+# Opens http://localhost:4200 with your architecture
 ```
 
-## How It Works
+## Navigation
 
-```
-Your Project          CodeView CLI          Browser (localhost:4200)
-     │                     │                        │
-     │  scans files        │                        │
-     │  extracts imports   │                        │
-     │  detects frameworks │                        │
-     │─────────────────────►                        │
-     │                     │  builds graph          │
-     │                     │  computes layout       │
-     │                     │  starts web server     │
-     │                     │────────────────────────►
-     │                     │                        │
-     │                     │         interactive    │
-     │                     │         architecture   │
-     │                     │         graph          │
-```
+CodeView has four views, accessible via tabs in the left panel:
 
-When you click "Ask Claude" on a component:
-1. CodeView reads the source file
-2. Spawns `claude -p` (non-interactive) to analyze it
-3. Claude reads the code and writes a plain-English explanation
-4. Explanation appears in the detail panel
+| Tab | What It Shows | Middle Area |
+|-----|--------------|-------------|
+| **Overview** | Narrative landing page — app summary, features, data flows, backend | Full-width narrative |
+| **Features** | Components grouped by business function (cross-layer) | Full-width component detail |
+| **Categories** | Components grouped by technical layer (UI, API, Data, Utils, External) | Full-width component detail |
+| **Architecture** | Data flow view with collapsible layers | Interactive graph + slide-out detail |
 
-**No separate API keys.** It uses your existing Claude Code auth.
+## AI Features
 
-## Features
+### Enhance (quick skim)
+Click **⚡ Enhance** — AI reads every file (in batches of 30) and generates:
+- Better titles ("Daily Summary Scheduler" not "daily-summary.ts")
+- Correct layer categorization
+- One-sentence descriptions
 
-### Architecture Graph
-- Collapsible layer groups (UI, API, Data, Utils, External)
-- Connection lines between groups with count labels
-- Click to expand, double-click to focus
-- Dark and light mode
-- Snap-to-grid dragging
+### Explain (deep analysis)
+Click **✨ Explain** — select specific components, AI reads the full source code and writes a detailed plain-English explanation covering what it does, how it works, what data it processes, and what it connects to.
 
-### Component Details
-- 50% width detail panel with tabs (Overview, Connections, Code)
-- Navigation stack with back button (like Linear)
-- Typed connection chips: `[renders]`, `[fetches from]`, `[uses]`
-- Real source code display with syntax highlighting
-- "Open in VS Code" link
+### Overview (narrative)
+Click **📖 Generate Overview** — AI reads the entire architecture and generates an interactive narrative: app summary, key features, data flow diagrams, backend services, data types.
 
-### AI Descriptions
-- "Generate Descriptions" — select which components to describe
-- Claude reads each file and writes plain-English explanations
-- Descriptions cached in `.codeview/descriptions.json` — persist across sessions
-- Markdown rendering with formatting
-- "Regenerate" button to refresh individual descriptions
-
-### Claude Code Integration (MCP)
-- MCP server for bidirectional communication
-- Claude Code can query the architecture: `get_architecture_overview`, `get_component_details`, `get_dependencies`
-- Flow tracing: "show me the login flow"
-- No additional API keys — piggybacks on Claude Code session
-
-### Search & Navigation
-- `Cmd+K` / `/` — fuzzy search across all components
-- `Escape` — close panel, clear selection
-- `Cmd+D` — toggle descriptive/technical mode
-- `?` — keyboard shortcuts reference
+All AI features use `claude -p` (non-interactive mode) — no separate API keys needed.
 
 ## CLI Options
 
@@ -100,33 +67,7 @@ Options:
   --port <number>   Port for the web server (default: 4200)
   --no-open         Don't open the browser automatically
   -h, --help        Show help
-
-Examples:
-  npx tsx apps/cli/bin/codeview.mjs .                    # Current directory
-  npx tsx apps/cli/bin/codeview.mjs ~/projects/my-app    # Specific project
-  npx tsx apps/cli/bin/codeview.mjs . --port 3000        # Custom port
 ```
-
-## Setting Up Claude Code MCP
-
-To give Claude Code architectural awareness of your project, add `.mcp.json` to your project root:
-
-```json
-{
-  "mcpServers": {
-    "codeview": {
-      "command": "npx",
-      "args": ["tsx", "/path/to/codeview/packages/mcp-server/src/stdio.ts", "--project", "."]
-    }
-  }
-}
-```
-
-Then Claude Code can call tools like:
-- `get_architecture_overview()` — full project structure
-- `get_component_details("src/app/page.tsx")` — detailed info about a component
-- `get_dependencies("src/api/auth/route.ts")` — what it imports and what imports it
-- `trace_flow("authentication")` — identify components in a user flow
 
 ## What It Detects
 
@@ -135,9 +76,8 @@ Then Claude Code can call tools like:
 | **React** | Components (JSX), hooks, contexts, forwardRef/memo |
 | **Next.js** | Pages, layouts, API routes (App Router + Pages Router), middleware |
 | **Database** | Prisma schemas, Drizzle tables, TypeORM entities |
-| **General** | Utilities, configs, service clients, barrel files |
-
-File types: `.ts`, `.tsx`, `.js`, `.jsx`, `.mts`, `.mjs`
+| **Cloud Functions** | Firebase Functions, serverless handlers |
+| **General** | Utilities, configs, service clients, constants, type definitions |
 
 ## Project Structure
 
@@ -145,11 +85,11 @@ File types: `.ts`, `.tsx`, `.js`, `.jsx`, `.mts`, `.mjs`
 codeview/
   apps/
     web/              # Next.js 15 visualization app
-    cli/              # CLI entry point (npx codeview)
+    cli/              # CLI entry point
   packages/
     analyzer/         # File scanning + TypeScript parser + framework detectors
     graph-engine/     # Graph builder + clustering + labeler + layout
-    prompt-builder/   # Context assembly for Claude prompts
+    prompt-builder/   # Context assembly for prompts
     watcher/          # File system watching (chokidar)
     mcp-server/       # MCP server for Claude Code integration
     shared/           # Shared TypeScript types
@@ -160,35 +100,29 @@ codeview/
 - **Monorepo:** pnpm + Turborepo
 - **Web:** Next.js 15 (App Router), React Flow, Tailwind CSS v4, Zustand
 - **Analysis:** TypeScript Compiler API, chokidar
-- **Integration:** MCP SDK, Claude Code CLI
-- **Design:** shadcn zinc palette, Instrument Sans + DM Sans + JetBrains Mono
+- **AI:** Claude Code CLI (`claude -p`), Shiki syntax highlighting
+- **Design:** shadcn Mist theme, Inter + JetBrains Mono, muted professional palette
+- **Integration:** MCP SDK for bidirectional Claude Code communication
+
+## Data & Privacy
+
+- **Local only** — runs entirely on your machine. No data sent anywhere.
+- **No API keys** — uses your existing Claude Code auth for AI features.
+- **`.codeview/` folder** — analysis, descriptions, and overview cached in your project.
+- **Read-only** — CodeView reads source files but never modifies your project.
 
 ## Development
 
 ```bash
-# Install
-pnpm install
-
-# Dev server (with demo data)
-pnpm dev
-
-# Run tests
-pnpm --filter @codeview/analyzer test
-pnpm --filter @codeview/graph-engine test
-pnpm --filter @codeview/prompt-builder test
-pnpm --filter @codeview/watcher test
-pnpm --filter @codeview/mcp-server test
-
-# Build all
-pnpm build
+pnpm install          # Install dependencies
+pnpm dev              # Dev server with demo data
+pnpm build            # Build all packages
+pnpm --filter @codeview/analyzer test       # 25 tests
+pnpm --filter @codeview/graph-engine test   # 29 tests
+pnpm --filter @codeview/prompt-builder test # 6 tests
+pnpm --filter @codeview/watcher test        # 5 tests
+pnpm --filter @codeview/mcp-server test     # 4 tests
 ```
-
-## Data & Privacy
-
-- **Local only** — CodeView runs entirely on your machine. No data is sent anywhere.
-- **No API keys** — uses your existing Claude Code auth for AI features
-- **`.codeview/` folder** — analysis data and cached descriptions stored in your project directory. Add to `.gitignore` if you don't want it committed.
-- **File reading** — CodeView reads your source files to analyze them. It does not modify any files in your project.
 
 ## License
 
