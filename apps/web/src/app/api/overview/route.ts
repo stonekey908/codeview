@@ -20,6 +20,12 @@ export async function GET() {
   }
 
   if (!fs.existsSync(overviewPath)) {
+    // Fall back to demo overview
+    try {
+      const { readDataFile } = await import('@/lib/demo-data');
+      const demoOverview = readDataFile('overview.json', null);
+      if (demoOverview) return NextResponse.json({ status: 'done', overview: demoOverview });
+    } catch {}
     return NextResponse.json({ status: 'not-generated', overview: null });
   }
 

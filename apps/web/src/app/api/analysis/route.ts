@@ -90,5 +90,15 @@ export async function GET() {
     }
   }
 
+  // No real project data — try serving demo-enhanced graph
+  try {
+    const { readDataFile } = await import('@/lib/demo-data');
+    const enhancements = readDataFile('enhancements.json', null);
+    if (enhancements) {
+      // Return a signal that demo enhancements are available
+      return NextResponse.json({ graph: null, layout: null, demoEnhancements: enhancements }, { status: 200 });
+    }
+  } catch {}
+
   return NextResponse.json({ graph: null, layout: null }, { status: 404 });
 }

@@ -86,7 +86,17 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   rfEdges: [],
 
   leftTab: 'overview',
-  setLeftTab: (tab) => set({ leftTab: tab }),
+  setLeftTab: (tab) => set((s) => {
+    // When switching away from architecture with a slide-out open, close it
+    if (s.leftTab === 'architecture' && tab !== 'architecture' && s.detailMode === 'slide-out') {
+      return { leftTab: tab, detailNodeId: null, detailNavStack: [], detailMode: 'hidden', middleView: 'graph' };
+    }
+    // When switching TO overview, always clear detail (overview fills the middle)
+    if (tab === 'overview') {
+      return { leftTab: tab, detailNodeId: null, detailNavStack: [], detailMode: 'hidden', middleView: 'graph' };
+    }
+    return { leftTab: tab };
+  }),
 
   middleView: 'graph',
   setMiddleView: (view) => {
