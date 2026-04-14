@@ -16,9 +16,6 @@
 ### Categories — all components grouped by technical layer
 ![Categories](docs/screenshots/04-categories.png)
 
-### Light Mode
-![Light Mode](docs/screenshots/09-light-overview.png)
-
 <details>
 <summary>More screenshots</summary>
 
@@ -33,9 +30,6 @@
 
 ### Search Palette (Cmd+K)
 ![Search](docs/screenshots/08-search.png)
-
-### Light Mode — component detail
-![Light Detail](docs/screenshots/10-light-detail.png)
 
 ### Help Guide
 ![Help](docs/screenshots/11-help-guide.png)
