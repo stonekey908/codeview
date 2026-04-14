@@ -4,6 +4,46 @@
 
 ![CodeView](https://img.shields.io/badge/status-beta-purple) ![Tests](https://img.shields.io/badge/tests-69%20passing-green) ![License](https://img.shields.io/badge/license-MIT-blue)
 
+### Overview — AI-generated narrative with key features and stats
+![Overview](docs/screenshots/01-overview.png)
+
+### Component Detail — description and AI explanation side by side
+![Component Detail](docs/screenshots/03-component-detail.png)
+
+### Architecture Graph — interactive graph with slide-out detail panel
+![Architecture](docs/screenshots/07-architecture-slideout.png)
+
+### Categories — all components grouped by technical layer
+![Categories](docs/screenshots/04-categories.png)
+
+### Light Mode
+![Light Mode](docs/screenshots/09-light-overview.png)
+
+<details>
+<summary>More screenshots</summary>
+
+### Features — components grouped by business function
+![Features](docs/screenshots/02-features.png)
+
+### Categories with Detail Panel
+![Categories Detail](docs/screenshots/05-categories-detail.png)
+
+### Architecture Graph
+![Architecture](docs/screenshots/06-architecture.png)
+
+### Search Palette (Cmd+K)
+![Search](docs/screenshots/08-search.png)
+
+### Light Mode — component detail
+![Light Detail](docs/screenshots/10-light-detail.png)
+
+### Help Guide
+![Help](docs/screenshots/11-help-guide.png)
+
+</details>
+
+---
+
 ## What It Does
 
 CodeView scans any TypeScript/JavaScript project and turns it into an interactive architecture map. Non-technical product owners can see what's being built, understand how components connect, and get AI-powered explanations — all without reading a line of code.

@@ -204,14 +204,9 @@ export default function Home() {
           metadata: { componentCount: nodeIds.length, connectionCount: graph.edges.filter(e => nodeIds.includes(e.source) || nodeIds.includes(e.target)).length },
         }));
       }
-      // Apply demo descriptions (longer explanations) to nodes
-      if (demoDescriptions && graph.nodes) {
-        for (const node of graph.nodes) {
-          if (demoDescriptions[node.relativePath]) {
-            node.description = demoDescriptions[node.relativePath];
-          }
-        }
-      }
+      // Demo descriptions are longer explanations — served via /api/ask-claude
+      // for the Explanation section. Keep node.description as the short summary
+      // from enhancements so Description and Explanation show different content.
       setGraphData(graph);
       const layout = await computeLayout(graph);
       layoutRef.current = layout;
