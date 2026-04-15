@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Handle, Position, useUpdateNodeInternals, type NodeProps } from '@xyflow/react';
 import type { ArchitecturalLayer, ComponentRole } from '@codeview/shared';
 import { LAYER_COLORS } from './layer-colors';
@@ -35,15 +35,21 @@ const ROLE_ICONS: Record<string, typeof FileText> = {
   hook: Code, context: Globe, service: ExternalLink, config: Settings, unknown: FileText,
 };
 
-export const ClusterNode = memo(function ClusterNode({
+export function ClusterNode({
   id, data,
 }: NodeProps & { data: ClusterNodeData }) {
   const {
     viewMode, theme, expandedClusterIds, toggleCluster, focusedNodeId,
     selectedNodeIds, selectNode, toggleNodeSelection,
     hoveredNodeId, getConnectedNodeIds, openDetail, setFocusedNode,
+    capabilities, capabilityLensOn, activeCapabilityIndex,
   } = useGraphStore();
-  const colors = LAYER_COLORS[data.layer];
+  const isCapCluster = id.startsWith('cap-');
+  const capColor = { color: 'var(--color-primary, #6366f1)', soft: 'rgba(99,102,241,0.08)', border: 'var(--color-primary, #6366f1)' };
+  const otherColor = { color: '#7c8594', soft: 'rgba(124,133,148,0.06)', border: '#7c8594' };
+  const colors = isCapCluster
+    ? (id === 'cap-other' ? otherColor : capColor)
+    : LAYER_COLORS[data.layer];
   const isDark = theme === 'dark';
   const expanded = expandedClusterIds.has(id);
   const updateNodeInternals = useUpdateNodeInternals();
@@ -56,7 +62,19 @@ export const ClusterNode = memo(function ClusterNode({
 
   // Focus mode: dim if this cluster has no connection to focused node
   let opacity = 1;
-  if (focusedNodeId) {
+  if (capabilityLensOn && activeCapabilityIndex !== null && capabilities[activeCapabilityIndex]) {
+    // Specific capability selected — dim clusters with no matching components
+    const capPaths = new Set(capabilities[activeCapabilityIndex].componentPaths);
+    const clusterPaths = data.components?.map(c => c.relativePath) || [];
+    const hasCapComponent = clusterPaths.some(p => capPaths.has(p));
+    if (!hasCapComponent) opacity = 0.12;
+  } else if (capabilityLensOn && capabilities.length > 0) {
+    // Lens on but no specific capability — dim clusters not in any capability
+    const allCapPaths = new Set(capabilities.flatMap(c => c.componentPaths));
+    const clusterPaths = data.components?.map(c => c.relativePath) || [];
+    const hasAnyCapComponent = clusterPaths.some(p => allCapPaths.has(p));
+    if (!hasAnyCapComponent) opacity = 0.3;
+  } else if (focusedNodeId) {
     const connected = getConnectedNodeIds(focusedNodeId);
     const clusterNodeIds = data.components?.map(c => c.id) || [];
     const isConnected = clusterNodeIds.some(nid => connected.has(nid) || nid === focusedNodeId);
@@ -193,4 +211,4 @@ export const ClusterNode = memo(function ClusterNode({
       )}
     </div>
   );
-});
+}

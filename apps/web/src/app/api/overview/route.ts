@@ -20,12 +20,6 @@ export async function GET() {
   }
 
   if (!fs.existsSync(overviewPath)) {
-    // Fall back to demo overview
-    try {
-      const { readDataFile } = await import('@/lib/demo-data');
-      const demoOverview = readDataFile('overview.json', null);
-      if (demoOverview) return NextResponse.json({ status: 'done', overview: demoOverview });
-    } catch {}
     return NextResponse.json({ status: 'not-generated', overview: null });
   }
 
@@ -108,6 +102,9 @@ export async function POST() {
   prompt += '  "dataTypes": [\n';
   prompt += '    { "name": "Type Name", "description": "What it stores (short)" }\n';
   prompt += '  ],\n';
+  prompt += '  "capabilities": [\n';
+  prompt += '    { "icon": "emoji", "title": "Capability Name", "description": "What this reusable pattern does and why it matters (1-2 sentences)", "componentPaths": ["path/to/file.tsx"] }\n';
+  prompt += '  ],\n';
   prompt += '  "generatedAt": "ISO date string"\n';
   prompt += '}\n\n';
   prompt += 'RULES:\n';
@@ -115,6 +112,7 @@ export async function POST() {
   prompt += '- Features should be the main things users DO with the app (5-8 features max)\n';
   prompt += '- Flows should show how data moves through the system (1-3 flows, 3-6 steps each)\n';
   prompt += '- Backend should be server-side services explained simply (cloud functions, AI, notifications)\n';
+  prompt += '- Capabilities are reusable technical patterns that span multiple components — things like authentication, file upload, payment processing, encryption, real-time sync, email notifications. Each capability should group components that actually import from or connect to each other. EVERY component must appear in at least one capability — do not leave any component uncategorised. A component can appear in multiple capabilities if it serves multiple patterns. If a component does not fit a specific pattern, group it into a general capability like "Core App Shell" or "Shared Utilities".\n';
   prompt += '- Use specific component names in componentPaths so the UI can link to them\n';
   prompt += '- Keep descriptions concise — 1-2 sentences each\n\n';
   prompt += '=== PROJECT ARCHITECTURE ===\n\n';

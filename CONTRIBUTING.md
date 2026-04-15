@@ -12,7 +12,7 @@ Thanks for your interest in contributing to CodeView!
 ## Development
 
 ```bash
-# Run the web app in dev mode (with demo data)
+# Run the web app in dev mode
 pnpm dev
 
 # Run tests

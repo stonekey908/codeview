@@ -13,6 +13,9 @@
 ### Architecture Graph — interactive graph with slide-out detail panel
 ![Architecture](docs/screenshots/07-architecture-slideout.png)
 
+### Capability Lens — toggle to view architecture by reusable patterns
+![Capabilities](docs/screenshots/09-capabilities.png)
+
 ### Categories — all components grouped by technical layer
 ![Categories](docs/screenshots/04-categories.png)
 
@@ -46,6 +49,7 @@ CodeView scans any TypeScript/JavaScript project and turns it into an interactiv
 - **Features view** — components grouped by business function across all layers
 - **Categories view** — components grouped by technical layer (UI, API, Data, Utils, External)
 - **Architecture view** — interactive graph showing how layers connect
+- **Capability lens** — toggle to regroup architecture by reusable patterns (auth, uploads, payments, etc.)
 - **Explain** — click any component and AI reads the source code, then explains it in plain English
 - **Enhance** — AI categorises and titles every component in your project
 - **Multi-AI support** — works with Claude Code, Gemini CLI, or any compatible AI terminal tool
@@ -144,7 +148,7 @@ npx tsx apps/cli/bin/codeview.mjs ~/projects/my-app --port 3500
 # Use Gemini instead of Claude for AI features
 CODEVIEW_AI_PROVIDER=gemini npx tsx apps/cli/bin/codeview.mjs ~/projects/my-app
 
-# Development mode (demo data, no real project needed)
+# Development mode
 pnpm dev
 ```
 
@@ -273,7 +277,7 @@ codeview/
 
 ```bash
 pnpm install          # Install dependencies
-pnpm dev              # Dev server with demo data
+pnpm dev              # Dev server
 pnpm build            # Build all packages
 pnpm test             # Run all 69 tests
 

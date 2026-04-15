@@ -20,14 +20,22 @@ interface OverviewFlow {
   steps: { title: string; description: string; layer: string; componentPaths: string[] }[];
 }
 
+interface OverviewCapability {
+  icon: string;
+  title: string;
+  description: string;
+  componentPaths: string[];
+}
+
 interface OverviewData {
   features: OverviewFeature[];
   flows: OverviewFlow[];
   backend: { icon: string; title: string; description: string; componentPaths: string[] }[];
+  capabilities?: OverviewCapability[];
 }
 
-export function FeaturesView() {
-  const { graphData, openDetail, detailNodeId, setLeftTab } = useGraphStore();
+export function FeaturesView({ searchQuery = '' }: { searchQuery?: string }) {
+  const { graphData, openDetail, detailNodeId, setLeftTab, setCapabilities } = useGraphStore();
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -35,9 +43,12 @@ export function FeaturesView() {
   useEffect(() => {
     setLoading(true);
     fetch('/api/overview').then(r => r.json()).then(d => {
-      if (d.overview) setOverview(d.overview);
+      if (d.overview) {
+        setOverview(d.overview);
+        if (d.overview.capabilities) setCapabilities(d.overview.capabilities);
+      }
     }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  }, [setCapabilities]);
 
   const toggleGroup = (id: string) => {
     const next = new Set(expandedGroups);
@@ -137,12 +148,22 @@ export function FeaturesView() {
   return (
     <div className="px-2 py-1">
       {groups.map(group => {
+        // Filter items by search query
+        const filteredItems = searchQuery
+          ? group.items.filter(item => {
+              const node = resolveNode(item.paths);
+              const label = node?.label || item.name;
+              const path = node?.relativePath || item.paths[0] || '';
+              return label.toLowerCase().includes(searchQuery.toLowerCase()) || path.toLowerCase().includes(searchQuery.toLowerCase());
+            })
+          : group.items;
+        if (searchQuery && filteredItems.length === 0) return null;
         // Auto-expand if the active detail node is inside this group
         const containsActive = detailNodeId && group.items.some(item => {
           const node = resolveNode(item.paths);
           return node?.id === detailNodeId;
         });
-        const isExpanded = expandedGroups.has(group.id) || !!containsActive;
+        const isExpanded = expandedGroups.has(group.id) || !!containsActive || !!searchQuery;
         return (
           <div key={group.id} className="mb-1.5 bg-muted border border-border rounded-lg overflow-hidden">
             {/* Header */}
@@ -154,7 +175,7 @@ export function FeaturesView() {
                 <div className="text-[10px] text-muted-foreground leading-snug">{group.description}</div>
               </div>
               <span className="text-[9px] font-mono text-muted-foreground bg-card border border-border px-1.5 py-0.5 rounded">
-                {group.items.length}
+                {filteredItems.length}
               </span>
               {isExpanded ? <ChevronDown size={12} className="text-muted-foreground shrink-0" /> : <ChevronRight size={12} className="text-muted-foreground shrink-0" />}
             </button>
@@ -162,7 +183,7 @@ export function FeaturesView() {
             {/* Expanded items */}
             {isExpanded && (
               <div className="border-t border-border">
-                {group.items.map((item, i) => {
+                {filteredItems.map((item, i) => {
                   const node = resolveNode(item.paths);
                   const layerColor = LAYER_COLORS[item.layer as ArchitecturalLayer]?.color || '#7c8594';
                   const isActive = node && detailNodeId === node.id;

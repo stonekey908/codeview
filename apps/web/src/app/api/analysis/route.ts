@@ -11,22 +11,11 @@ export async function GET() {
     if (fs.existsSync(filePath)) {
       const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
       applyEnhancements(data, path.dirname(filePath));
-      applyDescriptions(data, path.dirname(filePath));
       return NextResponse.json(data);
     }
   }
 
-  // No real project — return demo enhancements for client-side graph building
-  try {
-    const { readDataFile } = await import('@/lib/demo-data');
-    const enhancements = readDataFile('enhancements.json', null);
-    const descriptions = readDataFile('descriptions.json', null);
-    if (enhancements) {
-      return NextResponse.json({ graph: null, layout: null, demoEnhancements: enhancements, demoDescriptions: descriptions });
-    }
-  } catch {}
-
-  return NextResponse.json({ graph: null, layout: null }, { status: 404 });
+  return NextResponse.json({ graph: null, layout: null });
 }
 
 function applyEnhancements(data: any, dir: string) {
@@ -49,18 +38,6 @@ function applyEnhancements(data: any, dir: string) {
   } catch (err) {
     console.error('[analysis] Error applying enhancements:', err);
   }
-}
-
-function applyDescriptions(data: any, dir: string) {
-  const descPath = path.join(dir, 'descriptions.json');
-  if (!fs.existsSync(descPath)) return;
-  try {
-    const descriptions = JSON.parse(fs.readFileSync(descPath, 'utf-8'));
-    if (!data.graph?.nodes) return;
-    for (const node of data.graph.nodes) {
-      if (descriptions[node.relativePath]) node.description = descriptions[node.relativePath];
-    }
-  } catch {}
 }
 
 function rebuildClusters(data: any) {
