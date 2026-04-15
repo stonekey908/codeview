@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+
 import { Toolbar } from '@/components/toolbar/Toolbar';
 import { LeftPanel } from '@/components/left/LeftPanel';
 import { GraphCanvas } from '@/components/graph/GraphCanvas';
@@ -9,141 +10,16 @@ import { SearchPalette } from '@/components/search/SearchPalette';
 import { KeyboardShortcuts } from '@/components/keyboard/KeyboardShortcuts';
 import { OverviewPanel } from '@/components/overview/OverviewPanel';
 import { useGraphStore } from '@/store/graph-store';
-import { buildGraph, computeLayout } from '@codeview/graph-engine';
+import { computeLayout } from '@codeview/graph-engine';
 import type { LayoutResult } from '@codeview/graph-engine';
-import type { GraphData } from '@codeview/shared';
+import type { ArchitecturalLayer } from '@codeview/shared';
 import { buildRfNodes } from '@/lib/build-rf-nodes';
 
-// Demo: "Taskflow" — a project management SaaS (like Linear/Asana)
-const imp = (source: string, specifiers: string[]) => ({ source, specifiers, isTypeOnly: false, isDynamic: false });
-const exp = (name: string, isDefault = false) => ({ name, isDefault, isTypeOnly: false });
-const fw = (role: string, framework = 'nextjs', confidence = 0.95) => ({ role, confidence, framework });
-const f = (relativePath: string, imports: any[], exports: any[], framework: any) => ({
-  filePath: `/demo/${relativePath}`, relativePath, imports, exports, framework,
-});
-
-const DEMO_FILES = [
-  // ── UI: Pages ──
-  f('src/app/page.tsx',
-    [imp('@/components/Dashboard', ['Dashboard']), imp('@/hooks/useAuth', ['useAuth']), imp('@/hooks/useProjects', ['useProjects'])],
-    [exp('default', true)], fw('page')),
-  f('src/app/layout.tsx',
-    [imp('@/components/Sidebar', ['Sidebar']), imp('@/components/TopNav', ['TopNav']), imp('@/providers/AuthProvider', ['AuthProvider'])],
-    [exp('default', true)], fw('layout')),
-  f('src/app/projects/[id]/page.tsx',
-    [imp('@/components/TaskBoard', ['TaskBoard']), imp('@/hooks/useProject', ['useProject']), imp('@/hooks/useTasks', ['useTasks'])],
-    [exp('default', true)], fw('page')),
-  f('src/app/settings/page.tsx',
-    [imp('@/components/SettingsForm', ['SettingsForm']), imp('@/hooks/useAuth', ['useAuth']), imp('@/api/billing', ['billingApi'])],
-    [exp('default', true)], fw('page')),
-  f('src/app/login/page.tsx',
-    [imp('@/components/LoginForm', ['LoginForm']), imp('@/api/auth', ['authApi'])],
-    [exp('default', true)], fw('page')),
-
-  // ── UI: Components ──
-  f('src/components/Dashboard.tsx',
-    [imp('@/components/ProjectCard', ['ProjectCard']), imp('@/components/ActivityFeed', ['ActivityFeed']), imp('@/components/StatsBar', ['StatsBar'])],
-    [exp('Dashboard')], fw('component')),
-  f('src/components/TaskBoard.tsx',
-    [imp('@/components/TaskCard', ['TaskCard']), imp('@/components/TaskColumn', ['TaskColumn']), imp('@/hooks/useDragDrop', ['useDragDrop']), imp('@/api/tasks', ['tasksApi'])],
-    [exp('TaskBoard')], fw('component')),
-  f('src/components/TaskCard.tsx',
-    [imp('@/components/Avatar', ['Avatar']), imp('@/components/PriorityBadge', ['PriorityBadge']), imp('@/utils/formatDate', ['formatDate'])],
-    [exp('TaskCard')], fw('component')),
-  f('src/components/Sidebar.tsx',
-    [imp('@/hooks/useProjects', ['useProjects']), imp('@/components/ProjectList', ['ProjectList'])],
-    [exp('Sidebar')], fw('component')),
-  f('src/components/ActivityFeed.tsx',
-    [imp('@/hooks/useRealtime', ['useRealtime']), imp('@/utils/formatDate', ['formatDate']), imp('@/utils/formatRelativeTime', ['formatRelativeTime'])],
-    [exp('ActivityFeed')], fw('component')),
-  f('src/components/LoginForm.tsx',
-    [imp('@/api/auth', ['authApi']), imp('@/utils/validateEmail', ['validateEmail'])],
-    [exp('LoginForm')], fw('component')),
-  f('src/components/SettingsForm.tsx',
-    [imp('@/api/billing', ['billingApi']), imp('@/hooks/useAuth', ['useAuth'])],
-    [exp('SettingsForm')], fw('component')),
-
-  // ── UI: Hooks ──
-  f('src/hooks/useAuth.tsx',
-    [imp('@/api/auth', ['authApi']), imp('@/lib/supabase', ['supabase'])],
-    [exp('useAuth'), exp('AuthProvider')], fw('hook')),
-  f('src/hooks/useProjects.ts',
-    [imp('@/api/projects', ['projectsApi']), imp('@/hooks/useRealtime', ['useRealtime'])],
-    [exp('useProjects')], fw('hook')),
-  f('src/hooks/useTasks.ts',
-    [imp('@/api/tasks', ['tasksApi']), imp('@/hooks/useRealtime', ['useRealtime'])],
-    [exp('useTasks')], fw('hook')),
-  f('src/hooks/useRealtime.ts',
-    [imp('@/lib/supabase', ['supabase'])],
-    [exp('useRealtime')], fw('hook')),
-
-  // ── API: Route Handlers ──
-  f('src/app/api/auth/route.ts',
-    [imp('@/lib/supabase', ['supabase']), imp('@/utils/jwt', ['signToken', 'verifyToken'])],
-    [exp('POST'), exp('GET')], fw('api-route')),
-  f('src/app/api/projects/route.ts',
-    [imp('@/lib/supabase', ['supabase']), imp('@/lib/permissions', ['checkPermission'])],
-    [exp('GET'), exp('POST'), exp('DELETE')], fw('api-route')),
-  f('src/app/api/tasks/route.ts',
-    [imp('@/lib/supabase', ['supabase']), imp('@/lib/permissions', ['checkPermission']), imp('@/services/ai-assistant', ['aiAssistant'])],
-    [exp('GET'), exp('POST'), exp('PATCH')], fw('api-route')),
-  f('src/app/api/billing/route.ts',
-    [imp('@/services/stripe', ['stripeClient']), imp('@/lib/supabase', ['supabase'])],
-    [exp('GET'), exp('POST')], fw('api-route')),
-  f('src/app/api/webhooks/stripe/route.ts',
-    [imp('@/services/stripe', ['stripeClient']), imp('@/lib/supabase', ['supabase'])],
-    [exp('POST')], fw('api-route')),
-  f('src/app/api/ai/summarize/route.ts',
-    [imp('@/services/ai-assistant', ['aiAssistant']), imp('@/lib/supabase', ['supabase'])],
-    [exp('POST')], fw('api-route')),
-
-  // ── External: Services ──
-  f('src/services/stripe.ts',
-    [],
-    [exp('stripeClient'), exp('createCheckoutSession'), exp('handleWebhook')], fw('service', 'unknown', 0.8)),
-  f('src/services/ai-assistant.ts',
-    [imp('@/lib/openai', ['openai'])],
-    [exp('aiAssistant'), exp('summarizeProject'), exp('suggestTasks')], fw('service', 'unknown', 0.8)),
-  f('src/services/email.ts',
-    [],
-    [exp('sendInvite'), exp('sendNotification')], fw('service', 'unknown', 0.7)),
-  f('src/lib/supabase.ts',
-    [],
-    [exp('supabase'), exp('supabaseAdmin')], fw('config', 'unknown', 0.9)),
-  f('src/lib/openai.ts',
-    [],
-    [exp('openai')], fw('config', 'unknown', 0.8)),
-
-  // ── Utils ──
-  f('src/utils/jwt.ts',
-    [],
-    [exp('signToken'), exp('verifyToken')], fw('utility', 'unknown', 0.6)),
-  f('src/utils/formatDate.ts',
-    [],
-    [exp('formatDate'), exp('formatRelativeTime')], fw('utility', 'unknown', 0.6)),
-  f('src/utils/validateEmail.ts',
-    [],
-    [exp('validateEmail'), exp('validatePassword')], fw('utility', 'unknown', 0.6)),
-  f('src/lib/permissions.ts',
-    [imp('@/lib/supabase', ['supabase'])],
-    [exp('checkPermission'), exp('requireAdmin')], fw('utility', 'unknown', 0.7)),
-
-  // ── Data: Types & Constants ──
-  f('src/types/project.ts',
-    [],
-    [exp('Project'), exp('Task'), exp('TaskStatus'), exp('Priority')], fw('unknown', 'unknown', 0.3)),
-  f('src/types/user.ts',
-    [],
-    [exp('User'), exp('Team'), exp('Role')], fw('unknown', 'unknown', 0.3)),
-  f('src/constants/priorities.ts',
-    [],
-    [exp('PRIORITIES'), exp('STATUS_LABELS'), exp('PRIORITY_COLORS')], fw('unknown', 'unknown', 0.3)),
-];
-
 export default function Home() {
-  const { setGraphData, setRfNodes, setRfEdges, setLoading, theme, setTheme, graphData, detailMode, middleView, detailWidth, leftWidth, leftTab, detailNodeId, isLoading } = useGraphStore();
+  const { setGraphData, setRfNodes, setRfEdges, setLoading, theme, setTheme, graphData, detailMode, middleView, detailWidth, leftWidth, leftTab, detailNodeId, isLoading, capabilityLensOn, capabilities, activeCapabilityIndex } = useGraphStore();
   const layoutRef = useRef<LayoutResult | null>(null);
-  const [isDemo, setIsDemo] = useState(false);
+  const originalGraphRef = useRef<import('@codeview/shared').GraphData | null>(null);
+  const [hasProject, setHasProject] = useState(true);
 
   // Restore theme from localStorage
   useEffect(() => {
@@ -156,63 +32,24 @@ export default function Home() {
   useEffect(() => {
     async function init() {
       setLoading(true, 'Loading architecture...');
-      let graph: GraphData;
-      let demoEnhancements: Record<string, { title?: string; layer?: string; summary?: string }> | null = null;
-      let demoDescriptions: Record<string, string> | null = null;
       try {
         const res = await fetch('/api/analysis');
         const data = await res.json();
-        if (data.graph) {
-          graph = data.graph;
-        } else {
-          graph = buildGraph({ rootDir: '/demo', files: DEMO_FILES, errors: [] });
-          demoEnhancements = data.demoEnhancements || null;
-          demoDescriptions = data.demoDescriptions || null;
-          setIsDemo(true);
+        if (!data.graph) {
+          setHasProject(false);
+          setLoading(false);
+          return;
         }
+        originalGraphRef.current = data.graph;
+        setGraphData(data.graph);
+        const layout = await computeLayout(data.graph);
+        layoutRef.current = layout;
+        const { nodes, edges } = buildRfNodes(data.graph, layout, theme);
+        setRfNodes(nodes);
+        setRfEdges(edges);
       } catch {
-        graph = buildGraph({ rootDir: '/demo', files: DEMO_FILES, errors: [] });
-        setIsDemo(true);
+        setHasProject(false);
       }
-      // Apply demo enhancements to generated graph
-      if (demoEnhancements && graph.nodes) {
-        for (const node of graph.nodes) {
-          const enh = demoEnhancements[node.relativePath];
-          if (enh) {
-            if (enh.title) node.label = enh.title;
-            if (enh.layer && ['ui', 'api', 'data', 'utils', 'external'].includes(enh.layer)) {
-              node.layer = enh.layer as any;
-            }
-            if (enh.summary) node.description = enh.summary;
-          }
-        }
-        // Rebuild clusters
-        const layerLabels: Record<string, string> = { ui: 'UI Components', api: 'API Routes', data: 'Data Layer', utils: 'Utilities', external: 'External Services' };
-        const layerDescs: Record<string, string> = { ui: 'What users see and interact with', api: 'Behind-the-scenes request handlers', data: 'Database structure and type definitions', utils: 'Shared helper tools', external: 'Third-party services' };
-        const byLayer = new Map<string, string[]>();
-        for (const node of graph.nodes) {
-          const arr = byLayer.get(node.layer) || [];
-          arr.push(node.id);
-          byLayer.set(node.layer, arr);
-        }
-        graph.clusters = Array.from(byLayer.entries()).map(([layer, nodeIds]) => ({
-          id: `cluster-${layer}`,
-          label: layerLabels[layer] || layer,
-          description: layerDescs[layer] || '',
-          layer: layer as any,
-          nodeIds,
-          metadata: { componentCount: nodeIds.length, connectionCount: graph.edges.filter(e => nodeIds.includes(e.source) || nodeIds.includes(e.target)).length },
-        }));
-      }
-      // Demo descriptions are longer explanations — served via /api/ask-claude
-      // for the Explanation section. Keep node.description as the short summary
-      // from enhancements so Description and Explanation show different content.
-      setGraphData(graph);
-      const layout = await computeLayout(graph);
-      layoutRef.current = layout;
-      const { nodes, edges } = buildRfNodes(graph, layout, theme);
-      setRfNodes(nodes);
-      setRfEdges(edges);
       setLoading(false);
     }
     init();
@@ -226,16 +63,76 @@ export default function Home() {
     setRfEdges(edges);
   }, [theme, graphData, setRfNodes, setRfEdges]);
 
+  // Rebuild graph clusters when capability lens toggles
+  useEffect(() => {
+    const original = originalGraphRef.current;
+    if (!original) return;
+
+    if (capabilityLensOn && capabilities.length > 0) {
+      // Build capability-based clusters
+      const capClusters = capabilities.map((cap, i) => {
+        const nodeIds = original.nodes
+          .filter(n => cap.componentPaths.includes(n.relativePath))
+          .map(n => n.id);
+        return {
+          id: `cap-${i}`,
+          label: `${cap.icon} ${cap.title}`,
+          description: cap.description,
+          layer: 'ui' as ArchitecturalLayer, // color overridden in ClusterNode for cap clusters
+          nodeIds,
+          metadata: {
+            componentCount: nodeIds.length,
+            connectionCount: original.edges.filter(e => nodeIds.includes(e.source) || nodeIds.includes(e.target)).length,
+          },
+        };
+      });
+      // Safety net: add uncategorised components if AI missed any
+      const allCapNodeIds = new Set(capClusters.flatMap(c => c.nodeIds));
+      const otherIds = original.nodes.filter(n => !allCapNodeIds.has(n.id)).map(n => n.id);
+      if (otherIds.length > 0) {
+        capClusters.push({
+          id: 'cap-other',
+          label: '📦 Uncategorised',
+          description: 'Components not yet assigned to a capability',
+          layer: 'utils' as ArchitecturalLayer,
+          nodeIds: otherIds,
+          metadata: {
+            componentCount: otherIds.length,
+            connectionCount: original.edges.filter(e => otherIds.includes(e.source) || otherIds.includes(e.target)).length,
+          },
+        });
+      }
+      const capGraph = { ...original, clusters: capClusters };
+      computeLayout(capGraph).then(layout => {
+        layoutRef.current = layout;
+        const { nodes, edges } = buildRfNodes(capGraph, layout, theme);
+        setGraphData(capGraph);
+        setRfNodes(nodes);
+        setRfEdges(edges);
+      });
+    } else {
+      // Restore original layer-based clusters
+      computeLayout(original).then(layout => {
+        layoutRef.current = layout;
+        const { nodes, edges } = buildRfNodes(original, layout, theme);
+        setGraphData(original);
+        setRfNodes(nodes);
+        setRfEdges(edges);
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [capabilityLensOn, capabilities]);
+
   // Layout
   const showOverview = leftTab === 'overview';
   const isSlideOut = detailMode === 'slide-out';
   const isExpanded = detailMode === 'expanded';
   const hasDetail = !!detailNodeId;
 
-  // Graph shows for: Architecture tab always, OR any tab when slide-out mode
-  const showGraph = leftTab === 'architecture' || (isSlideOut && hasDetail);
+  // Graph shows for: Architecture tab (unless expanded detail overrides), OR any tab when slide-out mode
+  const showGraph = (leftTab === 'architecture' && !(isExpanded && hasDetail)) || (isSlideOut && hasDetail);
   const showSlideOut = isSlideOut && hasDetail;
-  // Full-width detail for Features/Categories when expanded
+  // Full-width detail when expanded (any tab except overview)
   const showFullDetail = !showOverview && !showGraph && isExpanded && hasDetail;
   // Empty state when no component selected in Features/Categories
   const showEmpty = !showOverview && !showGraph && !showFullDetail && !hasDetail;
@@ -246,17 +143,20 @@ export default function Home() {
   return (
     <div className="h-screen flex flex-col">
       <Toolbar />
-      {isDemo && (
-        <div className="flex items-center justify-between px-4 py-2 bg-[#b08d57]/10 border-b border-[#b08d57]/20 text-[#b08d57]">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="font-semibold">Demo Mode</span>
-            <span className="text-[#b08d57]/70">Showing sample &ldquo;Taskflow&rdquo; project. To visualise your own project:</span>
+      {!hasProject ? (
+        <div className="flex-1 flex items-center justify-center bg-background">
+          <div className="text-center max-w-md">
+            <div className="text-4xl mb-4 opacity-40">📦</div>
+            <h2 className="text-lg font-semibold text-foreground mb-2">No project loaded</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              Point CodeView at your project to visualise its architecture.
+            </p>
+            <code className="block text-xs font-mono bg-muted/50 px-4 py-3 rounded-lg border border-border text-muted-foreground">
+              npx codeview /path/to/your/project
+            </code>
           </div>
-          <code className="text-[10px] font-mono bg-[#b08d57]/10 px-2 py-1 rounded border border-[#b08d57]/20">
-            npx tsx apps/cli/bin/codeview.mjs /path/to/your/project
-          </code>
         </div>
-      )}
+      ) : (
       <div className="flex-1 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: gridCols }}>
         <LeftPanel />
         {showOverview && <OverviewPanel />}
@@ -272,6 +172,7 @@ export default function Home() {
           </div>
         )}
       </div>
+      )}
       <SearchPalette />
       <KeyboardShortcuts />
     </div>

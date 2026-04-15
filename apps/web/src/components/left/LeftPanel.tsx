@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useGraphStore } from '@/store/graph-store';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Layers } from 'lucide-react';
 import { LAYER_COLORS, LAYER_LABELS } from '@/components/canvas/layer-colors';
 import { FeaturesView } from './FeaturesView';
 import type { ArchitecturalLayer } from '@codeview/shared';
@@ -23,8 +23,15 @@ const ROLE_ICONS: Record<string, string> = {
 };
 
 export function LeftPanel() {
-  const { graphData, leftTab, setLeftTab, openDetail, detailNodeId, expandedClusterIds, toggleCluster, leftWidth, setLeftWidth } = useGraphStore();
+  const { graphData, leftTab, setLeftTab, openDetail, detailNodeId, expandedClusterIds, toggleCluster, leftWidth, setLeftWidth, capabilities, capabilityLensOn, toggleCapabilityLens, activeCapabilityIndex, setActiveCapability, setCapabilities } = useGraphStore();
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Load capabilities from overview data
+  useEffect(() => {
+    fetch('/api/overview').then(r => r.json()).then(d => {
+      if (d.overview?.capabilities) setCapabilities(d.overview.capabilities);
+    }).catch(() => {});
+  }, [setCapabilities]);
 
   if (!graphData) return (
     <div className="border-r border-border bg-card flex items-center justify-center">
@@ -103,7 +110,7 @@ export function LeftPanel() {
           </div>
         )}
 
-        {leftTab === 'features' && <FeaturesView />}
+        {leftTab === 'features' && <FeaturesView searchQuery={searchQuery} />}
 
         {leftTab === 'categories' && graphData.clusters.map((cluster: any) => {
           const colors = LAYER_COLORS[cluster.layer as ArchitecturalLayer];
@@ -140,13 +147,81 @@ export function LeftPanel() {
 
         {leftTab === 'architecture' && (
           <div className="px-2.5">
-            {LAYER_FLOW_ORDER.map((layer, i) => {
+            {/* Capability lens toggle */}
+            {capabilities.length > 0 && (
+              <div className="mb-2.5 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Layers size={11} className={capabilityLensOn ? 'text-primary' : 'text-muted-foreground'} />
+                  <span className={`text-[10px] font-semibold uppercase tracking-wider ${capabilityLensOn ? 'text-primary' : 'text-muted-foreground'}`}>Capabilities</span>
+                </div>
+                <button
+                  onClick={toggleCapabilityLens}
+                  className={`relative inline-flex h-[18px] w-[32px] shrink-0 items-center rounded-full transition-colors ${capabilityLensOn ? 'bg-primary' : 'bg-border'}`}
+                  aria-label="Toggle capability lens"
+                  role="switch"
+                  aria-checked={capabilityLensOn}
+                >
+                  <span className={`inline-block h-[14px] w-[14px] rounded-full bg-white shadow-sm transition-transform ${capabilityLensOn ? 'translate-x-[15px]' : 'translate-x-[2px]'}`} />
+                </button>
+              </div>
+            )}
+
+            {/* Capability groups view (lens ON) */}
+            {capabilityLensOn && capabilities.map((cap, capIndex) => {
+              const capNodes = graphData.nodes.filter((n: any) => cap.componentPaths.includes(n.relativePath));
+              const filteredCapNodes = searchQuery
+                ? capNodes.filter((n: any) => n.label.toLowerCase().includes(searchQuery.toLowerCase()) || n.relativePath.toLowerCase().includes(searchQuery.toLowerCase()))
+                : capNodes;
+              if (searchQuery && filteredCapNodes.length === 0) return null;
+              const isActive = activeCapabilityIndex === capIndex;
+              return (
+                <div key={capIndex} className="mb-1.5">
+                  <div className={`rounded-lg overflow-hidden border transition-colors ${isActive ? 'bg-primary/5 border-primary/20' : 'bg-muted border-border'}`}>
+                    <button
+                      onClick={() => setActiveCapability(isActive ? null : capIndex)}
+                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent/50 transition-colors"
+                    >
+                      {isActive ? <ChevronDown size={12} className="text-primary shrink-0" /> : <ChevronRight size={12} className="text-muted-foreground shrink-0" />}
+                      <span className="text-sm">{cap.icon}</span>
+                      <span className={`text-xs font-semibold truncate ${isActive ? 'text-primary' : 'text-foreground'}`}>{cap.title}</span>
+                      <span className="ml-auto text-[9px] font-mono text-muted-foreground">{capNodes.length}</span>
+                    </button>
+                    {isActive && (
+                      <div className="border-t border-primary/10">
+                        <p className="text-[10px] text-muted-foreground leading-relaxed px-3 py-1.5">{cap.description}</p>
+                        {filteredCapNodes.map((node: any) => {
+                          const colors = LAYER_COLORS[node.layer as ArchitecturalLayer];
+                          return (
+                            <button key={node.id} onClick={() => openDetail(node.id)}
+                              className={`w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] text-left transition-all ${
+                                detailNodeId === node.id ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                              }`}>
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: colors.color }} />
+                              <span className="text-[9px] w-3.5 text-center">{ROLE_ICONS[node.role] || '📄'}</span>
+                              <span className="truncate">{node.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Standard architecture flow view (lens OFF) */}
+            {!capabilityLensOn && LAYER_FLOW_ORDER.map((layer, i) => {
               const cluster = graphData.clusters.find((c: any) => c.layer === layer);
               if (!cluster) return null;
               const colors = LAYER_COLORS[layer];
-              const nodes = cluster.nodeIds.map((id: string) => graphData.nodes.find((n: any) => n.id === id)).filter(Boolean);
+              const allNodes = cluster.nodeIds.map((id: string) => graphData.nodes.find((n: any) => n.id === id)).filter(Boolean);
+              const filteredNodes = searchQuery
+                ? allNodes.filter((n: any) => n.label.toLowerCase().includes(searchQuery.toLowerCase()) || n.relativePath.toLowerCase().includes(searchQuery.toLowerCase()))
+                : allNodes;
+              if (searchQuery && filteredNodes.length === 0) return null;
               const prevLayer = LAYER_FLOW_ORDER[i - 1];
               const arrowKey = prevLayer ? `${prevLayer}→${layer}` : null;
+              const isExpanded = expandedClusterIds.has(cluster.id);
               return (
                 <div key={layer}>
                   {arrowKey && FLOW_ARROWS[arrowKey] && (
@@ -157,22 +232,25 @@ export function LeftPanel() {
                     </div>
                   )}
                   <div className="rounded-lg overflow-hidden mb-1 bg-muted border border-border">
-                    <div className="flex items-center gap-2 px-3 py-2">
+                    <button onClick={() => toggleCluster(cluster.id)} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent/50 transition-colors">
+                      {isExpanded ? <ChevronDown size={12} className="text-muted-foreground shrink-0" /> : <ChevronRight size={12} className="text-muted-foreground shrink-0" />}
                       <span className="w-2 h-2 rounded-full" style={{ background: colors.color }} />
                       <span className="text-xs font-semibold" style={{ color: colors.color }}>{FLOW_LABELS[layer]}</span>
-                      <span className="ml-auto text-[9px] font-mono text-muted-foreground">{nodes.length}</span>
-                    </div>
-                    <div className="border-t border-border">
-                      {nodes.map((node: any) => (
-                        <button key={node.id} onClick={() => openDetail(node.id)}
-                          className={`w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] text-left transition-all ${
-                            detailNodeId === node.id ? 'bg-primary/5 text-primary font-medium' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-                          }`}>
-                          <span className="text-[9px] w-3.5 text-center">{ROLE_ICONS[node.role] || '📄'}</span>
-                          <span className="truncate">{node.label}</span>
-                        </button>
-                      ))}
-                    </div>
+                      <span className="ml-auto text-[9px] font-mono text-muted-foreground">{allNodes.length}</span>
+                    </button>
+                    {isExpanded && (
+                      <div className="border-t border-border">
+                        {filteredNodes.map((node: any) => (
+                          <button key={node.id} onClick={() => openDetail(node.id)}
+                            className={`w-full flex items-center gap-1.5 px-3 py-1.5 text-[11px] text-left transition-all ${
+                              detailNodeId === node.id ? 'bg-primary/5 text-primary font-medium' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                            }`}>
+                            <span className="text-[9px] w-3.5 text-center">{ROLE_ICONS[node.role] || '📄'}</span>
+                            <span className="truncate">{node.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               );

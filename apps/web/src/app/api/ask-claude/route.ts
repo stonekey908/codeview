@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   const projectDir = process.env.CODEVIEW_PROJECT_DIR || process.cwd();
 
-  // Check for cached descriptions, fall back to demo data
+  // Check for cached descriptions
   const descPath = path.join(projectDir, '.codeview', 'descriptions.json');
   let descriptions: Record<string, string> = {};
   try {
@@ -30,14 +30,6 @@ export async function GET() {
       descriptions = JSON.parse(fs.readFileSync(descPath, 'utf-8'));
     }
   } catch { /* ignore */ }
-
-  // Fall back to demo descriptions if empty
-  if (Object.keys(descriptions).length === 0) {
-    try {
-      const { readDataFile } = await import('@/lib/demo-data');
-      descriptions = readDataFile('descriptions.json', {});
-    } catch {}
-  }
 
   // Check for pending question status
   const pendingPath = path.join(projectDir, '.codeview', 'pending-question.json');

@@ -68,6 +68,14 @@ interface GraphState {
   setRfNodes: (nodes: Node[]) => void;
   setRfEdges: (edges: Edge[]) => void;
 
+  // Capabilities lens
+  capabilities: { icon: string; title: string; description: string; componentPaths: string[] }[];
+  capabilityLensOn: boolean;
+  activeCapabilityIndex: number | null;
+  setCapabilities: (caps: { icon: string; title: string; description: string; componentPaths: string[] }[]) => void;
+  toggleCapabilityLens: () => void;
+  setActiveCapability: (index: number | null) => void;
+
   // Claude
   claudeExplanations: Record<string, string>;
   setClaudeExplanation: (nodeId: string, explanation: string) => void;
@@ -89,7 +97,11 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setLeftTab: (tab) => set((s) => {
     // When switching away from architecture with a slide-out open, close it
     if (s.leftTab === 'architecture' && tab !== 'architecture' && s.detailMode === 'slide-out') {
-      return { leftTab: tab, detailNodeId: null, detailNavStack: [], detailMode: 'hidden', middleView: 'graph' };
+      return { leftTab: tab, detailNodeId: null, detailNavStack: [], detailMode: 'hidden', middleView: 'graph', capabilityLensOn: false, activeCapabilityIndex: null };
+    }
+    // When switching away from architecture, clear capability lens
+    if (s.leftTab === 'architecture' && tab !== 'architecture') {
+      return { leftTab: tab, capabilityLensOn: false, activeCapabilityIndex: null };
     }
     // When switching TO overview, always clear detail (overview fills the middle)
     if (tab === 'overview') {
@@ -194,6 +206,13 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   setGraphData: (data) => set({ graphData: data }),
   setRfNodes: (nodes) => set({ rfNodes: nodes }),
   setRfEdges: (edges) => set({ rfEdges: edges }),
+
+  capabilities: [],
+  capabilityLensOn: false,
+  activeCapabilityIndex: null,
+  setCapabilities: (caps) => set({ capabilities: caps }),
+  toggleCapabilityLens: () => set((s) => ({ capabilityLensOn: !s.capabilityLensOn, activeCapabilityIndex: null })),
+  setActiveCapability: (index) => set({ activeCapabilityIndex: index }),
 
   claudeExplanations: {},
   setClaudeExplanation: (nodeId, explanation) => set((s) => ({

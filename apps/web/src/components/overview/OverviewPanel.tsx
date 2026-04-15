@@ -13,12 +13,13 @@ interface OverviewData {
   flows: { title: string; description: string; steps: { title: string; description: string; layer: string; componentPaths: string[] }[] }[];
   backend: { icon: string; title: string; description: string; componentPaths: string[] }[];
   dataTypes: { name: string; description: string }[];
+  capabilities?: { icon: string; title: string; description: string; componentPaths: string[] }[];
   generatedAt: string;
   componentCount: number;
 }
 
 export function OverviewPanel() {
-  const { openDetail, graphData, setLeftTab } = useGraphStore();
+  const { openDetail, graphData, setLeftTab, setCapabilities } = useGraphStore();
 
   const drillDown = (nodeId: string) => {
     setLeftTab('features');
@@ -30,10 +31,13 @@ export function OverviewPanel() {
 
   useEffect(() => {
     fetch('/api/overview').then(r => r.json()).then(d => {
-      if (d.overview) setOverview(d.overview);
+      if (d.overview) {
+        setOverview(d.overview);
+        if (d.overview.capabilities) setCapabilities(d.overview.capabilities);
+      }
       if (d.status === 'running') setGenerating(true);
     }).catch(() => {});
-  }, []);
+  }, [setCapabilities]);
 
   // Poll while generating
   useEffect(() => {
@@ -43,6 +47,7 @@ export function OverviewPanel() {
       const d = await r.json();
       if (d.status === 'done' && d.overview) {
         setOverview(d.overview);
+        if (d.overview.capabilities) setCapabilities(d.overview.capabilities);
         setGenerating(false);
         clearInterval(poll);
       } else if (d.status === 'error') {

@@ -17,6 +17,7 @@ export function GraphCanvas() {
   const {
     rfNodes: storeNodes, rfEdges: storeEdges,
     setHoveredNode, theme,
+    capabilityLensOn, activeCapabilityIndex,
   } = useGraphStore();
   const isDark = theme === 'dark';
 
@@ -25,6 +26,11 @@ export function GraphCanvas() {
 
   useEffect(() => { if (storeNodes.length > 0) setNodes(storeNodes); }, [storeNodes, setNodes]);
   useEffect(() => { if (storeEdges.length > 0) setEdges(storeEdges); }, [storeEdges, setEdges]);
+
+  // Force node re-render when capability lens state changes
+  useEffect(() => {
+    setNodes((nds) => nds.map((n) => ({ ...n, data: { ...n.data, _capLens: capabilityLensOn, _capIdx: activeCapabilityIndex } })));
+  }, [capabilityLensOn, activeCapabilityIndex, setNodes]);
 
   const onNodeMouseEnter: NodeMouseHandler = useCallback((_e, node) => {
     if (node.type === 'component') setHoveredNode(node.id);

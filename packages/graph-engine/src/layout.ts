@@ -24,15 +24,29 @@ export async function computeLayout(graph: GraphData): Promise<LayoutResult> {
   const nodePositions = new Map<string, { x: number; y: number; width: number; height: number }>();
   const groupPositions = new Map<string, { x: number; y: number; width: number; height: number }>();
 
+  // Detect capability-based clusters (id starts with "cap-")
+  const isCapabilityLayout = graph.clusters.some(c => c.id.startsWith('cap-'));
+
   const sortedClusters = [...graph.clusters].sort(
     (a, b) => LAYER_ORDER[a.layer] - LAYER_ORDER[b.layer]
   );
 
   const rows = new Map<number, typeof sortedClusters>();
-  for (const cluster of sortedClusters) {
-    const row = LAYER_ORDER[cluster.layer];
-    if (!rows.has(row)) rows.set(row, []);
-    rows.get(row)!.push(cluster);
+
+  if (isCapabilityLayout) {
+    // Grid layout: arrange in rows of 2-3 for better spatial distribution
+    const cols = graph.clusters.length <= 4 ? 2 : 3;
+    for (let i = 0; i < graph.clusters.length; i++) {
+      const row = Math.floor(i / cols);
+      if (!rows.has(row)) rows.set(row, []);
+      rows.get(row)!.push(graph.clusters[i]);
+    }
+  } else {
+    for (const cluster of sortedClusters) {
+      const row = LAYER_ORDER[cluster.layer];
+      if (!rows.has(row)) rows.set(row, []);
+      rows.get(row)!.push(cluster);
+    }
   }
 
   let currentY = GRID * 3;
