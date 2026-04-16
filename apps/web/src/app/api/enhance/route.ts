@@ -5,7 +5,7 @@ import * as path from 'path';
 import { resolveProviderWithSettings, runViaHttp } from '@/lib/ai-provider';
 
 export async function POST(request: NextRequest) {
-  const { componentPaths } = await request.json();
+  const { componentPaths, clear } = await request.json();
   const projectDir = process.env.CODEVIEW_PROJECT_DIR || process.cwd();
 
   const provider = resolveProviderWithSettings(projectDir);
@@ -23,15 +23,24 @@ export async function POST(request: NextRequest) {
   const descDir = path.join(projectDir, '.codeview');
   fs.mkdirSync(descDir, { recursive: true });
   const enhancePath = path.join(descDir, 'enhancements.json');
+  const descPath = path.join(descDir, 'descriptions.json');
   const progressPath = path.join(descDir, 'enhance-progress.json');
+
+  // Clear existing data when regenerating all
+  if (clear) {
+    try { if (fs.existsSync(enhancePath)) fs.unlinkSync(enhancePath); } catch {}
+    try { if (fs.existsSync(descPath)) fs.unlinkSync(descPath); } catch {}
+  }
 
   const totalCount = components.length;
   fs.writeFileSync(progressPath, JSON.stringify({ status: 'running', total: totalCount, done: 0, batch: 0, batches: Math.ceil(totalCount / 30) }));
 
   let allEnhancements: Record<string, any> = {};
-  try {
-    if (fs.existsSync(enhancePath)) allEnhancements = JSON.parse(fs.readFileSync(enhancePath, 'utf-8'));
-  } catch {}
+  if (!clear) {
+    try {
+      if (fs.existsSync(enhancePath)) allEnhancements = JSON.parse(fs.readFileSync(enhancePath, 'utf-8'));
+    } catch {}
+  }
 
   const BATCH_SIZE = 30;
   const batches: any[][] = [];
