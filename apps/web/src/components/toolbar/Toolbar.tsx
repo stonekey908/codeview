@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { useGraphStore } from '@/store/graph-store';
 import { GeneratePanel } from '@/components/generate/GeneratePanel';
 import { HelpGuide } from '@/components/help/HelpGuide';
+import { SettingsGear } from '@/components/settings/SettingsGear';
 import { buildRfNodes } from '@/lib/build-rf-nodes';
 import { computeLayout } from '@codeview/graph-engine';
 
@@ -103,6 +104,37 @@ export function Toolbar() {
       </div>
 
       <div className="flex items-center gap-1.5">
+        <SettingsGear onRegenerate={(mode) => {
+          if (mode === 'all') {
+            // Clear existing data and re-run enhance
+            fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clear: true }) });
+          } else {
+            // Update new only — existing merge behavior
+            fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+          }
+          setEnhancing(true);
+          setEnhanceStatus('Starting...');
+          const poll = setInterval(async () => {
+            try {
+              const r = await fetch('/api/enhance');
+              const d = await r.json();
+              if (d.status === 'done') {
+                setEnhanceStatus(`Done — ${d.count} enhanced`);
+                clearInterval(poll);
+                await refetchData();
+                setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 2000);
+              } else if (d.status === 'running') {
+                const batchInfo = d.batches > 1 ? ` (batch ${d.batch}/${d.batches})` : '';
+                setEnhanceStatus(`${d.done}/${d.total}${batchInfo}`);
+              } else if (d.status === 'error') {
+                setEnhanceStatus('Failed');
+                clearInterval(poll);
+                setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 3000);
+              }
+            } catch {}
+          }, 2500);
+          setTimeout(() => { clearInterval(poll); setEnhancing(false); setEnhanceStatus(''); }, 300000);
+        }} />
         <button onClick={() => setShowHelp(true)}
           aria-label="Help guide"
           className="w-7 h-7 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors text-xs font-bold">
