@@ -51,8 +51,13 @@ export async function POST(request: NextRequest) {
   const dynamicContext = buildDynamicContext(message, focusedPath, enhancements, descriptions, analysis, overview);
   const historyText = buildHistoryText(history);
 
+  const focusHint = focusedPath
+    ? `\n\n## Active Selection\nThe user has \`${focusedPath}\` selected in the graph. If the question is ambiguous ("this", "it", "what does this do?"), assume they mean this component.`
+    : '';
+
   const fullPrompt = [
     basePrompt,
+    focusHint,
     dynamicContext,
     historyText,
     `\nUser: ${message}\n\nAssistant:`,
