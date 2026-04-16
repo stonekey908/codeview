@@ -9,6 +9,8 @@ import { DetailPanel } from '@/components/detail/DetailPanel';
 import { SearchPalette } from '@/components/search/SearchPalette';
 import { KeyboardShortcuts } from '@/components/keyboard/KeyboardShortcuts';
 import { OverviewPanel } from '@/components/overview/OverviewPanel';
+import { ProjectPicker } from '@/components/project/ProjectPicker';
+import { ChatWidget } from '@/components/chat/ChatWidget';
 import { useGraphStore } from '@/store/graph-store';
 import { computeLayout } from '@codeview/graph-engine';
 import type { LayoutResult } from '@codeview/graph-engine';
@@ -29,30 +31,32 @@ export default function Home() {
     } catch {}
   }, [setTheme]);
 
-  useEffect(() => {
-    async function init() {
-      setLoading(true, 'Loading architecture...');
-      try {
-        const res = await fetch('/api/analysis');
-        const data = await res.json();
-        if (!data.graph) {
-          setHasProject(false);
-          setLoading(false);
-          return;
-        }
-        originalGraphRef.current = data.graph;
-        setGraphData(data.graph);
-        const layout = await computeLayout(data.graph);
-        layoutRef.current = layout;
-        const { nodes, edges } = buildRfNodes(data.graph, layout, theme);
-        setRfNodes(nodes);
-        setRfEdges(edges);
-      } catch {
+  const loadAnalysis = async () => {
+    setLoading(true, 'Loading architecture...');
+    try {
+      const res = await fetch('/api/analysis');
+      const data = await res.json();
+      if (!data.graph) {
         setHasProject(false);
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+      setHasProject(true);
+      originalGraphRef.current = data.graph;
+      setGraphData(data.graph);
+      const layout = await computeLayout(data.graph);
+      layoutRef.current = layout;
+      const { nodes, edges } = buildRfNodes(data.graph, layout, theme);
+      setRfNodes(nodes);
+      setRfEdges(edges);
+    } catch {
+      setHasProject(false);
     }
-    init();
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadAnalysis();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -144,18 +148,7 @@ export default function Home() {
     <div className="h-screen flex flex-col">
       <Toolbar />
       {!hasProject ? (
-        <div className="flex-1 flex items-center justify-center bg-background">
-          <div className="text-center max-w-md">
-            <div className="text-4xl mb-4 opacity-40">📦</div>
-            <h2 className="text-lg font-semibold text-foreground mb-2">No project loaded</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Point CodeView at your project to visualise its architecture.
-            </p>
-            <code className="block text-xs font-mono bg-muted/50 px-4 py-3 rounded-lg border border-border text-muted-foreground">
-              npx codeview /path/to/your/project
-            </code>
-          </div>
-        </div>
+        <ProjectPicker onLoaded={loadAnalysis} />
       ) : (
       <div className="flex-1 overflow-hidden" style={{ display: 'grid', gridTemplateColumns: gridCols }}>
         <LeftPanel />
@@ -175,6 +168,7 @@ export default function Home() {
       )}
       <SearchPalette />
       <KeyboardShortcuts />
+      {hasProject && <ChatWidget />}
     </div>
   );
 }
