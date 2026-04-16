@@ -207,21 +207,17 @@ ollama serve
 
 That's it. CodeView auto-detects Ollama when it's running. Click the **settings gear** in the toolbar to switch to it.
 
-**Recommended models (16GB RAM machines):**
+**Which features to use with Ollama vs cloud providers:**
 
-| Model | RAM | Context | Best for |
-|-------|-----|---------|----------|
-| **qwen2.5-coder:7b** | ~6GB | 128K | Best overall — fast, great JSON output |
-| **llama3.1:8b** | ~6GB | 128K | Good general alternative |
-| **mistral:7b** | ~5GB | 32K | Fast and reliable |
-| **deepseek-coder-v2:16b** | ~12GB | 128K | Higher quality, needs more RAM |
+| Feature | Ollama (local) | Claude / Gemini (cloud) | Why |
+|---------|---------------|------------------------|-----|
+| **Explain** | Use Ollama | Overkill | This is the big token saver. You'll click Explain dozens of times exploring a project. Each call is a single file — fast locally, no cost. |
+| **Enhance** | Works well | Also fine | Runs once per project. Ollama handles it in smaller batches automatically. Cloud is faster but Ollama saves tokens. |
+| **Overview** | Small projects only | Use cloud for large projects | Overview sends your entire project architecture in one prompt. Cloud models have massive context windows (200K+). Ollama models may truncate on projects with 80+ components — CodeView warns you if it won't fit. |
 
-**What works well with Ollama:**
-- **Explain** — single component explanations, fast and free. The main token saver.
-- **Enhance** — batches components automatically. Works great with 128K context models.
-- **Overview** — works if the project fits in the model's context window. For large projects (100+ components), use Claude or Gemini for Overview and Ollama for everything else.
+**Recommended approach:** Set Ollama as your default provider (via the settings gear). When you need to generate or regenerate an Overview on a large project, switch to Claude or Gemini for that one operation, then switch back. The settings gear makes this instant — no restart needed.
 
-**Tip:** Use Ollama for frequent operations (Explain, Enhance) and Claude/Gemini for one-time operations (Overview). The settings gear lets you switch instantly.
+**Recommended Ollama model:** `qwen2.5-coder:7b` — fast, reliable JSON output, runs on any machine with 8GB+ RAM. Pull it with `ollama pull qwen2.5-coder:7b`.
 
 ### Switching providers at runtime
 
