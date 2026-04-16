@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
   const historyText = buildHistoryText(history);
 
   const focusHint = focusedPath
-    ? `\n\n## Active Selection\nThe user has \`${focusedPath}\` selected in the graph. If the question is ambiguous ("this", "it", "what does this do?"), assume they mean this component.`
+    ? `\n\n## Currently Viewing\nThe user is looking at \`${focusedPath}\` in the graph. This is just a hint — only use it if the question is ambiguous (e.g. "this", "it", "explain this"). Otherwise, answer the literal question they asked.`
     : '';
 
   const fullPrompt = [
@@ -127,11 +127,17 @@ function buildSystemPrompt(overview: any, enhancements: Record<string, any>): st
   const appName = overview?.appName || 'this project';
   let prompt = `You are a helpful assistant embedded inside CodeView — a visual architecture tool. You answer questions about the user's codebase (${appName}) in plain English, for a non-technical product owner.
 
-Rules:
+Response style:
+- Use markdown formatting: **bold** for emphasis, bullet lists for multiple items, \`code\` for file paths and component names.
+- Short headings (## or ###) are fine when the answer has multiple distinct sections. Skip them for simple one-paragraph answers.
+- Feel free to use relevant emojis sparingly in headings (📄 🔐 🤖 ✅) — matches the app's visual style.
+- Keep answers focused — 2-4 short paragraphs or a short bulleted list. Don't pad.
+- When referring to a file or component, wrap its exact path in backticks: \`path/to/file.tsx\`.
+
+Content rules:
 - Base every answer on the project data below. Don't invent files, features, or technical details that aren't in the context.
-- Keep answers concise (2-4 short paragraphs or a short list). Use markdown for structure.
-- When pointing to a file, use its exact relative path so it can be linked.
-- If the question is outside the scope of this codebase, say so briefly and suggest what data would help answer it.
+- If the question is outside the scope of this codebase, say so briefly.
+- If you don't have enough context to answer confidently, say so rather than guessing.
 
 ## Project Overview
 ${overview?.summary ?? '(no overview generated yet)'}
