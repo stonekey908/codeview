@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { resolveProvider, runViaHttp } from '@/lib/ai-provider';
+import { resolveProviderWithSettings, runViaHttp } from '@/lib/ai-provider';
 
 // GET — return cached overview
 export async function GET() {
@@ -44,7 +44,7 @@ export async function POST() {
     return NextResponse.json({ error: 'No analysis found' }, { status: 404 });
   }
 
-  const provider = resolveProvider();
+  const provider = resolveProviderWithSettings(projectDir);
   if (!provider) return NextResponse.json({ error: 'No AI CLI found. Install Claude Code, Gemini CLI, or set CODEVIEW_AI_PROVIDER.' }, { status: 500 });
 
   const analysis = JSON.parse(fs.readFileSync(analysisPath, 'utf-8'));
