@@ -5,8 +5,22 @@ import * as path from 'path';
 import { resolveProviderWithSettings, runViaHttp } from '@/lib/ai-provider';
 
 export async function POST(request: NextRequest) {
-  const { componentPaths, clear } = await request.json();
+  const { componentPaths, clear, stop } = await request.json();
   const projectDir = process.env.CODEVIEW_PROJECT_DIR || process.cwd();
+
+  // Stop signal — write stopped status so processBatches checks it
+  if (stop) {
+    const progressPath = path.join(projectDir, '.codeview', 'enhance-progress.json');
+    try {
+      if (fs.existsSync(progressPath)) {
+        const progress = JSON.parse(fs.readFileSync(progressPath, 'utf-8'));
+        if (progress.status === 'running') {
+          fs.writeFileSync(progressPath, JSON.stringify({ ...progress, status: 'stopped' }));
+        }
+      }
+    } catch {}
+    return NextResponse.json({ status: 'stopped' });
+  }
 
   const provider = resolveProviderWithSettings(projectDir);
   if (!provider) return NextResponse.json({ error: 'No AI CLI found. Install Claude Code, Gemini CLI, or set CODEVIEW_AI_PROVIDER.' }, { status: 500 });
@@ -117,6 +131,16 @@ function processBatches(
     console.log(`[enhance] All ${batches.length} batches complete. ${Object.keys(allEnhancements).length} total enhancements.`);
     return;
   }
+
+  // Check for stop signal before starting next batch
+  try {
+    const progress = JSON.parse(fs.readFileSync(progressPath, 'utf-8'));
+    if (progress.status === 'stopped') {
+      console.log(`[enhance] Stopped after batch ${batchIndex}/${batches.length}`);
+      fs.writeFileSync(enhancePath, JSON.stringify(allEnhancements, null, 2));
+      return;
+    }
+  } catch {}
 
   const batch = batches[batchIndex];
   const prompt = buildPrompt(batch, projectDir);
