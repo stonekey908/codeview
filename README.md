@@ -43,7 +43,7 @@
 
 ## What It Does
 
-CodeView scans any TypeScript/JavaScript project and turns it into an interactive architecture map. Non-technical product owners can see what's being built, understand how components connect, and get AI-powered explanations — all without reading a line of code.
+CodeView scans any TypeScript/JavaScript project and turns it into an interactive architecture map. Non-technical product owners can see what's being built, understand how components connect, and get AI-powered explanations — all without reading a line of code. Use your existing Claude / Gemini CLI subscription, or run fully offline with Ollama.
 
 - **Overview** — auto-generated narrative explaining what the app does, its features, data flows, and backend services
 - **Features view** — components grouped by business function across all layers
@@ -52,10 +52,17 @@ CodeView scans any TypeScript/JavaScript project and turns it into an interactiv
 - **Capability lens** — toggle to regroup architecture by reusable patterns (auth, uploads, payments, etc.)
 - **Explain** — click any component and AI reads the source code, then explains it in plain English
 - **Enhance** — AI categorises and titles every component in your project
+- **AI chat** — floating conversational assistant grounded in your codebase context (project-scoped history)
+- **Folder picker** — load any project from a native folder dialog without restarting the server
 - **Multi-AI support** — works with Claude Code, Gemini CLI, Ollama (local models), or any compatible AI tool
-- **No separate API keys** — uses your existing AI terminal subscription, or run completely free with Ollama
-- **Local and private** — runs entirely on your machine, no data leaves your computer
 - **Runtime provider switching** — switch between AI providers via the settings gear, no restart needed
+- **No separate API keys** — uses your existing AI terminal subscription, or run completely free with Ollama
+
+### Privacy
+
+- **Your code never leaves your machine directly** — CodeView itself is a local tool. Analysis data, enhancements, chat history, and all caches live in a `.codeview/` folder inside your project.
+- **AI features inherit the provider's privacy model.** If you use Claude Code or Gemini CLI, file contents are sent to Anthropic or Google (same as any normal use of those tools). If you use **Ollama**, everything runs on your machine and nothing leaves your computer.
+- **Want fully offline?** Pick Ollama in the settings gear. CodeView is then 100% local.
 
 ---
 
@@ -225,6 +232,7 @@ Click the **settings gear** icon in the top-right toolbar to:
 - Switch between Claude, Gemini, and any installed Ollama models
 - Adjust batch size for Enhance operations
 - Regenerate all data or update only new components
+- **Change project** — swap to a different codebase without restarting the server
 
 Provider selection is saved per project in `.codeview/settings.json`. If you use Ollama for one project and Claude for another, each remembers your choice.
 
@@ -235,6 +243,35 @@ The AI integration is in `apps/web/src/lib/ai-provider.ts`. Two provider types:
 - **HTTP providers** — call a local API endpoint (Ollama pattern)
 
 Pull requests for new providers welcome.
+
+---
+
+## Project Folder Picker
+
+You don't need to restart CodeView every time you want to explore a different project.
+
+- On the empty state (or via settings gear → **Change project...**), click **Browse folders** to open your OS's native folder picker (Finder on macOS, Explorer on Windows, zenity on Linux).
+- Or paste an absolute path into the text input — `~` is expanded to your home directory.
+- Recent projects are remembered in the browser's localStorage for one-click switching.
+
+Under the hood this calls a local `POST /api/project` endpoint which runs the analyzer on the selected folder and writes `analysis.json` into that project's `.codeview/` directory.
+
+---
+
+## AI Chat
+
+A floating chat widget in the bottom-right lets you ask questions about your codebase in plain English.
+
+**How it works:**
+- The chat always has your project's **Overview** and **Enhance** data in context — so it knows your app's summary, features, flows, capabilities, and every component's title and layer.
+- When you mention a specific component, feature, or capability, CodeView automatically pulls in the relevant detailed description and graph connections. No manual context management.
+- If you click a component in the graph, the chat treats it as "currently viewing" — if you then ask "what does this do?", it knows what you mean. But you can still ask anything else; it's just a hint.
+- **History is saved per project** in `.codeview/chat-history.json`. Close the panel, switch projects, come back tomorrow — your conversation is still there. The trash icon clears it.
+- The chat uses whichever AI provider is currently active (Claude, Gemini, or Ollama). Switch via the settings gear.
+
+**Keyboard:** Enter to send · Shift+Enter for a new line · Esc to close the panel.
+
+**Tip:** Ollama is a perfect fit for chat — it's local, free, and qwen2.5-coder:7b handles most questions in a few seconds.
 
 ---
 
@@ -298,9 +335,13 @@ codeview/
 
 ## Data & Privacy
 
-- **Local only** — runs entirely on your machine. No telemetry, no data sent anywhere.
-- **No API keys** — AI features use your existing terminal AI subscription.
-- **`.codeview/` folder** — analysis results cached in your project directory. Add to `.gitignore` if preferred.
+- **The CodeView app itself is local** — it runs entirely on your machine. No telemetry, no phone-home, no CodeView servers involved at any point.
+- **Source code privacy depends on which AI provider you pick:**
+  - **Claude Code / Gemini CLI** — when you run Enhance / Explain / Overview / Chat, file contents are sent to Anthropic or Google, same as any other use of those CLI tools. Their normal privacy terms apply.
+  - **Ollama** — everything runs on your machine. Nothing leaves the computer. This is the only fully-offline option.
+  - **No AI at all** — the core scanning, graph, navigation, and code viewer work with zero AI. Nothing is sent anywhere.
+- **No separate API keys** — AI features use your existing terminal AI subscription, or run free locally with Ollama.
+- **`.codeview/` folder** — all cached data (analysis, enhancements, descriptions, overview, chat history, settings) lives in a `.codeview/` folder inside your project. Add to `.gitignore` if preferred.
 - **Read-only** — CodeView reads source files but never modifies your project.
 
 ## Development
