@@ -3,7 +3,7 @@
 Visual architecture companion for AI-powered coding tools — interactive code graph for non-technical product owners.
 
 ## Current Phase
-Feature complete and polished. Ready for public use. Capability lens, multi-AI provider support, clean empty state, and comprehensive README with screenshots.
+Feature complete with Ollama local model support. Approaching v1 public release. Two features remaining: folder picker (STO-1716) and conversational chat (STO-1717–1720).
 
 ## Architecture
 - `apps/web` — Next.js 15 (4 nav tabs, detail panel, graph, overview, generate panel, help guide)
@@ -27,7 +27,8 @@ Feature complete and polished. Ready for public use. Capability lens, multi-AI p
 - **Explain** — structured markdown with emoji headings (What It Does, How It Works, Connections, Key Details)
 - **Overview** — narrative with features, flows, backend, data types, capabilities
 - **Capabilities** — reusable technical patterns (auth, uploads, payments, etc.) identified during Overview generation
-- **Providers** — auto-detects claude/gemini CLI, configurable via CODEVIEW_AI_PROVIDER env var
+- **Providers** — auto-detects claude/gemini CLI + Ollama local models. Runtime switching via settings gear. Per-project preference in `.codeview/settings.json`
+- **Ollama** — HTTP provider (`localhost:11434/api/generate`). Purely additive — CLI spawn logic untouched. Best for Explain (token saver). Overview may truncate on small-context models (pre-flight check warns user)
 
 ## Capability Lens
 - Toggle on Architecture tab switches between layer view and capability view
@@ -39,7 +40,7 @@ Feature complete and polished. Ready for public use. Capability lens, multi-AI p
 - Layout engine detects `cap-` prefixed cluster IDs and uses grid arrangement (2-3 columns)
 
 ## Data (.codeview/ per project)
-- analysis.json, enhancements.json, descriptions.json, overview.json
+- analysis.json, enhancements.json, descriptions.json, overview.json, settings.json (provider preference)
 
 ## Palette
 UI #4a90a4 | API #5a8a6e | Data #b08d57 | Utils #7c8594 | External #8b7a9e
@@ -48,29 +49,30 @@ UI #4a90a4 | API #5a8a6e | Data #b08d57 | Utils #7c8594 | External #8b7a9e
 
 ## Known Issues
 - None blocking. Left panel resize handle works but is subtle (6px hit area inside overflow-hidden nav).
+- Ollama Overview may truncate on large projects with small-context models — pre-flight check warns user and suggests switching to Claude/Gemini.
 
 ## Last Session
-**Date:** 2026-04-15
+**Date:** 2026-04-16
 **Who:** Claude session
 **What was done:**
-- Removed all demo/dummy data (demo-data/ directory, DEMO_FILES, demo banner, fallback logic)
-- Added clean empty state with `npx codeview` instruction when no project loaded
-- Added Capability Lens to Architecture tab — toggle switches graph between layer and capability views
-- Capability-based clusters use grid layout (2-3 columns) instead of single row
-- AI overview prompt extended to generate capabilities (reusable patterns) covering all components
-- Capabilities stored in Zustand store, shared across OverviewPanel, FeaturesView, LeftPanel
-- Graph canvas force-refreshes when capability state changes (node data touch pattern)
-- Fixed expand button on Architecture tab (was hidden because showGraph was always true)
-- Fixed description duplication (applyDescriptions was overwriting short summaries with full explanations)
-- Added search filtering to Features and Architecture tabs (was only on Categories)
-- Added expand/collapse to Architecture left panel layer sections
-- Updated Linear with tickets STO-1676 and STO-1677
-- Added capability screenshot to README
+- Added Ollama as local AI provider — HTTP-based, purely additive (CLI spawn logic untouched)
+- New `GET/POST /api/providers` endpoint for detecting available providers and saving preferences
+- Settings gear UI in toolbar — Radix popover with provider dropdown, batch size, regenerate buttons
+- `resolveProviderWithSettings()` checks `.codeview/settings.json` → env var → auto-detect
+- Provider preference saved per-project in `.codeview/settings.json`
+- Explain progress shown on toolbar button when GeneratePanel is running
+- Stop button for Enhance — writes stop signal, processBatches checks between batches
+- Overview pre-flight token check — blocks with clear error if prompt too big for Ollama model
+- Regenerate All option clears enhancements.json + descriptions.json before re-running
+- README updated with full Ollama section: setup, per-feature recommendations, runtime switching docs
+- Design doc at `docs/plans/2026-04-16-ollama-provider-support-design.md`
+- Tested end-to-end: Ollama Explain on SchoolSync confirmed working (qwen2.5-coder:latest)
+- Created v1 final tickets: folder picker (STO-1716) and chat (STO-1717–1720)
+- Legacy code detection parked for v2 (STO-1721)
 **What's next:**
-- Test with more real projects to verify capability lens and AI provider switching
-- Consider publishing as npm package for `npx codeview` usage
-- MCP server integration for bidirectional Claude Code communication
-- Real-time file watching for live updates
+- STO-1716: Folder picker — select project from frontend without restarting server
+- STO-1718–1720: Chat — floating AI chat grounded in codebase context (overview + enhancements as base context, descriptions + graph edges on demand)
+- STO-1721 (v2): Legacy code detection + modernization suggestions
 **Branch:** main
 **Blockers:** None
 
