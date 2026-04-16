@@ -55,24 +55,19 @@ UI #4a90a4 | API #5a8a6e | Data #b08d57 | Utils #7c8594 | External #8b7a9e
 **Date:** 2026-04-16
 **Who:** Claude session
 **What was done:**
-- Added Ollama as local AI provider — HTTP-based, purely additive (CLI spawn logic untouched)
-- New `GET/POST /api/providers` endpoint for detecting available providers and saving preferences
-- Settings gear UI in toolbar — Radix popover with provider dropdown, batch size, regenerate buttons
-- `resolveProviderWithSettings()` checks `.codeview/settings.json` → env var → auto-detect
-- Provider preference saved per-project in `.codeview/settings.json`
-- Explain progress shown on toolbar button when GeneratePanel is running
-- Stop button for Enhance — writes stop signal, processBatches checks between batches
-- Overview pre-flight token check — blocks with clear error if prompt too big for Ollama model
-- Regenerate All option clears enhancements.json + descriptions.json before re-running
-- README updated with full Ollama section: setup, per-feature recommendations, runtime switching docs
-- Design doc at `docs/plans/2026-04-16-ollama-provider-support-design.md`
-- Tested end-to-end: Ollama Explain on SchoolSync confirmed working (qwen2.5-coder:latest)
-- Created v1 final tickets: folder picker (STO-1716) and chat (STO-1717–1720)
-- Legacy code detection parked for v2 (STO-1721)
+- Audit of SchoolSync overview + enhance quality — all 100 components enhanced, zero phantom titles, perfect capability coverage. Found 3 phantom paths invented by AI (gmail-server.ts, prompts.ts, UploadContext.tsx)
+- STO-1727: Phantom path validator — `stripPhantomPaths()` in overview route filters invalid componentPaths across features/flows/backend/capabilities, logs dropped paths
+- STO-1716: Folder picker — new `POST /api/project` runs analyzer on any folder at runtime. `ProjectPicker` component with native OS folder dialog (osascript on macOS, PowerShell on Windows, zenity on Linux) via new `GET /api/browse`, text input fallback, and recent-projects localStorage. Wired into empty state and settings gear "Change project..." option
+- STO-1718/1720: Chat API endpoint with smart context at `POST /api/chat`. Base context: overview summary + features + flows + capabilities + full component index. Dynamic context: detects component/capability mentions, pulls descriptions and graph edges on demand. Token safety check for Ollama. Works with all providers
+- STO-1719: Chat UI — floating `MessageCircle` bubble bottom-right (z-250), expandable panel (480×620 default, 720×full-height maximized), markdown rendering with custom `.chat-markdown` styles in globals.css, focused-component hint in header (soft wording), message count badge when closed
+- Chat session persistence — `/api/chat/history` GET/POST/DELETE saves to `.codeview/chat-history.json` per project. Debounced auto-save on message change, loads on mount, trash icon clears with confirmation
+- README overhaul — new Folder Picker and AI Chat sections, corrected Data & Privacy section (distinguishes CodeView-local vs provider-dependent source code privacy; Ollama is only true offline option)
+- All code merged to main, feature branches deleted locally and on remote, 7 Linear tickets closed (STO-1715 through STO-1720, STO-1727)
+- Debugged stale `.next` webpack cache causing `[object Event]` runtime error — fix: `rm -rf .next` and restart (gotcha already documented)
 **What's next:**
-- STO-1716: Folder picker — select project from frontend without restarting server
-- STO-1718–1720: Chat — floating AI chat grounded in codebase context (overview + enhancements as base context, descriptions + graph edges on demand)
-- STO-1721 (v2): Legacy code detection + modernization suggestions
+- v1 is complete and ready for public release
+- STO-1721 (v2): Legacy code detection + modernization suggestions — prompt engineering project, needs real legacy codebase testing
+- Potential polish: chat response streaming, graph-click-to-chat quick action, export chat as markdown
 **Branch:** main
 **Blockers:** None
 
