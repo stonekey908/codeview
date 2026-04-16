@@ -38,6 +38,23 @@ export function ProjectPicker({ onLoaded, compact = false }: ProjectPickerProps)
 
   useEffect(() => { setRecent(getRecent()); }, []);
 
+  const browse = async () => {
+    setError(null);
+    try {
+      const res = await fetch('/api/browse');
+      const data = await res.json();
+      if (data.cancelled) return;
+      if (!data.ok || !data.path) {
+        setError(data.error || 'Could not open folder picker');
+        return;
+      }
+      // Auto-load the selected folder
+      load(data.path);
+    } catch (err: any) {
+      setError(err?.message || 'Could not open folder picker');
+    }
+  };
+
   const load = async (targetPath: string) => {
     if (!targetPath.trim()) return;
     setLoading(true);
@@ -71,12 +88,16 @@ export function ProjectPicker({ onLoaded, compact = false }: ProjectPickerProps)
   if (compact) {
     return (
       <div className="space-y-2">
+        <button onClick={browse} disabled={loading}
+          className="w-full px-2 py-1.5 text-[11px] font-medium rounded-md border border-primary/30 text-primary bg-primary/5 hover:bg-primary/10 transition-colors disabled:opacity-40 flex items-center gap-1.5 justify-center">
+          <FolderOpen size={11} /> Browse folders...
+        </button>
         <form onSubmit={handleSubmit} className="flex gap-2">
           <input
             type="text"
             value={path}
             onChange={(e) => setPath(e.target.value)}
-            placeholder="/path/to/project"
+            placeholder="or paste a path"
             disabled={loading}
             className="flex-1 text-[11px] px-2 py-1.5 rounded-md border border-border bg-muted text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           />
@@ -107,8 +128,16 @@ export function ProjectPicker({ onLoaded, compact = false }: ProjectPickerProps)
         <div className="text-4xl mb-4 opacity-40">📦</div>
         <h2 className="text-lg font-semibold text-foreground mb-2">Load a project</h2>
         <p className="text-sm text-muted-foreground mb-5">
-          Paste the absolute path to the folder you want to visualise. CodeView will scan the TypeScript and JavaScript files and build an interactive architecture map.
+          Pick the folder you want to visualise. CodeView will scan the TypeScript and JavaScript files and build an interactive architecture map.
         </p>
+
+        <button onClick={browse} disabled={loading}
+          className="w-full mb-3 px-5 py-3 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 flex items-center justify-center gap-2">
+          {loading ? <Loader2 size={14} className="animate-spin" /> : <FolderOpen size={14} />}
+          {loading ? 'Analysing...' : 'Browse folders'}
+        </button>
+
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider my-3">or paste a path</p>
 
         <form onSubmit={handleSubmit} className="flex gap-2 mb-3">
           <input
@@ -117,13 +146,11 @@ export function ProjectPicker({ onLoaded, compact = false }: ProjectPickerProps)
             onChange={(e) => setPath(e.target.value)}
             placeholder="/Users/you/my-project"
             disabled={loading}
-            autoFocus
             className="flex-1 text-sm px-3 py-2 rounded-lg border border-border bg-card text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
           <button type="submit" disabled={loading || !path.trim()}
-            className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5">
-            {loading ? <Loader2 size={14} className="animate-spin" /> : <FolderOpen size={14} />}
-            {loading ? 'Analysing...' : 'Load Project'}
+            className="px-4 py-2 rounded-lg text-sm font-medium border border-border text-foreground hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            Load
           </button>
         </form>
 
