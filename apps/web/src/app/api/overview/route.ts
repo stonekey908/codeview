@@ -133,6 +133,17 @@ export async function POST() {
     if (src && tgt) prompt += `  ${src.label} → ${tgt.label}\n`;
   }
 
+  // Token safety check for Ollama / small-context models
+  if (provider.type === 'http' && provider.contextWindow) {
+    const estimatedTokens = Math.ceil(prompt.length / 4);
+    const limit = Math.floor(provider.contextWindow * 0.8);
+    if (estimatedTokens > limit) {
+      return NextResponse.json({
+        error: `This project's overview prompt is ~${estimatedTokens.toLocaleString()} tokens, but ${provider.name} supports ~${provider.contextWindow.toLocaleString()} tokens. The output would be truncated. Switch to Claude Code or Gemini CLI for Overview (use the settings gear), or try a larger Ollama model.`,
+      }, { status: 400 });
+    }
+  }
+
   // Write progress
   const progressPath = path.join(descDir, 'overview-progress.json');
   const overviewPath = path.join(descDir, 'overview.json');
