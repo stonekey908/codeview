@@ -52,9 +52,10 @@ CodeView scans any TypeScript/JavaScript project and turns it into an interactiv
 - **Capability lens** — toggle to regroup architecture by reusable patterns (auth, uploads, payments, etc.)
 - **Explain** — click any component and AI reads the source code, then explains it in plain English
 - **Enhance** — AI categorises and titles every component in your project
-- **Multi-AI support** — works with Claude Code, Gemini CLI, or any compatible AI terminal tool
-- **No separate API keys** — uses your existing AI terminal subscription
+- **Multi-AI support** — works with Claude Code, Gemini CLI, Ollama (local models), or any compatible AI tool
+- **No separate API keys** — uses your existing AI terminal subscription, or run completely free with Ollama
 - **Local and private** — runs entirely on your machine, no data leaves your computer
+- **Runtime provider switching** — switch between AI providers via the settings gear, no restart needed
 
 ---
 
@@ -178,31 +179,64 @@ The AI features (Enhance, Explain, Overview) call an AI CLI tool on your machine
 
 ### Supported AI providers
 
-| Provider | CLI command | How to set up | Status |
-|----------|-----------|---------------|--------|
-| **Claude Code** | `claude` | [Install Claude Code](https://docs.anthropic.com/en/docs/claude-code), sign in | Auto-detected |
-| **Gemini CLI** | `gemini` | [Install Gemini CLI](https://github.com/google-gemini/gemini-cli), sign in with Google | Auto-detected |
-| **Custom** | any path | Set `CODEVIEW_AI_PROVIDER=/path/to/binary` | Manual |
+| Provider | Type | How to set up | Status |
+|----------|------|---------------|--------|
+| **Claude Code** | Cloud CLI | [Install Claude Code](https://docs.anthropic.com/en/docs/claude-code), sign in | Auto-detected |
+| **Gemini CLI** | Cloud CLI | [Install Gemini CLI](https://github.com/google-gemini/gemini-cli), sign in with Google | Auto-detected |
+| **Ollama** | Local HTTP | [Install Ollama](https://ollama.com), pull a model | Auto-detected |
+| **Custom** | CLI | Set `CODEVIEW_AI_PROVIDER=/path/to/binary` | Manual |
 
-CodeView auto-detects which AI CLI is available (tries `claude` then `gemini`). To force a specific one:
+CodeView auto-detects available providers. Switch between them at runtime using the **settings gear** in the toolbar — no restart needed. Your choice is saved per project.
+
+### Ollama (local models — no tokens, no cost)
+
+Run AI features entirely on your machine using Ollama. No API keys, no token costs, complete privacy.
+
+**Setup:**
 
 ```bash
-# Force Gemini
-CODEVIEW_AI_PROVIDER=gemini npx tsx apps/cli/bin/codeview.mjs .
+# 1. Install Ollama (macOS)
+brew install ollama
 
-# Force Claude
-CODEVIEW_AI_PROVIDER=claude npx tsx apps/cli/bin/codeview.mjs .
+# 2. Pull a model (recommended for code tasks)
+ollama pull qwen2.5-coder:7b
 
-# Use a custom binary
-CODEVIEW_AI_PROVIDER=/usr/local/bin/my-ai-cli npx tsx apps/cli/bin/codeview.mjs .
+# 3. Start Ollama (runs automatically on Mac, or:)
+ollama serve
 ```
+
+That's it. CodeView auto-detects Ollama when it's running. Click the **settings gear** in the toolbar to switch to it.
+
+**Recommended models (16GB RAM machines):**
+
+| Model | RAM | Context | Best for |
+|-------|-----|---------|----------|
+| **qwen2.5-coder:7b** | ~6GB | 128K | Best overall — fast, great JSON output |
+| **llama3.1:8b** | ~6GB | 128K | Good general alternative |
+| **mistral:7b** | ~5GB | 32K | Fast and reliable |
+| **deepseek-coder-v2:16b** | ~12GB | 128K | Higher quality, needs more RAM |
+
+**What works well with Ollama:**
+- **Explain** — single component explanations, fast and free. The main token saver.
+- **Enhance** — batches components automatically. Works great with 128K context models.
+- **Overview** — works if the project fits in the model's context window. For large projects (100+ components), use Claude or Gemini for Overview and Ollama for everything else.
+
+**Tip:** Use Ollama for frequent operations (Explain, Enhance) and Claude/Gemini for one-time operations (Overview). The settings gear lets you switch instantly.
+
+### Switching providers at runtime
+
+Click the **settings gear** icon in the top-right toolbar to:
+- Switch between Claude, Gemini, and any installed Ollama models
+- Adjust batch size for Enhance operations
+- Regenerate all data or update only new components
+
+Provider selection is saved per project in `.codeview/settings.json`. If you use Ollama for one project and Claude for another, each remembers your choice.
 
 ### Adding support for new AI tools
 
-The AI integration is a single file: `apps/web/src/lib/ai-provider.ts`. Each provider just needs:
-- A binary name/path
-- A function that builds CLI arguments from a text prompt
-- The CLI must accept a prompt and return text to stdout
+The AI integration is in `apps/web/src/lib/ai-provider.ts`. Two provider types:
+- **CLI providers** — spawn a process with a prompt argument (Claude, Gemini pattern)
+- **HTTP providers** — call a local API endpoint (Ollama pattern)
 
 Pull requests for new providers welcome.
 
@@ -262,7 +296,7 @@ codeview/
 - **Monorepo:** pnpm + Turborepo
 - **Web:** Next.js 15 (App Router), React Flow, Tailwind CSS v4, Zustand
 - **Analysis:** TypeScript Compiler API, chokidar
-- **AI:** Multi-provider (Claude Code, Gemini CLI, extensible), Shiki syntax highlighting
+- **AI:** Multi-provider (Claude Code, Gemini CLI, Ollama local models), Shiki syntax highlighting
 - **Design:** shadcn Mist theme, Inter + JetBrains Mono, professional muted palette
 - **Integration:** MCP SDK for bidirectional AI communication
 

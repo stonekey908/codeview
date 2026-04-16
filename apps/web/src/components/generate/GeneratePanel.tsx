@@ -13,7 +13,7 @@ interface ComponentStatus {
   description: string;
 }
 
-export function GeneratePanel({ onClose }: { onClose: () => void }) {
+export function GeneratePanel({ onClose, onProgressChange }: { onClose: () => void; onProgressChange?: (generating: boolean, status: string) => void }) {
   const [components, setComponents] = useState<ComponentStatus[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [generating, setGenerating] = useState(false);
@@ -21,6 +21,14 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const [loading, setLoading] = useState(true);
   const generatingRef = useRef(false);
+
+  // Sync progress to toolbar
+  const updateProgress = (gen: boolean, status: string) => {
+    setGenerating(gen);
+    generatingRef.current = gen;
+    setProgress(status);
+    onProgressChange?.(gen, status);
+  };
 
   // Load component list
   useEffect(() => {
@@ -53,9 +61,7 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
 
   const generate = async () => {
     if (selected.size === 0) return;
-    setGenerating(true);
-    generatingRef.current = true;
-    setProgress(`Analysing ${selected.size} components...`);
+    updateProgress(true, `Analysing ${selected.size} components...`);
 
     const controller = new AbortController();
     setAbortController(controller);
@@ -71,7 +77,7 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
         signal: controller.signal,
       });
 
-      setProgress('Reading source code...');
+      updateProgress(true, 'Reading source code...');
 
       // Poll for completion
       const startCount = components.filter(c => c.hasDescription).length;
@@ -82,15 +88,13 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
           const d = await r.json();
           const newCount = d.described || 0;
           const generated = newCount - startCount;
-          setProgress(`${generated}/${selected.size} descriptions generated`);
+          updateProgress(true, `${generated}/${selected.size} descriptions generated`);
           setComponents(d.components || []);
 
           if (generated >= selected.size) {
             clearInterval(poll);
-            setProgress('Done!');
-            setGenerating(false);
-            generatingRef.current = false;
-            setTimeout(() => setProgress(''), 2000);
+            updateProgress(false, 'Done!');
+            setTimeout(() => { setProgress(''); onProgressChange?.(false, ''); }, 2000);
           }
         } catch {}
       }, 3000);
@@ -99,28 +103,23 @@ export function GeneratePanel({ onClose }: { onClose: () => void }) {
       setTimeout(() => {
         clearInterval(poll);
         if (generatingRef.current) {
-          setGenerating(false);
-          generatingRef.current = false;
-          setProgress('Timed out — some descriptions may still be generating');
+          updateProgress(false, 'Timed out — some descriptions may still be generating');
         }
       }, 180000);
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        setProgress('Stopped');
+        updateProgress(false, 'Stopped');
       } else {
-        setProgress('Failed to start analysis');
+        updateProgress(false, 'Failed to start analysis');
       }
-      setGenerating(false);
-      generatingRef.current = false;
-      setTimeout(() => setProgress(''), 2000);
+      setTimeout(() => { setProgress(''); onProgressChange?.(false, ''); }, 2000);
     }
   };
 
   const stop = () => {
     abortController?.abort();
-    setGenerating(false);
-    setProgress('Stopped');
-    setTimeout(() => setProgress(''), 2000);
+    updateProgress(false, 'Stopped');
+    setTimeout(() => { setProgress(''); onProgressChange?.(false, ''); }, 2000);
   };
 
   const described = components.filter(c => c.hasDescription).length;

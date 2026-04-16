@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useGraphStore } from '@/store/graph-store';
 import { GeneratePanel } from '@/components/generate/GeneratePanel';
 import { HelpGuide } from '@/components/help/HelpGuide';
@@ -12,8 +12,15 @@ export function Toolbar() {
   const { theme, setTheme, graphData, expandAllClusters, collapseAllClusters, expandedClusterIds, focusedNodeId, setFocusedNode, setGraphData, setRfNodes, setRfEdges } = useGraphStore();
   const [showGenerate, setShowGenerate] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+
+  // Enhance state
   const [enhancing, setEnhancing] = useState(false);
   const [enhanceStatus, setEnhanceStatus] = useState('');
+  const enhancePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Explain state (tracks GeneratePanel progress)
+  const [explaining, setExplaining] = useState(false);
+  const [explainStatus, setExplainStatus] = useState('');
 
   const total = graphData?.nodes.length ?? 0;
   const conns = graphData?.edges.length ?? 0;
@@ -36,36 +43,51 @@ export function Toolbar() {
     } catch {}
   }, [theme, setGraphData, setRfNodes, setRfEdges]);
 
-  const runEnhance = async () => {
+  const stopEnhance = () => {
+    if (enhancePollRef.current) clearInterval(enhancePollRef.current);
+    enhancePollRef.current = null;
+    // Write stopped status server-side
+    fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stop: true }) });
+    setEnhanceStatus('Stopped');
+    setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 1500);
+  };
+
+  const startEnhancePoll = () => {
     setEnhancing(true);
     setEnhanceStatus('Starting...');
+    enhancePollRef.current = setInterval(async () => {
+      try {
+        const r = await fetch('/api/enhance');
+        const d = await r.json();
+        if (d.status === 'done') {
+          setEnhanceStatus(`Done — ${d.count} enhanced`);
+          if (enhancePollRef.current) clearInterval(enhancePollRef.current);
+          enhancePollRef.current = null;
+          await refetchData();
+          setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 2000);
+        } else if (d.status === 'running') {
+          const batchInfo = d.batches > 1 ? ` (batch ${d.batch}/${d.batches})` : '';
+          setEnhanceStatus(`${d.done}/${d.total}${batchInfo}`);
+        } else if (d.status === 'error' || d.status === 'stopped') {
+          setEnhanceStatus(d.status === 'stopped' ? 'Stopped' : 'Failed');
+          if (enhancePollRef.current) clearInterval(enhancePollRef.current);
+          enhancePollRef.current = null;
+          setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 2000);
+        }
+      } catch {}
+    }, 2500);
+    setTimeout(() => {
+      if (enhancePollRef.current) { clearInterval(enhancePollRef.current); enhancePollRef.current = null; }
+      setEnhancing(false); setEnhanceStatus('');
+    }, 300000);
+  };
+
+  const runEnhance = async () => {
     try {
       const res = await fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
       const data = await res.json();
-      if (data.error) { setEnhanceStatus(`Error: ${data.error}`); setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 3000); return; }
-      setEnhanceStatus(`Analysing ${data.total || total} components...`);
-
-      const poll = setInterval(async () => {
-        try {
-          const r = await fetch('/api/enhance');
-          const d = await r.json();
-          if (d.status === 'done') {
-            setEnhanceStatus(`Done — ${d.count} enhanced`);
-            clearInterval(poll);
-            // Refetch data instead of page reload — preserves all state
-            await refetchData();
-            setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 2000);
-          } else if (d.status === 'running') {
-            const batchInfo = d.batches > 1 ? ` (batch ${d.batch}/${d.batches})` : '';
-            setEnhanceStatus(`${d.done}/${d.total}${batchInfo}`);
-          } else if (d.status === 'error') {
-            setEnhanceStatus('Failed');
-            clearInterval(poll);
-            setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 3000);
-          }
-        } catch {}
-      }, 2500);
-      setTimeout(() => { clearInterval(poll); setEnhancing(false); setEnhanceStatus(''); }, 300000);
+      if (data.error) { setEnhancing(true); setEnhanceStatus(`Error: ${data.error}`); setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 3000); return; }
+      startEnhancePoll();
     } catch { setEnhancing(false); setEnhanceStatus(''); }
   };
 
@@ -89,15 +111,39 @@ export function Toolbar() {
           className="px-3 py-1 text-[11px] font-medium rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-all">
           {allExpanded ? '↕ Collapse' : '↕ Expand'}
         </button>
-        <button onClick={runEnhance} disabled={enhancing}
-          className={`px-3 py-1 text-[11px] font-medium rounded-lg border transition-all flex items-center gap-1.5 ${enhancing ? 'border-[#b08d57]/30 text-[#b08d57] bg-[#b08d57]/10' : 'border-[#b08d57]/20 text-[#b08d57] hover:bg-[#b08d57]/10'}`}>
-          {enhancing && <span className="inline-block w-3 h-3 border-2 border-[#b08d57] border-t-transparent rounded-full animate-spin" />}
-          {enhancing ? enhanceStatus : '⚡ Enhance'}
-        </button>
-        <button onClick={() => setShowGenerate(true)}
-          className="px-3 py-1 text-[11px] font-medium rounded-lg border border-[#8b7a9e]/20 text-[#8b7a9e] hover:bg-[#8b7a9e]/10 transition-all">
-          ✨ Explain
-        </button>
+
+        {/* Enhance button with stop */}
+        {enhancing ? (
+          <div className="flex items-center gap-1">
+            <span className="px-3 py-1 text-[11px] font-medium rounded-lg border border-[#b08d57]/30 text-[#b08d57] bg-[#b08d57]/10 flex items-center gap-1.5">
+              <span className="inline-block w-3 h-3 border-2 border-[#b08d57] border-t-transparent rounded-full animate-spin" />
+              {enhanceStatus}
+            </span>
+            <button onClick={stopEnhance}
+              className="px-2 py-1 text-[10px] font-medium rounded-lg border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-colors">
+              Stop
+            </button>
+          </div>
+        ) : (
+          <button onClick={runEnhance}
+            className="px-3 py-1 text-[11px] font-medium rounded-lg border border-[#b08d57]/20 text-[#b08d57] hover:bg-[#b08d57]/10 transition-all">
+            ⚡ Enhance
+          </button>
+        )}
+
+        {/* Explain button with progress */}
+        {explaining ? (
+          <span className="px-3 py-1 text-[11px] font-medium rounded-lg border border-[#8b7a9e]/30 text-[#8b7a9e] bg-[#8b7a9e]/10 flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 border-2 border-[#8b7a9e] border-t-transparent rounded-full animate-spin" />
+            {explainStatus}
+          </span>
+        ) : (
+          <button onClick={() => setShowGenerate(true)}
+            className="px-3 py-1 text-[11px] font-medium rounded-lg border border-[#8b7a9e]/20 text-[#8b7a9e] hover:bg-[#8b7a9e]/10 transition-all">
+            ✨ Explain
+          </button>
+        )}
+
         {focusedNodeId && (
           <button onClick={() => setFocusedNode(null)} className="px-3 py-1 text-[11px] font-medium rounded-lg bg-primary/10 border border-primary/30 text-primary">Exit Focus</button>
         )}
@@ -106,34 +152,11 @@ export function Toolbar() {
       <div className="flex items-center gap-1.5">
         <SettingsGear onRegenerate={(mode) => {
           if (mode === 'all') {
-            // Clear existing data and re-run enhance
             fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clear: true }) });
           } else {
-            // Update new only — existing merge behavior
             fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
           }
-          setEnhancing(true);
-          setEnhanceStatus('Starting...');
-          const poll = setInterval(async () => {
-            try {
-              const r = await fetch('/api/enhance');
-              const d = await r.json();
-              if (d.status === 'done') {
-                setEnhanceStatus(`Done — ${d.count} enhanced`);
-                clearInterval(poll);
-                await refetchData();
-                setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 2000);
-              } else if (d.status === 'running') {
-                const batchInfo = d.batches > 1 ? ` (batch ${d.batch}/${d.batches})` : '';
-                setEnhanceStatus(`${d.done}/${d.total}${batchInfo}`);
-              } else if (d.status === 'error') {
-                setEnhanceStatus('Failed');
-                clearInterval(poll);
-                setTimeout(() => { setEnhancing(false); setEnhanceStatus(''); }, 3000);
-              }
-            } catch {}
-          }, 2500);
-          setTimeout(() => { clearInterval(poll); setEnhancing(false); setEnhanceStatus(''); }, 300000);
+          startEnhancePoll();
         }} />
         <button onClick={() => setShowHelp(true)}
           aria-label="Help guide"
@@ -152,7 +175,15 @@ export function Toolbar() {
         </button>
       </div>
     </header>
-    {showGenerate && <GeneratePanel onClose={() => setShowGenerate(false)} />}
+    {showGenerate && (
+      <GeneratePanel
+        onClose={() => setShowGenerate(false)}
+        onProgressChange={(generating, status) => {
+          setExplaining(generating);
+          setExplainStatus(status);
+        }}
+      />
+    )}
     {showHelp && <HelpGuide onClose={() => setShowHelp(false)} />}
     </>
   );
