@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { Settings, X } from 'lucide-react';
+import { ProjectPicker } from '@/components/project/ProjectPicker';
 
 interface ProviderInfo {
   id: string;
@@ -27,11 +28,12 @@ function defaultBatchSize(provider: ProviderInfo | undefined): number {
   return 30;
 }
 
-export function SettingsGear({ onRegenerate }: { onRegenerate?: (mode: 'all' | 'new') => void }) {
+export function SettingsGear({ onRegenerate, onProjectLoaded }: { onRegenerate?: (mode: 'all' | 'new') => void; onProjectLoaded?: () => void }) {
   const [open, setOpen] = useState(false);
   const [data, setData] = useState<ProvidersResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [batchOverride, setBatchOverride] = useState('');
+  const [showProjectPicker, setShowProjectPicker] = useState(false);
 
   const fetchProviders = useCallback(async () => {
     setLoading(true);
@@ -141,6 +143,36 @@ export function SettingsGear({ onRegenerate }: { onRegenerate?: (mode: 'all' | '
                 />
               </div>
               <p className="mt-0.5 text-[9px] text-muted-foreground">Components per AI request</p>
+            </div>
+
+            {/* Project switcher */}
+            <div>
+              <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Project</label>
+              {showProjectPicker ? (
+                <div className="mt-1">
+                  <ProjectPicker
+                    compact
+                    onLoaded={() => {
+                      setShowProjectPicker(false);
+                      setOpen(false);
+                      onProjectLoaded?.();
+                    }}
+                  />
+                  <button
+                    onClick={() => setShowProjectPicker(false)}
+                    className="mt-1 text-[9px] text-muted-foreground hover:text-foreground"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowProjectPicker(true)}
+                  className="mt-1 w-full px-2 py-1.5 text-[11px] font-medium rounded-md border border-border text-foreground hover:bg-accent transition-colors text-left"
+                >
+                  Change project...
+                </button>
+              )}
             </div>
 
             {/* Regenerate */}
