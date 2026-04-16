@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { requireProvider } from '@/lib/ai-provider';
+import { requireProvider, runViaHttp } from '@/lib/ai-provider';
 
 export async function POST(request: NextRequest) {
   const { action, componentPath, componentPaths } = await request.json();
@@ -97,30 +97,15 @@ ${content}
 }
 
 function runAndSave(
-  provider: { bin: string; buildArgs: (prompt: string) => string[]; env?: Record<string, string> },
+  provider: { type?: 'cli' | 'http'; bin: string; buildArgs: (prompt: string) => string[]; env?: Record<string, string>; model?: string; name?: string; contextWindow?: number },
   cwd: string,
   prompt: string,
   descPath: string,
   mode: 'all' | 'single',
   componentPath?: string
 ) {
-  let output = '';
-
-  const child = spawn(provider.bin, provider.buildArgs(prompt), {
-    cwd,
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env: { ...process.env, ...provider.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
-  });
-
-  child.stdout?.on('data', (data) => {
-    output += data.toString();
-  });
-
-  child.stderr?.on('data', (data) => {
-    console.error(`[ai-err] ${data.toString().slice(0, 300)}`);
-  });
-
-  child.on('close', (code) => {
+  // Shared handler for processing AI output — used by both CLI and HTTP paths
+  const handleOutput = (output: string, code: number | null) => {
     console.log(`[trigger-ai] Exited with code ${code}, output length: ${output.length}`);
 
     if (code !== 0 || !output.trim()) {
@@ -156,9 +141,33 @@ function runAndSave(
     } catch (err) {
       console.error(`[trigger-ai] Error saving: ${err}`);
     }
-  });
+  };
 
-  child.on('error', (err) => {
-    console.error(`[trigger-ai] Spawn error: ${err.message}`);
-  });
+  if (provider.type === 'http') {
+    // Ollama HTTP path
+    runViaHttp(provider as any, prompt, (output, code) => handleOutput(output, code));
+  } else {
+    // Existing CLI spawn path — untouched
+    let output = '';
+
+    const child = spawn(provider.bin, provider.buildArgs(prompt), {
+      cwd,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, ...provider.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
+    });
+
+    child.stdout?.on('data', (data) => {
+      output += data.toString();
+    });
+
+    child.stderr?.on('data', (data) => {
+      console.error(`[ai-err] ${data.toString().slice(0, 300)}`);
+    });
+
+    child.on('close', (code) => handleOutput(output, code));
+
+    child.on('error', (err) => {
+      console.error(`[trigger-ai] Spawn error: ${err.message}`);
+    });
+  }
 }

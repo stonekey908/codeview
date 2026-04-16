@@ -7,6 +7,9 @@
  *   2. Auto-detect: tries claude, gemini, gh copilot in order
  *
  * Each provider returns { bin, args(prompt), name }.
+ *
+ * Ollama support: HTTP-based provider that calls localhost:11434/api/generate.
+ * Purely additive — CLI providers are unchanged.
  */
 
 import { execSync } from 'child_process';
@@ -14,24 +17,32 @@ import * as fs from 'fs';
 
 export interface AIProvider {
   name: string;
+  type: 'cli' | 'http';
   bin: string;
   buildArgs: (prompt: string) => string[];
   env?: Record<string, string>;
+  /** Ollama model name, e.g. "qwen2.5-coder:7b" */
+  model?: string;
+  /** Context window in tokens — used for batch sizing in later tickets */
+  contextWindow?: number;
 }
 
 const PROVIDERS: Record<string, (bin: string) => AIProvider> = {
   claude: (bin) => ({
     name: 'Claude Code',
+    type: 'cli',
     bin,
     buildArgs: (prompt) => ['-p', prompt, '--output-format', 'text'],
   }),
   gemini: (bin) => ({
     name: 'Gemini CLI',
+    type: 'cli',
     bin,
     buildArgs: (prompt) => ['-p', prompt],
   }),
   copilot: (bin) => ({
     name: 'GitHub Copilot',
+    type: 'cli',
     bin,
     // gh copilot suggest doesn't have a clean non-interactive mode yet,
     // so this is a placeholder for when it does
@@ -39,6 +50,7 @@ const PROVIDERS: Record<string, (bin: string) => AIProvider> = {
   }),
   aider: (bin) => ({
     name: 'Aider',
+    type: 'cli',
     bin,
     buildArgs: (prompt) => ['--message', prompt, '--yes', '--no-git'],
   }),
@@ -85,6 +97,7 @@ export function resolveProvider(): AIProvider | null {
       // Treat as claude-compatible (accepts -p)
       return {
         name: 'Custom AI',
+        type: 'cli',
         bin: explicit,
         buildArgs: (prompt) => ['-p', prompt],
       };
@@ -115,4 +128,67 @@ export function requireProvider(): AIProvider {
     );
   }
   return provider;
+}
+
+// ---------------------------------------------------------------------------
+// Ollama HTTP provider — purely additive, does not touch CLI providers above
+// ---------------------------------------------------------------------------
+
+const OLLAMA_BASE = 'http://localhost:11434';
+
+/** Create an Ollama provider for a specific model */
+export function createOllamaProvider(model: string, contextWindow?: number): AIProvider {
+  return {
+    name: `Ollama — ${model}`,
+    type: 'http',
+    bin: '', // not used for HTTP providers
+    model,
+    contextWindow: contextWindow ?? 131072,
+    buildArgs: () => [], // not used for HTTP providers
+  };
+}
+
+/**
+ * Run a prompt via Ollama's HTTP API.
+ * Calls onComplete(output) when done — same callback pattern the CLI spawn uses.
+ */
+export function runViaHttp(
+  provider: AIProvider,
+  prompt: string,
+  onComplete: (output: string, code: number) => void,
+): void {
+  const model = provider.model;
+  if (!model) {
+    console.error('[ollama] No model specified on provider');
+    onComplete('', 1);
+    return;
+  }
+
+  console.log(`[ollama] Sending prompt to ${model} (${prompt.length} chars)`);
+
+  fetch(`${OLLAMA_BASE}/api/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      prompt,
+      stream: false,
+      options: { temperature: 0.3 },
+    }),
+  })
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`Ollama responded with ${res.status}: ${res.statusText}`);
+      }
+      return res.json();
+    })
+    .then((data: { response?: string }) => {
+      const output = data.response ?? '';
+      console.log(`[ollama] Got response from ${model} (${output.length} chars)`);
+      onComplete(output, 0);
+    })
+    .catch((err: Error) => {
+      console.error(`[ollama] Error: ${err.message}`);
+      onComplete('', 1);
+    });
 }
