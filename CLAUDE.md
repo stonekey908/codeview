@@ -3,7 +3,7 @@
 Visual architecture companion for AI-powered coding tools — interactive code graph for non-technical product owners.
 
 ## Current Phase
-Feature complete with Ollama local model support. Approaching v1 public release. Two features remaining: folder picker (STO-1716) and conversational chat (STO-1717–1720).
+**v1 complete.** Feature set: multi-AI providers (Claude, Gemini, Ollama), runtime switching via settings gear, folder picker (native OS dialog + text input + recent projects), conversational AI chat with project-scoped session persistence, phantom-path validator on Overview. Ready for public release. Legacy code detection parked for v2 (STO-1721).
 
 ## Architecture
 - `apps/web` — Next.js 15 (4 nav tabs, detail panel, graph, overview, generate panel, help guide)
