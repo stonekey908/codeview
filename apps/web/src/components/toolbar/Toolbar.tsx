@@ -150,14 +150,20 @@ export function Toolbar() {
       </div>
 
       <div className="flex items-center gap-1.5">
-        <SettingsGear onRegenerate={(mode) => {
-          if (mode === 'all') {
-            fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clear: true }) });
-          } else {
-            fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-          }
-          startEnhancePoll();
-        }} />
+        <SettingsGear
+          onRegenerate={(mode) => {
+            if (mode === 'all') {
+              fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clear: true }) });
+            } else {
+              fetch('/api/enhance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+            }
+            startEnhancePoll();
+          }}
+          onProjectLoaded={() => {
+            // Force full reload to re-init the whole app with the new project
+            window.location.reload();
+          }}
+        />
         <button onClick={() => setShowHelp(true)}
           aria-label="Help guide"
           className="w-7 h-7 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors text-xs font-bold">

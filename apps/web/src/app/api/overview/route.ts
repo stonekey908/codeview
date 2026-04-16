@@ -149,6 +149,29 @@ export async function POST() {
   const overviewPath = path.join(descDir, 'overview.json');
   fs.writeFileSync(progressPath, JSON.stringify({ status: 'running', started: new Date().toISOString() }));
 
+  // Valid paths for phantom-path stripping
+  const validPaths = new Set<string>(graph.nodes.map((n: any) => n.relativePath));
+
+  const stripPhantomPaths = (overview: any): number => {
+    let dropped = 0;
+    const filterList = (paths: string[] | undefined): string[] => {
+      if (!Array.isArray(paths)) return [];
+      const kept: string[] = [];
+      for (const p of paths) {
+        if (validPaths.has(p)) kept.push(p);
+        else { dropped++; console.log(`[overview] Phantom path dropped: ${p}`); }
+      }
+      return kept;
+    };
+    for (const f of overview.features ?? []) f.componentPaths = filterList(f.componentPaths);
+    for (const flow of overview.flows ?? []) {
+      for (const step of flow.steps ?? []) step.componentPaths = filterList(step.componentPaths);
+    }
+    for (const b of overview.backend ?? []) b.componentPaths = filterList(b.componentPaths);
+    for (const c of overview.capabilities ?? []) c.componentPaths = filterList(c.componentPaths);
+    return dropped;
+  };
+
   // Shared handler for processing AI output — used by both CLI and HTTP paths
   const handleOutput = (output: string, code: number | null) => {
     console.log(`[overview] AI exited with code ${code}, output: ${output.length} chars`);
@@ -157,6 +180,10 @@ export async function POST() {
         const jsonMatch = output.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const overview = JSON.parse(jsonMatch[0]);
+          const droppedCount = stripPhantomPaths(overview);
+          if (droppedCount > 0) {
+            console.log(`[overview] Stripped ${droppedCount} phantom path(s) from AI output`);
+          }
           overview.generatedAt = new Date().toISOString();
           overview.componentCount = graph.nodes.length;
           fs.writeFileSync(overviewPath, JSON.stringify(overview, null, 2));
