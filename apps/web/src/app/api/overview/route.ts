@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { resolveProvider } from '@/lib/ai-provider';
+import { resolveProvider, runViaHttp } from '@/lib/ai-provider';
 
 // GET — return cached overview
 export async function GET() {
@@ -138,17 +138,8 @@ export async function POST() {
   const overviewPath = path.join(descDir, 'overview.json');
   fs.writeFileSync(progressPath, JSON.stringify({ status: 'running', started: new Date().toISOString() }));
 
-  let output = '';
-  const child = spawn(provider.bin, provider.buildArgs(prompt), {
-    cwd: projectDir,
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env: { ...process.env, ...provider.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
-  });
-
-  child.stdout?.on('data', (data: Buffer) => { output += data.toString(); });
-  child.stderr?.on('data', (data: Buffer) => { console.error(`[overview-err] ${data.toString().slice(0, 200)}`); });
-
-  child.on('close', (code: number | null) => {
+  // Shared handler for processing AI output — used by both CLI and HTTP paths
+  const handleOutput = (output: string, code: number | null) => {
     console.log(`[overview] AI exited with code ${code}, output: ${output.length} chars`);
     if (code === 0 && output.trim()) {
       try {
@@ -170,12 +161,30 @@ export async function POST() {
     } else {
       fs.writeFileSync(progressPath, JSON.stringify({ status: 'error' }));
     }
-  });
+  };
 
-  child.on('error', (err: Error) => {
-    console.error(`[overview] Spawn error: ${err.message}`);
-    fs.writeFileSync(progressPath, JSON.stringify({ status: 'error' }));
-  });
+  if (provider.type === 'http') {
+    // Ollama HTTP path
+    runViaHttp(provider, prompt, (output, code) => handleOutput(output, code));
+  } else {
+    // Existing CLI spawn path — untouched
+    let output = '';
+    const child = spawn(provider.bin, provider.buildArgs(prompt), {
+      cwd: projectDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, ...provider.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
+    });
+
+    child.stdout?.on('data', (data: Buffer) => { output += data.toString(); });
+    child.stderr?.on('data', (data: Buffer) => { console.error(`[overview-err] ${data.toString().slice(0, 200)}`); });
+
+    child.on('close', (code: number | null) => handleOutput(output, code));
+
+    child.on('error', (err: Error) => {
+      console.error(`[overview] Spawn error: ${err.message}`);
+      fs.writeFileSync(progressPath, JSON.stringify({ status: 'error' }));
+    });
+  }
 
   return NextResponse.json({ status: 'started' });
 }

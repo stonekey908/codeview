@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { resolveProvider } from '@/lib/ai-provider';
+import { resolveProvider, runViaHttp } from '@/lib/ai-provider';
 
 export async function POST(request: NextRequest) {
   const { componentPaths } = await request.json();
@@ -90,9 +90,11 @@ function buildPrompt(components: any[], projectDir: string): string {
 
 interface ProviderLike {
   name: string;
+  type?: 'cli' | 'http';
   bin: string;
   buildArgs: (prompt: string) => string[];
   env?: Record<string, string>;
+  model?: string;
 }
 
 function processBatches(
@@ -117,17 +119,8 @@ function processBatches(
     batch: batchIndex + 1, batches: batches.length,
   }));
 
-  let output = '';
-  const child = spawn(provider.bin, provider.buildArgs(prompt), {
-    cwd: projectDir,
-    stdio: ['pipe', 'pipe', 'pipe'],
-    env: { ...process.env, ...provider.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
-  });
-
-  child.stdout?.on('data', (data: Buffer) => { output += data.toString(); });
-  child.stderr?.on('data', (data: Buffer) => { console.error(`[enhance-err] ${data.toString().slice(0, 200)}`); });
-
-  child.on('close', (code: number | null) => {
+  // Shared handler for processing AI output — used by both CLI and HTTP paths
+  const handleOutput = (output: string, code: number | null) => {
     console.log(`[enhance] Batch ${batchIndex + 1} done. Code: ${code}, output: ${output.length} chars`);
 
     if (code === 0 && output.trim()) {
@@ -145,12 +138,30 @@ function processBatches(
     }
 
     processBatches(batches, batchIndex + 1, provider, projectDir, descDir, enhancePath, progressPath, allEnhancements, totalCount);
-  });
+  };
 
-  child.on('error', (err: Error) => {
-    console.error(`[enhance] Batch ${batchIndex + 1} spawn error: ${err.message}`);
-    processBatches(batches, batchIndex + 1, provider, projectDir, descDir, enhancePath, progressPath, allEnhancements, totalCount);
-  });
+  if (provider.type === 'http') {
+    // Ollama HTTP path
+    runViaHttp(provider as any, prompt, (output, code) => handleOutput(output, code));
+  } else {
+    // Existing CLI spawn path — untouched
+    let output = '';
+    const child = spawn(provider.bin, provider.buildArgs(prompt), {
+      cwd: projectDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, ...provider.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
+    });
+
+    child.stdout?.on('data', (data: Buffer) => { output += data.toString(); });
+    child.stderr?.on('data', (data: Buffer) => { console.error(`[enhance-err] ${data.toString().slice(0, 200)}`); });
+
+    child.on('close', (code: number | null) => handleOutput(output, code));
+
+    child.on('error', (err: Error) => {
+      console.error(`[enhance] Batch ${batchIndex + 1} spawn error: ${err.message}`);
+      processBatches(batches, batchIndex + 1, provider, projectDir, descDir, enhancePath, progressPath, allEnhancements, totalCount);
+    });
+  }
 }
 
 export async function GET() {
