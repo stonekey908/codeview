@@ -30,3 +30,8 @@ coverage/
 # UAT
 uat.mjs
 quick-uat.mjs
+
+# Local session/automation artifacts (not for public repo)
+CLAUDE.md
+AUTOMATE-LOG.md
+docs/plans/
