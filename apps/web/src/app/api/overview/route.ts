@@ -209,7 +209,7 @@ export async function POST() {
     let output = '';
     const child = spawn(provider.bin, provider.buildArgs(prompt), {
       cwd: projectDir,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, ...provider.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
     });
 
