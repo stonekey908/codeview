@@ -69,12 +69,16 @@ export async function POST(request: NextRequest) {
 
 function buildPrompt(components: any[], projectDir: string): string {
   let prompt = 'Categorize these code files for a non-technical product owner. For each file I show the path and first few lines.\n\n';
-  prompt += 'Return ONLY a JSON object: { "filepath": { "title": "Short Human Name", "layer": "ui|api|data|utils|external", "summary": "What this does in plain English (1-2 sentences max)" } }\n\n';
+  prompt += 'Return ONLY a JSON object: { "filepath": { "title": "Short Human Name", "layer": "ui|api|data|utils|external", "summary": "What this does in plain English (2-3 sentences)" } }\n\n';
   prompt += 'RULES FOR TITLE:\n';
   prompt += '- Short, clear, descriptive. "Daily Summary Scheduler" not "Daily Summary". "Firebase Push Notifications" not "Fcm Helper".\n';
   prompt += '- Never just repeat the filename.\n\n';
   prompt += 'RULES FOR SUMMARY:\n';
-  prompt += '- Explain what it DOES for the app. Be specific. Write for someone who cannot read code.\n\n';
+  prompt += '- Write 2-3 sentences (aim for 200-350 characters). Never just one short sentence.\n';
+  prompt += '- Sentence 1: WHAT it does for the app (the user-facing purpose).\n';
+  prompt += '- Sentence 2: HOW it fits in — what it connects to, when it runs, or what makes it distinctive.\n';
+  prompt += '- Optional sentence 3: a concrete detail (key behaviour, input/output, edge case) that helps a product owner understand its role.\n';
+  prompt += '- Be specific. Avoid filler like "This file..." or "A module that...". Write for someone who cannot read code.\n\n';
   prompt += 'RULES FOR LAYER:\n';
   prompt += '- "ui" = screens, pages, modals, buttons, visual components, React hooks (useXxx)\n';
   prompt += '- "api" = backend API endpoints, route handlers\n';
@@ -181,7 +185,7 @@ function processBatches(
     let output = '';
     const child = spawn(provider.bin, provider.buildArgs(prompt), {
       cwd: projectDir,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: { ...process.env, ...provider.env, PATH: process.env.PATH + ':/usr/local/bin:/opt/homebrew/bin' },
     });
 
